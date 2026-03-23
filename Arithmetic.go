@@ -468,6 +468,48 @@ func convertToTargetType(accumulator interface{}, targetType reflect.Type) (inte
 	}
 }
 
+// getTypeRank returns a numerical rank for a given PLC type to determine dominance.
+// Higher numbers have higher precedence.
+func getTypeRank(t reflect.Type) int {
+	switch t {
+	// Floats
+	case reflect.TypeOf(LREAL(0)):
+		return 20
+	case reflect.TypeOf(REAL(0)):
+		return 19
+
+	// 64-bit Integers
+	case reflect.TypeOf(LINT(0)):
+		return 18
+	case reflect.TypeOf(ULINT(0)), reflect.TypeOf(LWORD(0)):
+		return 17
+
+	// 32-bit Integers
+	case reflect.TypeOf(DINT(0)):
+		return 16
+	case reflect.TypeOf(UDINT(0)), reflect.TypeOf(DWORD(0)):
+		return 15
+
+	// 16-bit Integers
+	case reflect.TypeOf(INT(0)):
+		return 14
+	case reflect.TypeOf(UINT(0)), reflect.TypeOf(WORD(0)):
+		return 13
+
+	// 8-bit Integers
+	case reflect.TypeOf(SINT(0)):
+		return 12
+	case reflect.TypeOf(USINT(0)), reflect.TypeOf(BYTE(0)):
+		return 11
+
+	// Other
+	case reflect.TypeOf(BOOL(false)):
+		return 1
+	default:
+		return 0 // Includes STRING, TIME, DATE, etc. which have special handling
+	}
+}
+
 // --- End Helper Functions ---
 
 // ADD performs addition on a slice of mixed PLC data types.
@@ -538,7 +580,7 @@ numeric_add:
 	}
 
 	var finalAccumulator interface{}
-	var targetType reflect.Type
+	targetType := reflect.TypeOf(nums[0]) // Start with the first type
 
 	if useLREAL {
 		var accLREAL LREAL
@@ -550,7 +592,13 @@ numeric_add:
 			accLREAL += val
 		}
 		finalAccumulator = accLREAL
-		targetType = reflect.TypeOf(LREAL(0)) // Result type should be LREAL
+		// Determine the largest float type present
+		for _, num := range nums {
+			numType := reflect.TypeOf(num)
+			if getTypeRank(numType) > getTypeRank(targetType) {
+				targetType = numType
+			}
+		}
 	} else { // All integer-like (or bools, time types as int, strings as int)
 		var accLINT LINT
 		for _, num := range nums {
@@ -562,20 +610,12 @@ numeric_add:
 		}
 		finalAccumulator = accLINT
 
-		// Determine target type for integer-only addition
-		firstIntType := reflect.TypeOf(nums[0])
-		allSameIntType := true
+		// Determine the largest integer-like type present
 		for i := 1; i < len(nums); i++ {
-			// Also consider bool and string as potentially different
-			if reflect.TypeOf(nums[i]) != firstIntType || reflect.TypeOf(nums[i]) == reflect.TypeOf(BOOL(false)) || reflect.TypeOf(nums[i]) == reflect.TypeOf(STRING("")) {
-				allSameIntType = false
-				break
+			numType := reflect.TypeOf(nums[i])
+			if getTypeRank(numType) > getTypeRank(targetType) {
+				targetType = numType
 			}
-		}
-		if allSameIntType {
-			targetType = reflect.TypeOf(nums[len(nums)-1])
-		} else {
-			targetType = reflect.TypeOf(INT(0)) // Promote to INT for mixed non-float types as a safe default
 		}
 	}
 
@@ -591,7 +631,7 @@ numeric_add:
 // The result type is determined by the type of the last element.
 func SUB(nums []interface{}) (interface{}, error) {
 	if len(nums) == 0 {
-		//panic("SUB: input slice cannot be empty")
+		// IEC doesn't define SUB for zero inputs. Returning 0 is a safe default.
 		return 0, nil
 	}
 	if len(nums) == 1 {
@@ -644,7 +684,6 @@ func SUB(nums []interface{}) (interface{}, error) {
 
 numeric_sub:
 	// --- Default Case: Numeric Subtraction ---
-	targetType := reflect.TypeOf(nums[len(nums)-1])
 	useLREAL := false
 	for _, num := range nums {
 		rt := reflect.TypeOf(num)
@@ -660,6 +699,16 @@ numeric_sub:
 	}
 
 	var finalAccumulator interface{}
+	targetType := reflect.TypeOf(nums[0])
+	for _, num := range nums {
+		numType := reflect.TypeOf(num)
+		// Promote target type based on rank
+		if getTypeRank(numType) > getTypeRank(targetType) {
+			targetType = numType
+		}
+	}
+
+	// --- Special Case: Time Arithmetic (Table 30) ---
 
 	if useLREAL {
 		accLREAL, err := anyToLREAL(nums[0])
@@ -705,9 +754,6 @@ func MUL(nums []interface{}) (interface{}, error) {
 		return LINT(1), nil
 	}
 
-	var finalAccumulator interface{}
-	targetType := reflect.TypeOf(nums[len(nums)-1])
-
 	// --- Special Case: Time Arithmetic (Table 30) ---
 	if first, ok := nums[0].(TIME); ok {
 		// Convert TIME to LREAL (milliseconds) for calculation to maintain consistency.
@@ -722,10 +768,20 @@ func MUL(nums []interface{}) (interface{}, error) {
 			}
 			acc *= multiplier
 		}
-		// The result of TIME * ANY_NUM is TIME.
-		finalAccumulator = TIME(time.Duration(acc) * time.Millisecond)
-		targetType = reflect.TypeOf(TIME(0)) // As per IEC 61131-3, the result of TIME * ANY_NUM is TIME.
+		result, err := convertToTargetType(LREAL(acc), reflect.TypeOf(TIME(0)))
+		if err != nil {
+			return nil, fmt.Errorf("MUL: error converting final product to target type TIME: %w. Accumulator was: %v", err, acc)
+		}
+		return result, nil
 	} else {
+		var finalAccumulator interface{}
+		targetType := reflect.TypeOf(nums[0])
+		for _, num := range nums {
+			numType := reflect.TypeOf(num)
+			if getTypeRank(numType) > getTypeRank(targetType) {
+				targetType = numType
+			}
+		}
 		// --- Default Case: Numeric Multiplication ---
 		useLREAL := false
 		for _, num := range nums {
@@ -762,13 +818,12 @@ func MUL(nums []interface{}) (interface{}, error) {
 			}
 			finalAccumulator = accLINT
 		}
+		result, err := convertToTargetType(finalAccumulator, targetType)
+		if err != nil {
+			return nil, fmt.Errorf("MUL: error converting final product to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
+		}
+		return result, nil
 	}
-
-	result, err := convertToTargetType(finalAccumulator, targetType)
-	if err != nil {
-		return nil, fmt.Errorf("MUL: error converting final product to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
-	}
-	return result, nil
 }
 
 // DIV performs division on a slice of mixed PLC data types.
@@ -787,9 +842,6 @@ func DIV(nums []interface{}) (interface{}, error) {
 		return nums[0], nil
 	}
 
-	var finalAccumulator interface{}
-	targetType := reflect.TypeOf(nums[len(nums)-1]) // Default target type, can be overridden
-
 	// --- Special Case: Time Arithmetic (Table 30) ---
 	if first, ok := nums[0].(TIME); ok {
 		// Handle TIME / TIME -> LREAL
@@ -798,7 +850,8 @@ func DIV(nums []interface{}) (interface{}, error) {
 				if time.Duration(secondTime) == 0 {
 					return nil, fmt.Errorf("DIV: division by zero (TIME / TIME)")
 				}
-				finalAccumulator = LREAL(float64(first) / float64(secondTime))
+				finalAccumulator := LREAL(float64(first) / float64(secondTime))
+				// Per standard, TIME/TIME -> REAL. We use LREAL for precision.
 				result, err := convertToTargetType(finalAccumulator, reflect.TypeOf(LREAL(0)))
 				if err != nil {
 					return nil, fmt.Errorf("DIV: error converting final result to target type LREAL: %w. Accumulator was: %v", err, finalAccumulator)
@@ -821,8 +874,21 @@ func DIV(nums []interface{}) (interface{}, error) {
 			}
 			acc /= divisor
 		}
-		finalAccumulator = TIME(time.Duration(acc) * time.Millisecond)
-		targetType = reflect.TypeOf(TIME(0))
+		result, err := convertToTargetType(LREAL(acc), reflect.TypeOf(TIME(0)))
+		if err != nil {
+			return nil, fmt.Errorf("DIV: error converting final result to target type TIME: %w. Accumulator was: %v", err, acc)
+		}
+		return result, nil
+	} else {
+		// --- Default Case: Numeric Division ---
+		//var finalAccumulator interface{}
+		targetType := reflect.TypeOf(nums[0])
+		for _, num := range nums {
+			numType := reflect.TypeOf(num)
+			if getTypeRank(numType) > getTypeRank(targetType) {
+				targetType = numType
+			}
+		}
 	}
 
 	useLREAL := false
@@ -839,6 +905,8 @@ func DIV(nums []interface{}) (interface{}, error) {
 		}
 	}
 
+	var finalAccumulator interface{}
+	targetType := reflect.TypeOf(nums[0])
 	if useLREAL {
 		accLREAL, err := anyToLREAL(nums[0])
 		if err != nil {
@@ -873,10 +941,10 @@ func DIV(nums []interface{}) (interface{}, error) {
 
 	result, err := convertToTargetType(finalAccumulator, targetType)
 	if err != nil {
-		// This can happen if LREAL result is Inf/NaN and target is an integer type.
 		return nil, fmt.Errorf("DIV: error converting final result to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
 	}
 	return result, nil
+
 }
 
 // MOD performs modulo on a slice of mixed integer-like PLC data types.
@@ -889,7 +957,15 @@ func MOD(nums []interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("MOD: input slice must have at least two elements")
 	}
 
-	targetType := reflect.TypeOf(nums[len(nums)-1])
+	targetType := reflect.TypeOf(nums[0])
+	for _, num := range nums {
+		numType := reflect.TypeOf(num)
+		// Promote target type based on rank
+		if getTypeRank(numType) > getTypeRank(targetType) {
+			targetType = numType
+		}
+	}
+
 	// Target for MOD must be integer-like or a time type that can be represented as an integer.
 	if !isPlcIntType(targetType) && targetType != reflect.TypeOf(TIME(0)) &&
 		targetType != reflect.TypeOf(DATE{}) && targetType != reflect.TypeOf(TOD{}) &&

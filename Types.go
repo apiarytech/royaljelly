@@ -60,9 +60,6 @@ type DINT int32
 // LINT signed int 64 bit
 type LINT int64
 
-// ANYINT signed int
-type ANYINT int
-
 // USINT signed int 8 bit
 type USINT uint8
 
@@ -74,9 +71,6 @@ type UDINT uint32
 
 // ULINT signed int 64 bit
 type ULINT uint64
-
-// ANYUINT signed int
-type ANYUINT uint
 
 // REAL float 32 bit
 type REAL float32

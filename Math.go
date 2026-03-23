@@ -148,9 +148,9 @@ func FLOOR(in1 LREAL) LREAL {
 }
 
 // FREXP breaks f into a normalized fraction and an integral power of two. It returns frac and exp satisfying f == frac × 2**exp, with the absolute value of frac in the interval [½, 1].
-func FREXP(in1 LREAL) (LREAL, ANYINT) {
+func FREXP(in1 LREAL) (LREAL, LINT) {
 	frac, exp := math.Frexp(float64(in1))
-	return LREAL(frac), ANYINT(exp)
+	return LREAL(frac), LINT(exp)
 }
 
 // GAMMA returns the Gamma function of in1.
@@ -164,17 +164,17 @@ func HYPOT(in1, in2 LREAL) LREAL {
 }
 
 // Ilogb returns the binary exponent of x as an integer.
-func ILOGB(in1 LREAL) ANYINT {
-	return ANYINT(math.Ilogb(float64(in1)))
+func ILOGB(in1 LREAL) LINT {
+	return LINT(math.Ilogb(float64(in1)))
 }
 
 // INF returns positive infinity if sign >= 0, negative infinity if sign < 0.
-func INF(sign ANYINT) LREAL {
+func INF(sign LINT) LREAL {
 	return LREAL(math.Inf(int(sign)))
 }
 
 // ISINF reports whether in1 is an infinity, according to sign. If sign > 0, IsInf reports whether in1 is positive infinity. If sign < 0, IsInf reports whether in1 is negative infinity. If sign == 0, IsInf reports whether in1 is either infinity.
-func ISINF(in1 LREAL, sign ANYINT) BOOL {
+func ISINF(in1 LREAL, sign LINT) BOOL {
 	return BOOL(math.IsInf(float64(in1), int(sign)))
 }
 
@@ -194,19 +194,19 @@ func J1(in1 LREAL) LREAL {
 }
 
 // Jn returns the order-n Bessel function of the first kind.
-func JN(in1 ANYINT, in2 LREAL) LREAL {
+func JN(in1 LINT, in2 LREAL) LREAL {
 	return LREAL(math.Jn(int(in1), float64(in2)))
 }
 
 // LDEXP is the inverse of Frexp. It returns frac × 2**exp.
-func LDEXP(frac LREAL, exp ANYINT) LREAL {
+func LDEXP(frac LREAL, exp LINT) LREAL {
 	return LREAL(math.Ldexp(float64(frac), int(exp)))
 }
 
 // LGAMMA returns the natural logarithm and sign (-1 or +1) of Gamma(x).
-func LGAMMA(in1 LREAL) (LREAL, ANYINT) {
+func LGAMMA(in1 LREAL) (LREAL, LINT) {
 	x, y := math.Lgamma(float64(in1))
-	return LREAL(x), ANYINT(y)
+	return LREAL(x), LINT(y)
 }
 
 // LOG (aka LN) returns the natural logarithm of in1.
@@ -261,7 +261,7 @@ func POW(in1 LREAL, in2 LREAL) LREAL {
 }
 
 // POW10 returns in1**in2, the base-in1 exponential of in2.
-func POW10(in1 ANYINT) (LREAL, error) {
+func POW10(in1 LINT) (LREAL, error) {
 	n := int(in1)
 	// Prevent panics from math.Pow10 for out-of-range inputs.
 	if n > 308 || n < -324 {
@@ -337,6 +337,6 @@ func Y1(x LREAL) LREAL {
 }
 
 // YN returns the order-n Bessel function of the second kind.
-func YN(n ANYINT, x LREAL) LREAL {
+func YN(n LINT, x LREAL) LREAL {
 	return LREAL(math.Yn(int(n), float64(x)))
 }

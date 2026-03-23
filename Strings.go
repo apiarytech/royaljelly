@@ -274,8 +274,9 @@ func REPEAT(s STRING, count DINT) (STRING, error) {
 // Conforms to IEC 61131-3, Table 29. Renamed from REPLACE to avoid conflict.
 func REPLACE(IN1, IN2 STRING, L, P LINT) (STRING, error) {
 	s1 := string(IN1)
-	l_int := int(L)
-	p_int := int(P)
+	s2 := string(IN2)
+	l := int(L)
+	p := int(P)
 
 	if L < 0 {
 		return "", fmt.Errorf("REPLACE: length L (%d) cannot be negative", L)
@@ -283,28 +284,29 @@ func REPLACE(IN1, IN2 STRING, L, P LINT) (STRING, error) {
 	if P < 0 {
 		return "", fmt.Errorf("REPLACE: position P (%d) cannot be negative", P)
 	}
-
-	// As per IEC standard, P=0 is equivalent to P=1 for REPLACE.
-	if P == 0 {
-		p_int = 1
+	if P < 1 {
+		// As per IEC standard, P=0 is equivalent to P=1.
+		p = 1
 	}
 
 	// When L=0, REPLACE acts like INSERT. INSERT places IN2 *after* position P.
 	if L == 0 {
-		return INSERT(IN1, IN2, P) // INSERT already returns an error
+		return INSERT(IN1, IN2, P)
 	}
 
-	p_zero_based := p_int - 1
-	if p_zero_based > len(s1) {
-		return STRING(s1 + string(IN2)), nil
+	p_zero_based := p - 1
+
+	// If P is beyond the end of the string, append IN2.
+	if p_zero_based >= len(s1) {
+		return STRING(s1 + s2), nil
 	}
 
-	end_delete := p_zero_based + l_int
+	end_delete := p_zero_based + l
 	if end_delete > len(s1) {
 		end_delete = len(s1)
 	}
 
-	return STRING(s1[:p_zero_based] + string(IN2) + s1[end_delete:]), nil
+	return STRING(s1[:p_zero_based] + s2 + s1[end_delete:]), nil
 }
 
 // REPLACE_STR is a wrapper for Go's strings.Replace. It returns a copy of the string s with the first n non-overlapping instances of old replaced by new. If n < 0, there is no limit on the number of replacements.

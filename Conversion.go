@@ -291,9 +291,6 @@ func BYTE_TO_DINT(in BYTE) DINT { return DINT(clampULINT(ULINT(in), MAXDINT)) }
 // BYTE_TO_LINT conversion
 func BYTE_TO_LINT(in BYTE) LINT { return LINT(in.Value()) }
 
-// BYTE_TO_ANYINT conversion
-func BYTE_TO_ANYINT(in BYTE) ANYINT { return ANYINT(clampULINT(ULINT(in), MAXANYINT)) }
-
 // BYTE_TO_USINT conversion
 func BYTE_TO_USINT(in BYTE) USINT { return USINT(in.Value()) }
 
@@ -305,9 +302,6 @@ func BYTE_TO_UDINT(in BYTE) UDINT { return UDINT(clampULINT(ULINT(in), MAXUDINT)
 
 // BYTE_TO_ULINT conversion
 func BYTE_TO_ULINT(in BYTE) ULINT { return ULINT(in.Value()) }
-
-// BYTE_TO_ANYUINT conversion
-func BYTE_TO_ANYUINT(in BYTE) ANYUINT { return ANYUINT(clampULINT(ULINT(in), MAXANYUINT)) }
 
 // BYTE_TO_REAL conversion
 func BYTE_TO_REAL(in BYTE) REAL { return REAL(in.Value()) }
@@ -370,9 +364,6 @@ func WORD_TO_DATE(in WORD) DATE { out, _ := SubDate(in); return out }
 // WORD_TO_Lint conversion
 func WORD_TO_LINT(in WORD) LINT { return LINT(clampULINT(ULINT(in), MAXLINT)) }
 
-// WORD_TO_AnyInt conversion
-func WORD_TO_AnyInt(in WORD) ANYINT { return ANYINT(clampULINT(ULINT(in), MAXANYINT)) }
-
 // WORD_TO_USINT conversion
 func WORD_TO_USINT(in WORD) USINT { return USINT(clampULINT(ULINT(in), MAXUSINT)) }
 
@@ -384,9 +375,6 @@ func WORD_TO_UDINT(in WORD) UDINT { return UDINT(clampULINT(ULINT(in), MAXUDINT)
 
 // WORD_TO_ULINT conversion
 func WORD_TO_ULINT(in WORD) ULINT { return ULINT(in.Value()) }
-
-// WORD_TO_ANYUINT conversion
-func WORD_TO_ANYUINT(in WORD) ANYUINT { return ANYUINT(clampULINT(ULINT(in), MAXANYUINT)) }
 
 // WORD_TO_REAL conversion
 func WORD_TO_REAL(in WORD) REAL { return REAL(clampLREAL(LREAL(in), -MAXREAL, MAXREAL)) }
@@ -443,9 +431,6 @@ func DWORD_TO_TOD(in DWORD) TOD { out, _ := SubTod(in); return out }
 // DWORD_TO_LINT conversion
 func DWORD_TO_LINT(in DWORD) LINT { return LINT(clampULINT(ULINT(in), MAXLINT)) }
 
-// DWORD_TO_ANYINT conversion
-func DWORD_TO_ANYINT(in DWORD) ANYINT { return ANYINT(clampULINT(ULINT(in), MAXANYINT)) }
-
 // DWORD_TO_USINT conversion
 func DWORD_TO_USINT(in DWORD) USINT { return USINT(clampULINT(ULINT(in), MAXUSINT)) }
 
@@ -457,9 +442,6 @@ func DWORD_TO_UDINT(in DWORD) UDINT { return UDINT(in.Value()) }
 
 // DWORD_TO_ULINT conversion
 func DWORD_TO_ULINT(in DWORD) ULINT { return ULINT(clampULINT(ULINT(in), MAXULINT)) }
-
-// DWORD_TO_ANYUINT conversion
-func DWORD_TO_ANYUINT(in DWORD) ANYUINT { return ANYUINT(clampULINT(ULINT(in), MAXANYUINT)) }
 
 // DWORD_TO_REAL conversion
 func DWORD_TO_REAL(in DWORD) REAL { return REAL(clampLREAL(LREAL(in), -MAXREAL, MAXREAL)) }
@@ -501,9 +483,6 @@ func LWORD_TO_DINT(in LWORD) DINT { return DINT(clampULINT(ULINT(in), MAXDINT)) 
 // LWORD_TO_LINT conversion
 func LWORD_TO_LINT(in LWORD) LINT { return LINT(clampULINT(ULINT(in), MAXLINT)) }
 
-// LWORD_TO_ANYINT conversion
-func LWORD_TO_ANYINT(in LWORD) ANYINT { return ANYINT(clampULINT(ULINT(in), MAXANYINT)) }
-
 // LWORD_TO_USINT conversion
 func LWORD_TO_USINT(in LWORD) USINT { return USINT(clampULINT(ULINT(in), MAXUSINT)) }
 
@@ -515,9 +494,6 @@ func LWORD_TO_UDINT(in LWORD) UDINT { return UDINT(clampULINT(ULINT(in), MAXUDIN
 
 // LWORD_TO_ULINT conversion
 func LWORD_TO_ULINT(in LWORD) ULINT { return ULINT(in.Value()) }
-
-// LWORD_TO_ANYUINT conversion
-func LWORD_TO_ANYUINT(in LWORD) ANYUINT { return ANYUINT(clampULINT(ULINT(in), MAXANYUINT)) }
 
 // LWORD_TO_REAL conversion
 func LWORD_TO_REAL(in LWORD) REAL { return REAL(clampLREAL(LREAL(in), -MAXREAL, MAXREAL)) }

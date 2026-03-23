@@ -308,7 +308,7 @@ func TestMathWrappers(t *testing.T) {
 	t.Run("FREXP/LDEXP", func(t *testing.T) {
 		in := LREAL(12.5)
 		frac, exp := FREXP(in)
-		if frac != 0.78125 || exp != 4 {
+		if frac != 0.78125 || exp != LINT(4) {
 			t.Errorf("FREXP(%v) = %v, %v; want 0.78125, 4", in, frac, exp)
 		}
 		result := LDEXP(frac, exp)
@@ -337,7 +337,7 @@ func TestMathWrappers(t *testing.T) {
 
 	t.Run("ILOGB/LOGB", func(t *testing.T) {
 		in := LREAL(128)
-		if ILOGB(in) != 7 {
+		if ILOGB(in) != LINT(7) {
 			t.Errorf("ILOGB(%v) = %v; want 7", in, ILOGB(in))
 		}
 		if LOGB(in) != 7.0 {
@@ -352,15 +352,15 @@ func TestMathWrappers(t *testing.T) {
 		if J1(0) != 0.0 {
 			t.Error("J1(0) should be 0.0")
 		}
-		if JN(2, 0) != 0.0 {
-			t.Error("JN(2, 0) should be 0.0")
+		if JN(LINT(2), 0) != 0.0 {
+			t.Error("JN(LINT(2), 0) should be 0.0")
 		}
 	})
 
 	t.Run("LGAMMA", func(t *testing.T) {
 		lgamma, sign := LGAMMA(LREAL(4))
 		expectedLgamma := LREAL(math.Log(6))
-		if !almostEqual(lgamma, expectedLgamma) || sign != 1 {
+		if !almostEqual(lgamma, expectedLgamma) || sign != LINT(1) {
 			t.Errorf("LGAMMA(4) = %v, %v; want %v, 1", lgamma, sign, expectedLgamma)
 		}
 	})
@@ -380,15 +380,15 @@ func TestMathWrappers(t *testing.T) {
 	})
 
 	t.Run("POW10", func(t *testing.T) {
-		res, err := POW10(3)
+		res, err := POW10(LINT(3))
 		if err != nil || res != 1000.0 {
 			t.Errorf("POW10(3) failed. Got %v, err: %v", res, err)
 		}
-		_, err = POW10(400)
+		_, err = POW10(LINT(400))
 		if err == nil {
 			t.Error("POW10(400) should have returned an error for overflow")
 		}
-		_, err = POW10(-400)
+		_, err = POW10(LINT(-400))
 		if err == nil {
 			t.Error("POW10(-400) should have returned an error for underflow")
 		}
@@ -501,7 +501,7 @@ func TestMathWrappers(t *testing.T) {
 	})
 
 	t.Run("YN", func(t *testing.T) {
-		n := ANYINT(0)
+		n := LINT(0)
 		x := LREAL(1.0)
 		expected := LREAL(math.Yn(int(n), float64(x)))
 		result := YN(n, x)

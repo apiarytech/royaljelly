@@ -38,35 +38,35 @@ func TestTIMESPEC_Methods(t *testing.T) {
 	})
 
 	t.Run("Extraction", func(t *testing.T) {
-		if ts1.YEAR() != ANYINT(now.Year()) {
+		if ts1.YEAR() != LINT(now.Year()) {
 			t.Errorf("YEAR() mismatch. Got %d, want %d", ts1.YEAR(), now.Year())
 		}
-		if ts1.MONTH() != ANYINT(now.Month()) {
+		if ts1.MONTH() != LINT(now.Month()) {
 			t.Errorf("MONTH() mismatch. Got %d, want %d", ts1.MONTH(), now.Month())
 		}
-		if ts1.DAY() != ANYINT(now.Day()) {
+		if ts1.DAY() != LINT(now.Day()) {
 			t.Errorf("DAY() mismatch. Got %d, want %d", ts1.DAY(), now.Day())
 		}
-		if ts1.WEEKDAY() != ANYINT(now.Weekday()) {
+		if ts1.WEEKDAY() != LINT(now.Weekday()) {
 			t.Errorf("WEEKDAY() mismatch. Got %d, want %d", ts1.WEEKDAY(), now.Weekday())
 		}
-		if ts1.HOUR() != ANYINT(now.Hour()) {
+		if ts1.HOUR() != LINT(now.Hour()) {
 			t.Errorf("HOUR() mismatch. Got %d, want %d", ts1.HOUR(), now.Hour())
 		}
-		if ts1.MINUTE() != ANYINT(now.Minute()) {
+		if ts1.MINUTE() != LINT(now.Minute()) {
 			t.Errorf("MINUTE() mismatch. Got %d, want %d", ts1.MINUTE(), now.Minute())
 		}
 		// Millisecond extraction from Nanosecond might have precision issues, check within a range
-		expectedMs := ANYINT(now.Nanosecond() / 1e6)
+		expectedMs := LINT(now.Nanosecond() / 1e6)
 		if ts1.MILLISECOND() != expectedMs {
 			t.Errorf("MILLISECOND() mismatch. Got %d, want %d", ts1.MILLISECOND(), expectedMs)
 		}
-		if ts1.SECOND() != ANYINT(now.Second()) {
+		if ts1.SECOND() != LINT(now.Second()) {
 			t.Errorf("SECOND() mismatch. Got %d, want %d", ts1.SECOND(), now.Second())
 		}
 		year, week := ts1.ISOWEEK()
 		expectedYear, expectedWeek := now.ISOWeek()
-		if year != ANYINT(expectedYear) || week != ANYINT(expectedWeek) {
+		if year != LINT(expectedYear) || week != LINT(expectedWeek) {
 			t.Errorf("ISOWEEK() mismatch. Got year %d, week %d; want year %d, week %d", year, week, expectedYear, expectedWeek)
 		}
 	})

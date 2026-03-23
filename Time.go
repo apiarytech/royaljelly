@@ -66,41 +66,41 @@ func (t *TIMESPEC) DATETIME() (dt DT) {
 	return DT(time.Time(*t))
 }
 
-func (t *TIMESPEC) YEAR() ANYINT {
-	return ANYINT(time.Time(*t).Year())
+func (t *TIMESPEC) YEAR() LINT {
+	return LINT(time.Time(*t).Year())
 }
 
-func (t *TIMESPEC) MONTH() ANYINT {
-	return ANYINT(time.Time(*t).Month())
+func (t *TIMESPEC) MONTH() LINT {
+	return LINT(time.Time(*t).Month())
 }
 
-func (t *TIMESPEC) HOUR() ANYINT {
-	return ANYINT(time.Time(*t).Hour())
+func (t *TIMESPEC) HOUR() LINT {
+	return LINT(time.Time(*t).Hour())
 }
 
-func (t *TIMESPEC) MINUTE() ANYINT {
-	return ANYINT(time.Time(*t).Minute())
+func (t *TIMESPEC) MINUTE() LINT {
+	return LINT(time.Time(*t).Minute())
 }
 
-func (t *TIMESPEC) MILLISECOND() ANYINT {
-	return ANYINT(time.Time(*t).Nanosecond() / 1e6)
+func (t *TIMESPEC) MILLISECOND() LINT {
+	return LINT(time.Time(*t).Nanosecond() / 1e6)
 }
 
-func (t *TIMESPEC) SECOND() ANYINT {
-	return ANYINT(time.Time(*t).Second())
+func (t *TIMESPEC) SECOND() LINT {
+	return LINT(time.Time(*t).Second())
 }
 
-func (t *TIMESPEC) DAY() ANYINT {
-	return ANYINT(time.Time(*t).Day())
+func (t *TIMESPEC) DAY() LINT {
+	return LINT(time.Time(*t).Day())
 }
 
-func (t *TIMESPEC) ISOWEEK() (year, week ANYINT) {
+func (t *TIMESPEC) ISOWEEK() (year, week LINT) {
 	y, w := time.Time(*t).ISOWeek()
-	return ANYINT(y), ANYINT(w)
+	return LINT(y), LINT(w)
 }
 
-func (t *TIMESPEC) WEEKDAY() ANYINT {
-	return ANYINT(time.Time(*t).Weekday())
+func (t *TIMESPEC) WEEKDAY() LINT {
+	return LINT(time.Time(*t).Weekday())
 }
 
 func NOW() TIMESPEC {
