@@ -10,9 +10,20 @@ on:
     branches: [ "main" ]
 
 jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        go:
+          - '1.13' # minimum version
+          - 'oldstable'
+          - 'stable'
+    runs-on: ${{ matrix.os }}
 
-  build:
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
@@ -22,7 +33,10 @@ jobs:
         go-version: '1.26.x'
 
     - name: Build
-      run: go build -v ./...
+      run: |
+        go get ./...
+        go install .
+        go build -v ./...
 
     - name: Test
       run: go test -v ./...
