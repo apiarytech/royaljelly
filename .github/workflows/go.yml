@@ -12,22 +12,15 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # Test with a matrix of Node.js versions
-        node-version: [24]
-        # Optional: you can add other versions like 20, 22
-        # node-version: [20, 22, 24]
-        # See supported Node.js versions in the setup-node documentation
-        
+    runs-on: ubuntu-lateest        
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.26.1'
+        go-version: '1.26'
 
     - name: Build
       run: go build -v ./...
