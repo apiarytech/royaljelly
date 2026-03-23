@@ -204,9 +204,18 @@ func TestTaggerInterfaceImplementation(t *testing.T) {
 	// Assign to the interface to check for compile-time satisfaction.
 	var _ Tagger = tag
 
-	if tag.GetName() != "MyTag" {
-		t.Errorf("GetName() = %s; want 'MyTag'", tag.GetName())
+	// When Alias is set, GetName() should return the Alias.
+	if tag.GetName() != "MyAlias" {
+		t.Errorf("GetName() with alias = %s; want 'MyAlias'", tag.GetName())
 	}
+
+	// When Alias is not set, GetName() should return the Name.
+	tag.Alias = ""
+	if tag.GetName() != "MyTag" {
+		t.Errorf("GetName() without alias = %s; want 'MyTag'", tag.GetName())
+	}
+	tag.Alias = "MyAlias" // Reset for next check
+
 	if tag.GetAlias() != "MyAlias" {
 		t.Errorf("GetAlias() = %s; want 'MyAlias'", tag.GetAlias())
 	}
@@ -264,4 +273,195 @@ func TestTaggerInterfaceUsage(t *testing.T) {
 
 	t.Log("Successfully demonstrated passing a concrete type (*Tag) to a function expecting an interface (Tagger).")
 	t.Logf("Output of PrintTagDetails: %s", details)
+}
+
+func TestGetAndSetTagValue(t *testing.T) {
+	db := NewTagDatabase()
+	tagName := "MyTestTag"
+	initialTag := Tag{
+		Name:     tagName,
+		DataType: TypeDINT,
+		Value:    DINT(100),
+	}
+	db.AddTag(initialTag)
+
+	// 1. Test GetTagValue
+	val, err := db.GetTagValue(tagName)
+	if err != nil {
+		t.Fatalf("GetTagValue returned an unexpected error: %v", err)
+	}
+	if val != DINT(100) {
+		t.Errorf("GetTagValue returned %v, want %v", val, DINT(100))
+	}
+
+	// 2. Test SetTagValue with correct type
+	err = db.SetTagValue(tagName, DINT(200))
+	if err != nil {
+		t.Fatalf("SetTagValue returned an unexpected error: %v", err)
+	}
+
+	// Verify the value was updated
+	updatedVal, _ := db.GetTagValue(tagName)
+	if updatedVal != DINT(200) {
+		t.Errorf("Value after SetTagValue is %v, want %v", updatedVal, DINT(200))
+	}
+
+	// 3. Test GetValue method on the Tag struct itself
+	tag, _ := db.GetTag(tagName)
+	if tag.GetValue() != DINT(200) {
+		t.Errorf("tag.GetValue() returned %v, want %v", tag.GetValue(), DINT(200))
+	}
+}
+
+// TestSetTagValue_Errors checks error conditions for SetTagValue.
+func TestSetTagValue_Errors(t *testing.T) {
+	db := NewTagDatabase()
+	tagName := "MyTag"
+	db.AddTag(Tag{Name: tagName, DataType: TypeREAL, Value: REAL(1.23)})
+
+	// 1. Test setting a non-existent tag
+	err := db.SetTagValue("NonExistentTag", REAL(4.56))
+	if err == nil {
+		t.Error("SetTagValue should have returned an error for a non-existent tag")
+	}
+
+	// 2. Test setting a value with the wrong type
+	err = db.SetTagValue(tagName, DINT(123))
+	if err == nil {
+		t.Error("SetTagValue should have returned a type mismatch error")
+	}
+	expectedError := "type mismatch for tag 'MyTag': expects DataType REAL, but got DINT"
+	if err.Error() != expectedError {
+		t.Errorf("SetTagValue returned wrong error message.\nGot:  %s\nWant: %s", err.Error(), expectedError)
+	}
+
+	// 3. Test setting a value with an unsupported type
+	type UnsupportedType struct{}
+	err = db.SetTagValue(tagName, UnsupportedType{})
+	if err == nil {
+		t.Error("SetTagValue should have returned an unsupported type error")
+	}
+
+	// Verify the original value was not changed after errors
+	val, _ := db.GetTagValue(tagName)
+	if val != REAL(1.23) {
+		t.Errorf("Tag value was modified after an error. Got %v, want %v", val, REAL(1.23))
+	}
+}
+
+// TestGetTagValue_Error checks error conditions for GetTagValue.
+func TestGetTagValue_Error(t *testing.T) {
+	db := NewTagDatabase()
+
+	// Test getting a non-existent tag
+	_, err := db.GetTagValue("NonExistentTag")
+	if err == nil {
+		t.Error("GetTagValue should have returned an error for a non-existent tag")
+	}
+}
+
+// TestSetTagPersistence verifies the SetTagPersistence method.
+func TestSetTagPersistence(t *testing.T) {
+	db := NewTagDatabase()
+	tagName := "MyPersistentTag"
+
+	// Add a tag, initially not persistent.
+	db.AddTag(Tag{Name: tagName, DataType: TypeINT, Value: INT(123), Persistent: false})
+
+	// 1. Set Persistent to true.
+	err := db.SetTagPersistence(tagName, true)
+	if err != nil {
+		t.Fatalf("SetTagPersistence(true) returned an unexpected error: %v", err)
+	}
+
+	// Verify the change.
+	tag, _ := db.GetTag(tagName)
+	if !tag.Persistent {
+		t.Error("Tag should be persistent after setting to true, but it's not.")
+	}
+
+	// 2. Set Persistent back to false.
+	err = db.SetTagPersistence(tagName, false)
+	if err != nil {
+		t.Fatalf("SetTagPersistence(false) returned an unexpected error: %v", err)
+	}
+
+	// Verify the change.
+	tag, _ = db.GetTag(tagName)
+	if tag.Persistent {
+		t.Error("Tag should not be persistent after setting to false, but it is.")
+	}
+
+	// 3. Test error on non-existent tag.
+	err = db.SetTagPersistence("NonExistentTag", true)
+	if err == nil {
+		t.Error("SetTagPersistence should have returned an error for a non-existent tag.")
+	}
+}
+
+// TestSetTagDescription verifies the SetTagDescription method.
+func TestSetTagDescription(t *testing.T) {
+	db := NewTagDatabase()
+	tagName := "MyDescribedTag"
+	initialDescription := "Initial description."
+
+	// Add a tag with an initial description.
+	db.AddTag(Tag{Name: tagName, DataType: TypeSTRING, Description: initialDescription})
+
+	// 1. Update the description.
+	newDescription := "This is the updated description."
+	err := db.SetTagDescription(tagName, newDescription)
+	if err != nil {
+		t.Fatalf("SetTagDescription returned an unexpected error: %v", err)
+	}
+
+	// Verify the change.
+	tag, _ := db.GetTag(tagName)
+	if tag.Description != newDescription {
+		t.Errorf("Tag description was not updated. Got '%s', want '%s'", tag.Description, newDescription)
+	}
+	if tag.GetDescription() != newDescription {
+		t.Errorf("tag.GetDescription() did not return the updated value. Got '%s', want '%s'", tag.GetDescription(), newDescription)
+	}
+
+	// 2. Test error on non-existent tag.
+	err = db.SetTagDescription("NonExistentTag", "some description")
+	if err == nil {
+		t.Error("SetTagDescription should have returned an error for a non-existent tag.")
+	}
+}
+
+// TestSetTagAlias verifies the SetTagAlias method.
+func TestSetTagAlias(t *testing.T) {
+	db := NewTagDatabase()
+	tagName := "MyAliasedTag"
+
+	// Add a tag with no initial alias.
+	db.AddTag(Tag{Name: tagName, DataType: TypeDINT})
+
+	// 1. Update the alias.
+	newAlias := "TheNewAlias"
+	err := db.SetTagAlias(tagName, newAlias)
+	if err != nil {
+		t.Fatalf("SetTagAlias returned an unexpected error: %v", err)
+	}
+
+	// Verify the change.
+	tag, _ := db.GetTag(tagName)
+	if tag.Alias != newAlias {
+		t.Errorf("Tag alias was not updated. Got '%s', want '%s'", tag.Alias, newAlias)
+	}
+	// Remember that GetName() should now return the alias.
+	if tag.GetName() != newAlias {
+		t.Errorf("tag.GetName() did not return the new alias. Got '%s', want '%s'", tag.GetName(), newAlias)
+	}
+	if tag.GetAlias() != newAlias {
+		t.Errorf("tag.GetAlias() did not return the new alias. Got '%s', want '%s'", tag.GetAlias(), newAlias)
+	}
+
+	// 2. Test error on non-existent tag.
+	err = db.SetTagAlias("NonExistentTag", "some-alias")
+	if err == nil {
+		t.Error("SetTagAlias should have returned an error for a non-existent tag.")
+	}
 }
