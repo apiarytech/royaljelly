@@ -1,20 +1,12 @@
 /*
  * Copyright (C) 2026 Franklin D. Amador
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This software is dual-licensed under:
+ * - GPL v2.0
+ * - Commercial
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
-
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * You may choose to use this software under the terms of either license.
+ * See the LICENSE files in the project root for full license text.
  */
 
 package royaljelly
@@ -46,6 +38,8 @@ func HasBit[T ANY_INT](n T, pos uint) BOOL {
 
 // AND performs a bitwise AND on a slice of ANY_BIT types.
 // The result type is determined by the type of the last element.
+// The result type is determined by the largest of the input types,
+// following IEC 61131-3 type promotion rules.
 func AND(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
 		// IEC 61131-3 does not define behavior for empty inputs. Returning 0 is a safe default.
@@ -70,6 +64,13 @@ func AND(inputs []interface{}) (interface{}, error) {
 	}
 
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
+	// Determine the largest integer-like type present
+	targetType := reflect.TypeOf(inputs[0])
+	for _, num := range inputs {
+		if getTypeRank(reflect.TypeOf(num)) > getTypeRank(targetType) {
+			targetType = reflect.TypeOf(num)
+		}
+	}
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
 		return nil, fmt.Errorf("AND: error converting final result to target type %v: %w", targetType, err)
@@ -95,6 +96,8 @@ func NOT(in interface{}) (interface{}, error) {
 }
 
 // OR performs a bitwise OR on a slice of ANY_BIT types.
+// The result type is determined by the largest of the input types,
+// following IEC 61131-3 type promotion rules.
 func OR(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
 		return LWORD(0), nil
@@ -118,6 +121,13 @@ func OR(inputs []interface{}) (interface{}, error) {
 	}
 
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
+	// Determine the largest integer-like type present
+	targetType := reflect.TypeOf(inputs[0])
+	for _, num := range inputs {
+		if getTypeRank(reflect.TypeOf(num)) > getTypeRank(targetType) {
+			targetType = reflect.TypeOf(num)
+		}
+	}
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
 		return nil, fmt.Errorf("OR: error converting final result to target type %v: %w", targetType, err)
@@ -126,6 +136,8 @@ func OR(inputs []interface{}) (interface{}, error) {
 }
 
 // XOR performs a bitwise XOR on a slice of ANY_BIT types.
+// The result type is determined by the largest of the input types,
+// following IEC 61131-3 type promotion rules.
 func XOR(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
 		return LWORD(0), nil
@@ -149,6 +161,13 @@ func XOR(inputs []interface{}) (interface{}, error) {
 	}
 
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
+	// Determine the largest integer-like type present
+	targetType := reflect.TypeOf(inputs[0])
+	for _, num := range inputs {
+		if getTypeRank(reflect.TypeOf(num)) > getTypeRank(targetType) {
+			targetType = reflect.TypeOf(num)
+		}
+	}
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
 		return nil, fmt.Errorf("XOR: error converting final result to target type %v: %w", targetType, err)
