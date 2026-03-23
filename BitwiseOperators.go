@@ -46,25 +46,25 @@ func HasBit[T ANY_INT](n T, pos uint) BOOL {
 
 // AND performs a bitwise AND on a slice of ANY_BIT types.
 // The result type is determined by the type of the last element.
-func AND(inputs []interface{}) interface{} {
+func AND(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
 		// IEC 61131-3 does not define behavior for empty inputs. Returning 0 is a safe default.
-		return LWORD(0)
+		return LWORD(0), nil
 	}
 
 	if len(inputs) == 1 {
-		return inputs[0] // With one input, the result is the input itself.
+		return inputs[0], nil // With one input, the result is the input itself.
 	}
 
 	// Initialize accumulator with all bits set to 1.
 	acc, err := anyToULINT(inputs[0])
 	if err != nil {
-		panic(fmt.Sprintf("AND: error converting first element %v (type %T) to ULINT: %v", inputs[0], inputs[0], err))
+		return nil, fmt.Errorf("AND: error converting first element %v (type %T) to ULINT: %w", inputs[0], inputs[0], err)
 	}
 	for i := 1; i < len(inputs); i++ {
 		val, err := anyToULINT(inputs[i])
 		if err != nil {
-			panic(fmt.Sprintf("AND: error converting element %v (type %T) to ULINT: %v", inputs[i], inputs[i], err))
+			return nil, fmt.Errorf("AND: error converting element %v (type %T) to ULINT: %w", inputs[i], inputs[i], err)
 		}
 		acc &= val
 	}
@@ -72,16 +72,16 @@ func AND(inputs []interface{}) interface{} {
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("AND: error converting final result to target type %v: %v", targetType, err))
+		return nil, fmt.Errorf("AND: error converting final result to target type %v: %w", targetType, err)
 	}
-	return result
+	return result, nil
 }
 
 // NOT performs a bitwise NOT on a single ANY_BIT type.
-func NOT(in interface{}) interface{} {
+func NOT(in interface{}) (interface{}, error) {
 	val, err := anyToULINT(in)
 	if err != nil {
-		panic(fmt.Sprintf("NOT: error converting %v (type %T) to ULINT: %v", in, in, err))
+		return nil, fmt.Errorf("NOT: error converting %v (type %T) to ULINT: %w", in, in, err)
 	}
 
 	acc := ^val
@@ -89,30 +89,30 @@ func NOT(in interface{}) interface{} {
 	targetType := reflect.TypeOf(in)
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("NOT: error converting final result to target type %v: %v", targetType, err))
+		return nil, fmt.Errorf("NOT: error converting final result to target type %v: %w", targetType, err)
 	}
-	return result
+	return result, nil
 }
 
 // OR performs a bitwise OR on a slice of ANY_BIT types.
-func OR(inputs []interface{}) interface{} {
+func OR(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
-		return LWORD(0)
+		return LWORD(0), nil
 	}
 
 	if len(inputs) == 1 {
-		return inputs[0]
+		return inputs[0], nil
 	}
 
 	acc, err := anyToULINT(inputs[0])
 	if err != nil {
-		panic(fmt.Sprintf("OR: error converting first element %v (type %T) to ULINT: %v", inputs[0], inputs[0], err))
+		return nil, fmt.Errorf("OR: error converting first element %v (type %T) to ULINT: %w", inputs[0], inputs[0], err)
 	}
 
 	for i := 1; i < len(inputs); i++ {
 		val, err := anyToULINT(inputs[i])
 		if err != nil {
-			panic(fmt.Sprintf("OR: error converting element %v (type %T) to ULINT: %v", inputs[i], inputs[i], err))
+			return nil, fmt.Errorf("OR: error converting element %v (type %T) to ULINT: %w", inputs[i], inputs[i], err)
 		}
 		acc |= val
 	}
@@ -120,30 +120,30 @@ func OR(inputs []interface{}) interface{} {
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("OR: error converting final result to target type %v: %v", targetType, err))
+		return nil, fmt.Errorf("OR: error converting final result to target type %v: %w", targetType, err)
 	}
-	return result
+	return result, nil
 }
 
 // XOR performs a bitwise XOR on a slice of ANY_BIT types.
-func XOR(inputs []interface{}) interface{} {
+func XOR(inputs []interface{}) (interface{}, error) {
 	if len(inputs) == 0 {
-		return LWORD(0)
+		return LWORD(0), nil
 	}
 
 	if len(inputs) == 1 {
-		return inputs[0]
+		return inputs[0], nil
 	}
 
 	acc, err := anyToULINT(inputs[0])
 	if err != nil {
-		panic(fmt.Sprintf("XOR: error converting first element %v (type %T) to ULINT: %v", inputs[0], inputs[0], err))
+		return nil, fmt.Errorf("XOR: error converting first element %v (type %T) to ULINT: %w", inputs[0], inputs[0], err)
 	}
 
 	for i := 1; i < len(inputs); i++ {
 		val, err := anyToULINT(inputs[i])
 		if err != nil {
-			panic(fmt.Sprintf("XOR: error converting element %v (type %T) to ULINT: %v", inputs[i], inputs[i], err))
+			return nil, fmt.Errorf("XOR: error converting element %v (type %T) to ULINT: %w", inputs[i], inputs[i], err)
 		}
 		acc ^= val
 	}
@@ -151,20 +151,20 @@ func XOR(inputs []interface{}) interface{} {
 	targetType := reflect.TypeOf(inputs[len(inputs)-1])
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("XOR: error converting final result to target type %v: %v", targetType, err))
+		return nil, fmt.Errorf("XOR: error converting final result to target type %v: %w", targetType, err)
 	}
-	return result
+	return result, nil
 }
 
 // bitShift is a generic helper for all shift and rotate operations.
-func bitShift(op string, in interface{}, n int) interface{} {
+func bitShift(op string, in interface{}, n int) (interface{}, error) {
 	if n < 0 {
-		panic(fmt.Sprintf("%s: shift/rotate count 'n' cannot be negative, got %d", op, n))
+		return nil, fmt.Errorf("%s: shift/rotate count 'n' cannot be negative, got %d", op, n)
 	}
 
 	val, err := anyToULINT(in)
 	if err != nil {
-		panic(fmt.Sprintf("%s: error converting %v (type %T) to ULINT: %v", op, in, in, err))
+		return nil, fmt.Errorf("%s: error converting %v (type %T) to ULINT: %w", op, in, in, err)
 	}
 
 	targetType := reflect.TypeOf(in)
@@ -200,32 +200,32 @@ func bitShift(op string, in interface{}, n int) interface{} {
 			acc = ULINT(bits.RotateLeft64(uint64(val), -n))
 		}
 	default:
-		panic("bitShift: unknown operation: " + op)
+		return nil, fmt.Errorf("bitShift: unknown operation: %s", op)
 	}
 
 	result, err := convertToTargetType(acc, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("%s: error converting final result to target type %v: %v", op, targetType, err))
+		return nil, fmt.Errorf("%s: error converting final result to target type %v: %w", op, targetType, err)
 	}
-	return result
+	return result, nil
 }
 
 // ROL performs a bitwise rotation to the left.
-func ROL(in interface{}, n int) interface{} {
+func ROL(in interface{}, n int) (interface{}, error) {
 	return bitShift("ROL", in, n)
 }
 
 // ROR performs a bitwise rotation to the right.
-func ROR(in interface{}, n int) interface{} {
+func ROR(in interface{}, n int) (interface{}, error) {
 	return bitShift("ROR", in, n)
 }
 
 // SHL performs a bitwise left shift, filling with zeros.
-func SHL(in interface{}, n int) interface{} {
+func SHL(in interface{}, n int) (interface{}, error) {
 	return bitShift("SHL", in, n)
 }
 
 // SHR performs a bitwise right shift, filling with zeros.
-func SHR(in interface{}, n int) interface{} {
+func SHR(in interface{}, n int) (interface{}, error) {
 	return bitShift("SHR", in, n)
 }

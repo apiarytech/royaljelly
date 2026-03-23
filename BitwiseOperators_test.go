@@ -106,7 +106,7 @@ func TestAND(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 		panicValue  error
 	}{
 		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b1000), false, nil},
@@ -119,20 +119,16 @@ func TestAND(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("AND(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("AND(%v) panicked; got %v", tc.inputs, r)
+			result, err := AND(tc.inputs)
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("AND(%v) did not return an error; expected error", tc.inputs)
 				}
-			}()
-
-			result := AND(tc.inputs)
-
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("AND(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("AND(%v) = %v (type %T); want %v (type %T)", tc.inputs, result, result, tc.expected, tc.expected)
 				}
@@ -146,7 +142,7 @@ func TestOR(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b1110), false},
 		{"WORDs", []interface{}{WORD(0xFF00), WORD(0x00FF)}, WORD(0xFFFF), false},
@@ -158,19 +154,15 @@ func TestOR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("OR(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("OR(%v) panicked; got %v", tc.inputs, r)
+			result, err := OR(tc.inputs)
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("OR(%v) did not return an error; expected error", tc.inputs)
 				}
-			}()
-
-			result := OR(tc.inputs)
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("OR(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("OR(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -184,7 +176,7 @@ func TestXOR(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b0110), false},
 		{"WORDs", []interface{}{WORD(0xFF00), WORD(0xFFFF)}, WORD(0x00FF), false},
@@ -196,19 +188,15 @@ func TestXOR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("XOR(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("XOR(%v) panicked; got %v", tc.inputs, r)
+			result, err := XOR(tc.inputs)
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("XOR(%v) did not return an error; expected error", tc.inputs)
 				}
-			}()
-
-			result := XOR(tc.inputs)
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("XOR(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("XOR(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -222,7 +210,7 @@ func TestNOT(t *testing.T) {
 		name        string
 		input       interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"BYTE", BYTE(0b11110000), BYTE(0b00001111), false},
 		{"WORD", WORD(0x00FF), WORD(0xFF00), false},
@@ -232,19 +220,15 @@ func TestNOT(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("NOT(%v) did not panic; expected panic", tc.input)
-					}
-				} else if r != nil {
-					t.Errorf("NOT(%v) panicked; got %v", tc.input, r)
+			result, err := NOT(tc.input)
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("NOT(%v) did not return an error; expected error", tc.input)
 				}
-			}()
-
-			result := NOT(tc.input)
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("NOT(%v) returned an unexpected error: %v", tc.input, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("NOT(%v) = %v; want %v", tc.input, result, tc.expected)
 				}
@@ -269,7 +253,10 @@ func TestSHL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := SHL(tc.in, tc.n)
+			result, err := SHL(tc.in, tc.n)
+			if err != nil {
+				t.Fatalf("SHL(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+			}
 			if result != tc.expected {
 				t.Errorf("SHL(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
 			}
@@ -293,7 +280,10 @@ func TestSHR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := SHR(tc.in, tc.n)
+			result, err := SHR(tc.in, tc.n)
+			if err != nil {
+				t.Fatalf("SHR(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+			}
 			if result != tc.expected {
 				t.Errorf("SHR(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
 			}
@@ -307,7 +297,7 @@ func TestROL(t *testing.T) {
 		in          interface{}
 		n           int
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"BYTE", BYTE(0b11000001), 1, BYTE(0b10000011), false},
 		{"WORD", WORD(0x8001), 1, WORD(0x0003), false},
@@ -319,20 +309,16 @@ func TestROL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("ROL(%v, %d) did not panic; expected panic", tc.in, tc.n)
-					}
-				} else if r != nil {
-					t.Errorf("ROL(%v, %d) panicked; got %v", tc.in, tc.n, r)
+			result, err := ROL(tc.in, tc.n)
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("ROL(%v, %d) did not return an error; expected error", tc.in, tc.n)
 				}
-			}()
-
-			result := ROL(tc.in, tc.n)
-
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("ROL(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+				}
 				if result != tc.expected {
 					t.Errorf("ROL(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
 				}
@@ -347,7 +333,7 @@ func TestROR(t *testing.T) {
 		in          interface{}
 		n           int
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"BYTE", BYTE(0b11000001), 1, BYTE(0b11100000), false},
 		{"WORD", WORD(0x0003), 1, WORD(0x8001), false},
@@ -359,20 +345,16 @@ func TestROR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("ROR(%v, %d) did not panic; expected panic", tc.in, tc.n)
-					}
-				} else if r != nil {
-					t.Errorf("ROR(%v, %d) panicked; got %v", tc.in, tc.n, r)
+			result, err := ROR(tc.in, tc.n)
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("ROR(%v, %d) did not return an error; expected error", tc.in, tc.n)
 				}
-			}()
-
-			result := ROR(tc.in, tc.n)
-
-			if !tc.expectPanic {
+			} else {
+				if err != nil {
+					t.Errorf("ROR(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+				}
 				if result != tc.expected {
 					t.Errorf("ROR(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
 				}

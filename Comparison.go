@@ -181,9 +181,8 @@ func NE(inputs []interface{}) BOOL {
 	res, err := compare(inputs[0], inputs[1])
 	if err != nil {
 		// Per IEC standard, if types are not comparable, the result is implementation-dependent.
-		// Returning true for NE seems reasonable if they can't be compared, as they are not equal.
-		// However, to be safe and indicate a potential programming error, we can return false.
-		return true
+		// Returning false indicates a programming error, which is a safer default than returning true.
+		return false
 	}
 	return res != 0
 }

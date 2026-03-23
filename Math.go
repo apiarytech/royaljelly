@@ -22,6 +22,7 @@
 package royaljelly
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -260,8 +261,13 @@ func POW(in1 LREAL, in2 LREAL) LREAL {
 }
 
 // POW10 returns in1**in2, the base-in1 exponential of in2.
-func POW10(in1 ANYINT) LREAL {
-	return LREAL(math.Pow10(int(in1)))
+func POW10(in1 ANYINT) (LREAL, error) {
+	n := int(in1)
+	// Prevent panics from math.Pow10 for out-of-range inputs.
+	if n > 308 || n < -324 {
+		return 0, fmt.Errorf("POW10: input %d is out of range", n)
+	}
+	return LREAL(math.Pow10(n)), nil
 }
 
 // REMAINDER returns the IEEE 754 floating-point remainder of x/y.

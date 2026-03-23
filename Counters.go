@@ -63,7 +63,7 @@ func (CTU *CTU) CTU() {
 
 	if CTU.R {
 		CTU.CV = 0
-	} else if CTU.re.Q && (CTU.CV < CTU.PV) {
+	} else if CTU.re.Q { // Standard allows CV to increment past PV
 		CTU.CV += 1
 	}
 
@@ -115,8 +115,7 @@ func (CTD *CTD) CTD() {
 
 	if CTD.LD {
 		CTD.CV = CTD.PV
-		// As per standard, count down on rising edge of CD, while CV > 0
-	} else if CTD.re.Q && (CTD.CV > 0) {
+	} else if CTD.re.Q { // Standard allows CV to decrement past 0
 		CTD.CV -= 1
 	}
 
@@ -183,10 +182,10 @@ func (CTUD *CTUD) CTUD() {
 		CTUD.CV = CTUD.PV
 	} else {
 		// As per standard, if both CU and CD have a rising edge in the same scan, no action is taken.
-		if CTUD.reUP.Q && !CTUD.reDOWN.Q && (CTUD.CV < CTUD.PV) {
+		if CTUD.reUP.Q && !CTUD.reDOWN.Q { // Standard allows CV to increment past PV
 			// Count up only on a rising edge of CU
 			CTUD.CV += 1
-		} else if CTUD.reDOWN.Q && !CTUD.reUP.Q && (CTUD.CV > 0) {
+		} else if CTUD.reDOWN.Q && !CTUD.reUP.Q { // Standard allows CV to decrement past 0
 			// Count down only on a rising edge of CD
 			CTUD.CV -= 1
 		}

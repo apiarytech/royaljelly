@@ -382,76 +382,76 @@ func convertToTargetType(accumulator interface{}, targetType reflect.Type) (inte
 		}
 	case reflect.TypeOf(BYTE(0)):
 		if sourceIsLREAL {
-			return SubByte(REAL(sourceLREAL)), nil
+			return SubByte(REAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubByte(ULINT(sourceULINT)), nil
+			return SubByte(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubByte(LINT(sourceLINT)), nil
+			return SubByte(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(WORD(0)):
 		if sourceIsLREAL {
-			return SubWord(REAL(sourceLREAL)), nil
+			return SubWord(REAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubWord(ULINT(sourceULINT)), nil
+			return SubWord(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubWord(LINT(sourceLINT)), nil
+			return SubWord(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(DWORD(0)):
 		if sourceIsLREAL {
-			return SubDword(REAL(sourceLREAL)), nil
+			return SubDword(REAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubDword(ULINT(sourceULINT)), nil
+			return SubDword(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubDword(LINT(sourceLINT)), nil
+			return SubDword(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(LWORD(0)):
 		if sourceIsLREAL {
-			return SubLword(REAL(sourceLREAL)), nil
+			return SubLword(REAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubLword(ULINT(sourceULINT)), nil
+			return SubLword(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubLword(LINT(sourceLINT)), nil
+			return SubLword(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(TIME(0)):
 		if sourceIsLREAL {
-			return SubTime(LREAL(sourceLREAL)), nil
+			return SubTime(LREAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubTime(ULINT(sourceULINT)), nil
+			return SubTime(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubTime(LINT(sourceLINT | LINT(sourceULINT))), nil
+			return SubTime(LINT(sourceLINT | LINT(sourceULINT)))
 		}
 	case reflect.TypeOf(DATE(time.Time{})):
 		if _, ok := originalAccumulator.(DATE); ok { // If original accumulator was DATE, return it directly
 			return originalAccumulator, nil
 		}
 		if sourceIsLREAL {
-			return SubDate(LREAL(sourceLREAL)), nil
+			return SubDate(LREAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubDate(ULINT(sourceULINT)), nil
+			return SubDate(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubDate(LINT(sourceLINT)), nil
+			return SubDate(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(TOD(time.Time{})):
 		if _, ok := originalAccumulator.(TOD); ok { // If original accumulator was TOD, return it directly
 			return originalAccumulator, nil
 		}
 		if sourceIsLREAL {
-			return SubTod(LREAL(sourceLREAL)), nil
+			return SubTod(LREAL(sourceLREAL))
 		} else if sourceULINT != 0 { // Added this for consistency
-			return SubTod(ULINT(sourceULINT)), nil
+			return SubTod(ULINT(sourceULINT))
 		} else {
-			return SubTod(LINT(sourceLINT)), nil
+			return SubTod(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(DT(time.Time{})):
 		if _, ok := originalAccumulator.(DT); ok { // If original accumulator was DT, return it directly
 			return originalAccumulator, nil
 		}
 		if sourceIsLREAL {
-			return SubDt(LREAL(sourceLREAL)), nil
+			return SubDt(LREAL(sourceLREAL))
 		} else if sourceULINT != 0 {
-			return SubDt(ULINT(sourceULINT)), nil
+			return SubDt(ULINT(sourceULINT))
 		} else { // sourceLINT
-			return SubDt(LINT(sourceLINT)), nil
+			return SubDt(LINT(sourceLINT))
 		}
 	case reflect.TypeOf(STRING("")):
 		if s, ok := originalAccumulator.(fmt.Stringer); ok { // Use Stringer interface for time types
@@ -472,11 +472,11 @@ func convertToTargetType(accumulator interface{}, targetType reflect.Type) (inte
 
 // ADD performs addition on a slice of mixed PLC data types.
 // The result type is determined by the type of the last element in the slice.
-// Intermediate calculations are performed using LREAL if any float-like type is present, otherwise LINT.
-func ADD(nums []interface{}) interface{} {
+// Intermediate calculations are performed using LREAL if any float-like type is present, otherwise LINT. It returns the result and an error if one occurs.
+func ADD(nums []interface{}) (interface{}, error) {
 	if len(nums) == 0 {
 		// IEC defines the additive identity as 0. Return a default integer type.
-		return 0
+		return 0, nil
 	}
 
 	// --- Special Case: Time Arithmetic (Table 30) ---
@@ -492,33 +492,33 @@ func ADD(nums []interface{}) interface{} {
 				goto numeric_add
 			}
 		}
-		return acc
+		return acc, nil
 	case TOD:
 		acc := time.Time(first)
 		for i := 1; i < len(nums); i++ {
 			if duration, ok := nums[i].(TIME); ok {
 				acc = acc.Add(time.Duration(duration))
 			} else {
-				panic(fmt.Sprintf("ADD: invalid type for addition with TOD; expected TIME, got %T", nums[i]))
+				return nil, fmt.Errorf("ADD: invalid type for addition with TOD; expected TIME, got %T", nums[i])
 			}
 		}
-		return TOD(acc)
+		return TOD(acc), nil
 	case DT:
 		acc := time.Time(first)
 		for i := 1; i < len(nums); i++ {
 			if duration, ok := nums[i].(TIME); ok {
 				acc = acc.Add(time.Duration(duration))
 			} else {
-				panic(fmt.Sprintf("ADD: invalid type for addition with DT; expected TIME, got %T", nums[i]))
+				return nil, fmt.Errorf("ADD: invalid type for addition with DT; expected TIME, got %T", nums[i])
 			}
 		}
-		return DT(acc)
+		return DT(acc), nil
 	}
 
 numeric_add:
 	// --- Default Case: Numeric and Duration Arithmetic ---
 	if len(nums) == 0 {
-		return LINT(0) // IEC defines the additive identity as 0.
+		return LINT(0), nil // IEC defines the additive identity as 0.
 	}
 
 	useLREAL := false
@@ -545,7 +545,7 @@ numeric_add:
 		for _, num := range nums {
 			val, err := anyToLREAL(num)
 			if err != nil {
-				panic(fmt.Sprintf("ADD: error converting %v (type %T) to LREAL for accumulation: %v", num, num, err))
+				return nil, fmt.Errorf("ADD: error converting %v (type %T) to LREAL for accumulation: %w", num, num, err)
 			}
 			accLREAL += val
 		}
@@ -556,7 +556,7 @@ numeric_add:
 		for _, num := range nums {
 			val, err := anyToLINT(num)
 			if err != nil {
-				panic(fmt.Sprintf("ADD: error converting %v (type %T) to LINT for accumulation: %v", num, num, err))
+				return nil, fmt.Errorf("ADD: error converting %v (type %T) to LINT for accumulation: %w", num, num, err)
 			}
 			accLINT += val
 		}
@@ -581,18 +581,21 @@ numeric_add:
 
 	result, err := convertToTargetType(finalAccumulator, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("ADD: error converting final sum to target type %v: %v. Accumulator was: %v", targetType, err, finalAccumulator))
+		return nil, fmt.Errorf("ADD: error converting final sum to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
 	}
-	return result
+	return result, nil
 }
 
 // SUB performs subtraction on a slice of mixed PLC data types.
 // nums[0] - nums[1] - nums[2]...
 // The result type is determined by the type of the last element.
-func SUB(nums []interface{}) interface{} {
+func SUB(nums []interface{}) (interface{}, error) {
 	if len(nums) == 0 {
 		//panic("SUB: input slice cannot be empty")
-		return 0
+		return 0, nil
+	}
+	if len(nums) == 1 {
+		return nums[0], nil
 	}
 
 	// --- Special Case: Time Arithmetic (Table 30) ---
@@ -609,32 +612,32 @@ func SUB(nums []interface{}) interface{} {
 				goto numeric_sub
 			}
 		}
-		return acc
+		return acc, nil
 	case DATE:
 		// Handle DATE - DATE -> TIME
 		if len(nums) == 2 {
 			if date2, ok := nums[1].(DATE); ok {
-				return TIME(time.Time(first).Sub(time.Time(date2)))
+				return TIME(time.Time(first).Sub(time.Time(date2))), nil
 			}
 		}
 	case TOD:
 		// Handle TOD - TIME -> TOD  OR  TOD - TOD -> TIME
 		if len(nums) == 2 {
 			if duration, ok := nums[1].(TIME); ok {
-				return TOD(time.Time(first).Add(-time.Duration(duration)))
+				return TOD(time.Time(first).Add(-time.Duration(duration))), nil
 			}
 			if tod2, ok := nums[1].(TOD); ok {
-				return TIME(time.Time(first).Sub(time.Time(tod2)))
+				return TIME(time.Time(first).Sub(time.Time(tod2))), nil
 			}
 		}
 	case DT:
 		// Handle DT - TIME -> DT  OR  DT - DT -> TIME
 		if len(nums) == 2 {
 			if duration, ok := nums[1].(TIME); ok {
-				return DT(time.Time(first).Add(-time.Duration(duration)))
+				return DT(time.Time(first).Add(-time.Duration(duration))), nil
 			}
 			if dt2, ok := nums[1].(DT); ok {
-				return TIME(time.Time(first).Sub(time.Time(dt2)))
+				return TIME(time.Time(first).Sub(time.Time(dt2))), nil
 			}
 		}
 	}
@@ -661,12 +664,12 @@ numeric_sub:
 	if useLREAL {
 		accLREAL, err := anyToLREAL(nums[0])
 		if err != nil {
-			panic(fmt.Sprintf("SUB: error converting first element %v (type %T) to LREAL: %v", nums[0], nums[0], err))
+			return nil, fmt.Errorf("SUB: error converting first element %v (type %T) to LREAL: %w", nums[0], nums[0], err)
 		}
 		for i := 1; i < len(nums); i++ {
 			val, err := anyToLREAL(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("SUB: error converting element %v (type %T) to LREAL: %v", nums[i], nums[i], err))
+				return nil, fmt.Errorf("SUB: error converting element %v (type %T) to LREAL: %w", nums[i], nums[i], err)
 			}
 			accLREAL -= val
 		}
@@ -674,12 +677,12 @@ numeric_sub:
 	} else { // All integer-like
 		accLINT, err := anyToLINT(nums[0])
 		if err != nil {
-			panic(fmt.Sprintf("SUB: error converting first element %v (type %T) to LINT: %v", nums[0], nums[0], err))
+			return nil, fmt.Errorf("SUB: error converting first element %v (type %T) to LINT: %w", nums[0], nums[0], err)
 		}
 		for i := 1; i < len(nums); i++ {
 			val, err := anyToLINT(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("SUB: error converting element %v (type %T) to LINT: %v", nums[i], nums[i], err))
+				return nil, fmt.Errorf("SUB: error converting element %v (type %T) to LINT: %w", nums[i], nums[i], err)
 			}
 			accLINT -= val
 		}
@@ -688,18 +691,18 @@ numeric_sub:
 
 	result, err := convertToTargetType(finalAccumulator, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("SUB: error converting final result to target type %v: %v. Accumulator was: %v", targetType, err, finalAccumulator))
+		return nil, fmt.Errorf("SUB: error converting final result to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
 	}
-	return result
+	return result, nil
 }
 
 // MUL performs multiplication on a slice of mixed PLC data types.
 // The result type is determined by the type of the last element.
-func MUL(nums []interface{}) interface{} {
+func MUL(nums []interface{}) (interface{}, error) {
 
 	if len(nums) == 0 {
 		// IEC defines the multiplicative identity as 1. Return a default integer type.
-		return LINT(1)
+		return LINT(1), nil
 	}
 
 	var finalAccumulator interface{}
@@ -710,12 +713,12 @@ func MUL(nums []interface{}) interface{} {
 		// Convert TIME to LREAL (milliseconds) for calculation to maintain consistency.
 		acc, err := anyToLREAL(first)
 		if err != nil {
-			panic(fmt.Sprintf("MUL: error converting initial TIME value %v to LREAL: %v", first, err))
+			return nil, fmt.Errorf("MUL: error converting initial TIME value %v to LREAL: %w", first, err)
 		}
 		for i := 1; i < len(nums); i++ {
 			multiplier, err := anyToLREAL(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("MUL: invalid type for multiplication with TIME; expected ANY_NUM, got %T at index %d", nums[i], i))
+				return nil, fmt.Errorf("MUL: invalid type for multiplication with TIME; expected ANY_NUM, got %T at index %d", nums[i], i)
 			}
 			acc *= multiplier
 		}
@@ -743,7 +746,7 @@ func MUL(nums []interface{}) interface{} {
 			for _, num := range nums {
 				val, err := anyToLREAL(num)
 				if err != nil {
-					panic(fmt.Sprintf("MUL: error converting %v (type %T) to LREAL: %v", num, num, err))
+					return nil, fmt.Errorf("MUL: error converting %v (type %T) to LREAL: %w", num, num, err)
 				}
 				accLREAL *= val
 			}
@@ -753,7 +756,7 @@ func MUL(nums []interface{}) interface{} {
 			for _, num := range nums {
 				val, err := anyToLINT(num)
 				if err != nil {
-					panic(fmt.Sprintf("MUL: error converting %v (type %T) to LINT: %v", num, num, err))
+					return nil, fmt.Errorf("MUL: error converting %v (type %T) to LINT: %w", num, num, err)
 				}
 				accLINT *= val
 			}
@@ -763,9 +766,9 @@ func MUL(nums []interface{}) interface{} {
 
 	result, err := convertToTargetType(finalAccumulator, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("MUL: error converting final product to target type %v: %v. Accumulator was: %v", targetType, err, finalAccumulator))
+		return nil, fmt.Errorf("MUL: error converting final product to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
 	}
-	return result
+	return result, nil
 }
 
 // DIV performs division on a slice of mixed PLC data types.
@@ -773,15 +776,15 @@ func MUL(nums []interface{}) interface{} {
 // DIV(TIME, ANY_NUM): The result data type is TIME.
 // DIV(TIME, TIME): The result data type is REAL (or LREAL in your implementation, given its higher precision).
 // The result type is determined by the type of the last element.
-func DIV(nums []interface{}) interface{} {
+func DIV(nums []interface{}) (interface{}, error) {
 
 	if len(nums) < 1 {
 		// IEC defines division by a single number as the number itself.
 		// Returning a default integer type for empty slice.
-		return LINT(0)
+		return LINT(0), nil
 	} else if len(nums) == 1 {
 		// Division of a single element is just the element itself.
-		return nums[0]
+		return nums[0], nil
 	}
 
 	var finalAccumulator interface{}
@@ -793,28 +796,28 @@ func DIV(nums []interface{}) interface{} {
 		if len(nums) == 2 { // This rule applies only for exactly two arguments
 			if secondTime, ok := nums[1].(TIME); ok { // Check if second argument is TIME
 				if time.Duration(secondTime) == 0 {
-					panic("DIV: division by zero (TIME / TIME)")
+					return nil, fmt.Errorf("DIV: division by zero (TIME / TIME)")
 				}
 				finalAccumulator = LREAL(float64(first) / float64(secondTime))
 				result, err := convertToTargetType(finalAccumulator, reflect.TypeOf(LREAL(0)))
 				if err != nil {
-					panic(fmt.Sprintf("DIV: error converting final result to target type LREAL: %v. Accumulator was: %v", err, finalAccumulator))
+					return nil, fmt.Errorf("DIV: error converting final result to target type LREAL: %w. Accumulator was: %v", err, finalAccumulator)
 				}
-				return result
+				return result, nil
 			}
 		}
 		// Handle TIME / ANY_NUM -> TIME
 		acc, err := anyToLREAL(first) // Convert to milliseconds as LREAL
 		if err != nil {
-			panic(fmt.Sprintf("DIV: error converting initial TIME value %v to LREAL: %v", first, err))
+			return nil, fmt.Errorf("DIV: error converting initial TIME value %v to LREAL: %w", first, err)
 		}
 		for i := 1; i < len(nums); i++ {
 			divisor, err := anyToLREAL(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("DIV: invalid type for division with TIME; expected ANY_NUM, got %T", nums[i]))
+				return nil, fmt.Errorf("DIV: invalid type for division with TIME; expected ANY_NUM, got %T", nums[i])
 			}
 			if divisor == 0.0 {
-				panic("DIV: division by zero with TIME operand")
+				return nil, fmt.Errorf("DIV: division by zero with TIME operand")
 			}
 			acc /= divisor
 		}
@@ -839,12 +842,12 @@ func DIV(nums []interface{}) interface{} {
 	if useLREAL {
 		accLREAL, err := anyToLREAL(nums[0])
 		if err != nil {
-			panic(fmt.Sprintf("DIV: error converting first element %v (type %T) to LREAL: %v", nums[0], nums[0], err))
+			return nil, fmt.Errorf("DIV: error converting first element %v (type %T) to LREAL: %w", nums[0], nums[0], err)
 		}
 		for i := 1; i < len(nums); i++ {
 			divisor, err := anyToLREAL(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("DIV: error converting divisor %v (type %T) to LREAL: %v", nums[i], nums[i], err))
+				return nil, fmt.Errorf("DIV: error converting divisor %v (type %T) to LREAL: %w", nums[i], nums[i], err)
 			}
 			// LREAL division by zero yields Inf/NaN, handled by IEEE 754.
 			accLREAL /= divisor
@@ -853,15 +856,15 @@ func DIV(nums []interface{}) interface{} {
 	} else { // All integer-like
 		accLINT, err := anyToLINT(nums[0])
 		if err != nil {
-			panic(fmt.Sprintf("DIV: error converting first element %v (type %T) to LINT: %v", nums[0], nums[0], err))
+			return nil, fmt.Errorf("DIV: error converting first element %v (type %T) to LINT: %w", nums[0], nums[0], err)
 		}
 		for i := 1; i < len(nums); i++ {
 			divisor, err := anyToLINT(nums[i])
 			if err != nil {
-				panic(fmt.Sprintf("DIV: error converting divisor %v (type %T) to LINT: %v", nums[i], nums[i], err))
+				return nil, fmt.Errorf("DIV: error converting divisor %v (type %T) to LINT: %w", nums[i], nums[i], err)
 			}
 			if divisor == 0 {
-				panic(fmt.Sprintf("DIV: division by zero (integer context, type %T)", accLINT))
+				return nil, fmt.Errorf("DIV: division by zero (integer context, type %T)", accLINT)
 			}
 			accLINT /= divisor
 		}
@@ -871,19 +874,19 @@ func DIV(nums []interface{}) interface{} {
 	result, err := convertToTargetType(finalAccumulator, targetType)
 	if err != nil {
 		// This can happen if LREAL result is Inf/NaN and target is an integer type.
-		panic(fmt.Sprintf("DIV: error converting final result to target type %v: %v. Accumulator was: %v", targetType, err, finalAccumulator))
+		return nil, fmt.Errorf("DIV: error converting final result to target type %v: %w. Accumulator was: %v", targetType, err, finalAccumulator)
 	}
-	return result
+	return result, nil
 }
 
 // MOD performs modulo on a slice of mixed integer-like PLC data types.
 // (...(nums[0] % nums[1]) % nums[2] ...)
 // The result type is determined by the type of the last element.
 // All inputs and the target type must be integer-like types (actual integers, BOOL, BYTE, WORD, etc., or strings parsable to int).
-func MOD(nums []interface{}) interface{} {
+func MOD(nums []interface{}) (interface{}, error) {
 
 	if len(nums) < 2 {
-		panic("MOD: input slice must have at least two elements")
+		return nil, fmt.Errorf("MOD: input slice must have at least two elements")
 	}
 
 	targetType := reflect.TypeOf(nums[len(nums)-1])
@@ -891,17 +894,17 @@ func MOD(nums []interface{}) interface{} {
 	if !isPlcIntType(targetType) && targetType != reflect.TypeOf(TIME(0)) &&
 		targetType != reflect.TypeOf(DATE{}) && targetType != reflect.TypeOf(TOD{}) &&
 		targetType != reflect.TypeOf(DT{}) { // Time types are stored as int millis
-		panic(fmt.Sprintf("MOD: target type %v must be an integer-like or time type", targetType))
+		return nil, fmt.Errorf("MOD: target type %v must be an integer-like or time type", targetType)
 	}
 
 	// All inputs must be convertible to LINT for MOD.
 	// Floats or strings that parse to floats are not allowed for MOD's accumulation.
 	for i, num := range nums {
 		if _, ok := num.(REAL); ok {
-			panic(fmt.Sprintf("MOD: input element at index %d (%v, type REAL) is not allowed for MOD operation", i, num))
+			return nil, fmt.Errorf("MOD: input element at index %d (%v, type REAL) is not allowed for MOD operation", i, num)
 		}
 		if _, ok := num.(LREAL); ok {
-			panic(fmt.Sprintf("MOD: input element at index %d (%v, type LREAL) is not allowed for MOD operation", i, num))
+			return nil, fmt.Errorf("MOD: input element at index %d (%v, type LREAL) is not allowed for MOD operation", i, num)
 		}
 		if s, ok := num.(STRING); ok {
 			// Attempt to parse the string as a float.
@@ -911,7 +914,7 @@ func MOD(nums []interface{}) interface{} {
 				valInt, errInt := strconv.ParseInt(string(s), 10, 64)
 				if errInt != nil || float64(LINT(valInt)) != parsedFloat {
 					// If it parses as float but not cleanly as an int, it's problematic for MOD
-					panic(fmt.Sprintf("MOD: input STRING element at index %d ('%s') parses as float but not as a clean integer, not suitable for integer MOD", i, s))
+					return nil, fmt.Errorf("MOD: input STRING element at index %d ('%s') parses as float but not as a clean integer, not suitable for integer MOD", i, s)
 				}
 			}
 		}
@@ -919,25 +922,25 @@ func MOD(nums []interface{}) interface{} {
 
 	accLINT, err := anyToLINT(nums[0])
 	if err != nil {
-		panic(fmt.Sprintf("MOD: error converting first element %v (type %T) to LINT: %v", nums[0], nums[0], err))
+		return nil, fmt.Errorf("MOD: error converting first element %v (type %T) to LINT: %w", nums[0], nums[0], err)
 	}
 
 	for i := 1; i < len(nums); i++ {
 		divisor, err := anyToLINT(nums[i])
 		if err != nil {
-			panic(fmt.Sprintf("MOD: error converting divisor %v (type %T) to LINT: %v", nums[i], nums[i], err))
+			return nil, fmt.Errorf("MOD: error converting divisor %v (type %T) to LINT: %w", nums[i], nums[i], err)
 		}
 		if divisor == 0 {
-			panic(fmt.Sprintf("MOD: modulo by zero (integer context, type %T)", accLINT))
+			return nil, fmt.Errorf("MOD: modulo by zero (integer context, type %T)", accLINT)
 		}
 		accLINT %= divisor
 	}
 
 	result, err := convertToTargetType(accLINT, targetType)
 	if err != nil {
-		panic(fmt.Sprintf("MOD: error converting final result to target type %v: %v. Accumulator was: %v", targetType, err, accLINT))
+		return nil, fmt.Errorf("MOD: error converting final result to target type %v: %w. Accumulator was: %v", targetType, err, accLINT)
 	}
-	return result
+	return result, nil
 }
 
 // MOVE performs an assignment of the input value.
@@ -979,65 +982,65 @@ func SUB_DATE(in1, in2 DATE) TIME {
 
 // SUB_TOD subtracts a TIME from a TIME_OF_DAY, or two TIME_OF_DAYs.
 // The return type depends on the inputs.
-func SUB_TOD(in1, in2 interface{}) interface{} {
+func SUB_TOD(in1, in2 interface{}) (interface{}, error) {
 	t1, ok1 := in1.(TOD)
 	if !ok1 {
-		panic(fmt.Sprintf("SUB_TOD: first input must be of type TOD, got %T", in1))
+		return nil, fmt.Errorf("SUB_TOD: first input must be of type TOD, got %T", in1)
 	}
 
 	// Case 1: TOD - TIME -> TOD
 	if t2, ok2 := in2.(TIME); ok2 {
-		return TOD(time.Time(t1).Add(-time.Duration(t2)))
+		return TOD(time.Time(t1).Add(-time.Duration(t2))), nil
 	}
 
 	// Case 2: TOD - TOD -> TIME
 	if t2, ok2 := in2.(TOD); ok2 {
-		return TIME(time.Time(t1).Sub(time.Time(t2)))
+		return TIME(time.Time(t1).Sub(time.Time(t2))), nil
 	}
 
-	panic(fmt.Sprintf("SUB_TOD: second input must be of type TIME or TOD, got %T", in2))
+	return nil, fmt.Errorf("SUB_TOD: second input must be of type TIME or TOD, got %T", in2)
 }
 
 // SUB_DT subtracts a TIME from a DATE_AND_TIME, or two DATE_AND_TIMEs.
 // The return type depends on the inputs.
-func SUB_DT(in1, in2 interface{}) interface{} {
+func SUB_DT(in1, in2 interface{}) (interface{}, error) {
 	t1, ok1 := in1.(DT)
 	if !ok1 {
-		panic(fmt.Sprintf("SUB_DT: first input must be of type DT, got %T", in1))
+		return nil, fmt.Errorf("SUB_DT: first input must be of type DT, got %T", in1)
 	}
 
 	// Case 1: DT - TIME -> DT
 	if t2, ok2 := in2.(TIME); ok2 {
-		return DT(time.Time(t1).Add(-time.Duration(t2)))
+		return DT(time.Time(t1).Add(-time.Duration(t2))), nil
 	}
 
 	// Case 2: DT - DT -> TIME
 	if t2, ok2 := in2.(DT); ok2 {
-		return TIME(time.Time(t1).Sub(time.Time(t2)))
+		return TIME(time.Time(t1).Sub(time.Time(t2))), nil
 	}
 
-	panic(fmt.Sprintf("SUB_DT: second input must be of type TIME or DT, got %T", in2))
+	return nil, fmt.Errorf("SUB_DT: second input must be of type TIME or DT, got %T", in2)
 }
 
 // MUL_TIME multiplies a TIME duration by a numeric value.
-func MUL_TIME(in1 TIME, in2 interface{}) TIME {
+func MUL_TIME(in1 TIME, in2 interface{}) (TIME, error) {
 	val, err := anyToLREAL(in2)
 	if err != nil {
-		panic(fmt.Sprintf("MUL_TIME: error converting multiplier %v to LREAL: %v", in2, err))
+		return 0, fmt.Errorf("MUL_TIME: error converting multiplier %v to LREAL: %w", in2, err)
 	}
-	return TIME(float64(in1) * float64(val))
+	return TIME(float64(in1) * float64(val)), nil
 }
 
 // DIV_TIME divides a TIME duration by a numeric value.
-func DIV_TIME(in1 TIME, in2 interface{}) TIME {
+func DIV_TIME(in1 TIME, in2 interface{}) (TIME, error) {
 	val, err := anyToLREAL(in2)
 	if err != nil {
-		panic(fmt.Sprintf("DIV_TIME: error converting divisor %v to LREAL: %v", in2, err))
+		return 0, fmt.Errorf("DIV_TIME: error converting divisor %v to LREAL: %w", in2, err)
 	}
 	if val == 0 {
-		panic("DIV_TIME: division by zero")
+		return 0, fmt.Errorf("DIV_TIME: division by zero")
 	}
-	return TIME(float64(in1) / float64(val))
+	return TIME(float64(in1) / float64(val)), nil
 }
 
 // CONCAT_DATE_TOD concatenates a DATE and a TIME_OF_DAY to create a DATE_AND_TIME.

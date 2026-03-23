@@ -13,7 +13,7 @@ func TestADD(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"Add LINTs", []interface{}{LINT(10), LINT(20), LINT(30)}, LINT(60), false},
 		{"Add REALs", []interface{}{REAL(1.5), REAL(2.5)}, REAL(4.0), false},
@@ -35,19 +35,16 @@ func TestADD(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("ADD(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("ADD(%v) panicked; got %v", tc.inputs, r)
-				}
-			}()
+			result, err := ADD(tc.inputs)
 
-			result := ADD(tc.inputs)
-			if !tc.expectPanic {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("ADD(%v) did not return an error; expected error", tc.inputs)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ADD(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("ADD(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -69,7 +66,7 @@ func TestSUB(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"Sub LINTs", []interface{}{LINT(100), LINT(20), LINT(30)}, LINT(50), false},
 		{"Sub REALs", []interface{}{REAL(10.5), REAL(2.5)}, REAL(8.0), false},
@@ -83,25 +80,22 @@ func TestSUB(t *testing.T) {
 		{"TOD - TOD", []interface{}{tod1, tod2}, TIME(4*time.Hour + 15*time.Minute), false},
 		{"DT - TIME", []interface{}{dt1, TIME(time.Hour)}, DT(time.Date(2024, 3, 15, 13, 30, 0, 0, time.UTC)), false},
 		{"DT - DT", []interface{}{dt1, dt2}, TIME(4*time.Hour + 15*time.Minute), false},
-		//{"TOD - invalid type", []interface{}{tod1, INT(5)}, nil, true},
-		//{"DT - invalid type", []interface{}{dt1, BOOL(true)}, nil, true},
+		//{"TOD - invalid type", []interface{}{tod1, INT(5)}, nil, true,},
+		//{"DT - invalid type", []interface{}{dt1, BOOL(true)}, nil, true,},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("SUB(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("SUB(%v) panicked; got %v", tc.inputs, r)
-				}
-			}()
+			result, err := SUB(tc.inputs)
 
-			result := SUB(tc.inputs)
-			if !tc.expectPanic {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("SUB(%v) did not return an error; expected error", tc.inputs)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("SUB(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("SUB(%v) = %v (type %T); want %v (type %T)", tc.inputs, result, result, tc.expected, tc.expected)
 				}
@@ -115,7 +109,7 @@ func TestMUL(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"Mul LINTs", []interface{}{LINT(2), LINT(3), LINT(4)}, LINT(24), false},
 		{"Mul REALs", []interface{}{REAL(1.5), REAL(2.0)}, REAL(3.0), false},
@@ -129,19 +123,16 @@ func TestMUL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("MUL(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("MUL(%v) panicked; got %v", tc.inputs, r)
-				}
-			}()
+			result, err := MUL(tc.inputs)
 
-			result := MUL(tc.inputs)
-			if !tc.expectPanic {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("MUL(%v) did not return an error; expected error", tc.inputs)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("MUL(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("MUL(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -155,7 +146,7 @@ func TestDIV(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"Div LINTs", []interface{}{LINT(100), LINT(10), LINT(2)}, LINT(5), false},
 		{"Div REALs", []interface{}{REAL(20.0), REAL(4.0)}, REAL(5.0), false},
@@ -172,19 +163,16 @@ func TestDIV(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("DIV(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("DIV(%v) panicked; got %v", tc.inputs, r)
-				}
-			}()
+			result, err := DIV(tc.inputs)
 
-			result := DIV(tc.inputs)
-			if !tc.expectPanic {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("DIV(%v) did not return an error; expected error", tc.inputs)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("DIV(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("DIV(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -198,7 +186,7 @@ func TestMOD(t *testing.T) {
 		name        string
 		inputs      []interface{}
 		expected    interface{}
-		expectPanic bool
+		expectError bool
 	}{
 		{"Mod LINTs", []interface{}{LINT(10), LINT(3)}, LINT(1), false},
 		{"Mod chain", []interface{}{LINT(25), LINT(12), LINT(2)}, LINT(1), false},
@@ -211,19 +199,16 @@ func TestMOD(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if tc.expectPanic {
-					if r == nil {
-						t.Errorf("MOD(%v) did not panic; expected panic", tc.inputs)
-					}
-				} else if r != nil {
-					t.Errorf("MOD(%v) panicked; got %v", tc.inputs, r)
-				}
-			}()
+			result, err := MOD(tc.inputs)
 
-			result := MOD(tc.inputs)
-			if !tc.expectPanic {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("MOD(%v) did not return an error; expected error", tc.inputs)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("MOD(%v) returned an unexpected error: %v", tc.inputs, err)
+				}
 				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
 					t.Errorf("MOD(%v) = %v; want %v", tc.inputs, result, tc.expected)
 				}
@@ -259,7 +244,10 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		in1 := TIME(time.Hour)
 		in2 := TIME(30 * time.Minute)
 		expected := TIME(90 * time.Minute)
-		result := ADD([]interface{}{in1, in2})
+		result, err := ADD([]interface{}{in1, in2})
+		if err != nil {
+			t.Fatalf("ADD_TIME returned an unexpected error: %v", err)
+		}
 		if result != expected {
 			t.Errorf("ADD_TIME(%v, %v) = %v; want %v", in1, in2, result, expected)
 		}
@@ -269,7 +257,10 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		in1 := TOD(time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC))
 		in2 := TIME(15 * time.Minute)
 		expected := TOD(time.Date(0, 0, 0, 10, 15, 0, 0, time.UTC))
-		result := ADD([]interface{}{in1, in2})
+		result, err := ADD([]interface{}{in1, in2})
+		if err != nil {
+			t.Fatalf("ADD(TOD, TIME) returned an unexpected error: %v", err)
+		}
 		if !time.Time(result.(TOD)).Equal(time.Time(expected)) {
 			t.Errorf("ADD(TOD, TIME) = %v; want %v", result, expected)
 		}
@@ -279,7 +270,10 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		in1 := DT(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))
 		in2 := TIME(3 * time.Hour)
 		expected := DT(time.Date(2024, 1, 1, 13, 0, 0, 0, time.UTC))
-		result := ADD([]interface{}{in1, in2})
+		result, err := ADD([]interface{}{in1, in2})
+		if err != nil {
+			t.Fatalf("ADD(DT, TIME) returned an unexpected error: %v", err)
+		}
 		if !time.Time(result.(DT)).Equal(time.Time(expected)) {
 			t.Errorf("ADD(DT, TIME) = %v; want %v", result, expected)
 		}
@@ -312,16 +306,37 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 
 		// TOD - TIME -> TOD
 		expected1 := TOD(time.Date(0, 0, 0, 11, 0, 0, 0, time.UTC))
-		result1 := SUB([]interface{}{tod1, time1})
+		result1, err1 := SUB([]interface{}{tod1, time1})
+		if err1 != nil {
+			t.Fatalf("SUB(TOD, TIME) returned an unexpected error: %v", err1)
+		}
 		if !time.Time(result1.(TOD)).Equal(time.Time(expected1)) {
-			t.Errorf("SUB_TOD(TOD, TIME) = %v; want %v", result1, expected1)
+			t.Errorf("SUB(TOD, TIME) = %v; want %v", result1, expected1)
+		}
+		result1a, err1a := SUB_TOD(tod1, time1)
+		if err1a != nil {
+			t.Fatalf("SUB_TOD(TOD, TIME) returned an unexpected error: %v", err1a)
+		}
+		if !time.Time(result1a.(TOD)).Equal(time.Time(expected1)) {
+			t.Errorf("SUB_TOD(TOD, TIME) = %v; want %v", result1a, expected1)
 		}
 
 		// TOD - TOD -> TIME
 		expected2 := TIME(time.Hour)
-		result2 := SUB([]interface{}{tod1, tod2})
+		result2, err2 := SUB([]interface{}{tod1, tod2})
+		if err2 != nil {
+			t.Fatalf("SUB(TOD, TOD) returned an unexpected error: %v", err2)
+		}
 		if result2.(TIME) != expected2 {
-			t.Errorf("SUB_TOD(TOD, TOD) = %v; want %v", result2, expected2)
+			t.Errorf("SUB(TOD, TOD) = %v; want %v", result2, expected2)
+		}
+
+		result2a, err2a := SUB_TOD(tod1, tod2)
+		if err2a != nil {
+			t.Fatalf("SUB_TOD(TOD, TOD) returned an unexpected error: %v", err2a)
+		}
+		if result2.(TIME) != expected2 {
+			t.Errorf("SUB_TOD(TOD, TOD) = %v; want %v", result2a, expected2)
 		}
 	})
 
@@ -332,47 +347,59 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 
 		// DT - TIME -> DT
 		expected1 := DT(time.Date(2024, 3, 14, 12, 0, 0, 0, time.UTC))
-		result1 := SUB([]interface{}{dt1, time1})
+		result1, err1 := SUB([]interface{}{dt1, time1})
+		if err1 != nil {
+			t.Fatalf("SUB(DT, TIME) returned an unexpected error: %v", err1)
+		}
 		if !time.Time(result1.(DT)).Equal(time.Time(expected1)) {
 			t.Errorf("SUB_DT(DT, TIME) = %v; want %v", result1, expected1)
 		}
 
 		// DT - DT -> TIME
 		expected2 := TIME(24 * time.Hour)
-		result2 := SUB([]interface{}{dt1, dt2})
+		result2, err2 := SUB([]interface{}{dt1, dt2})
+		if err2 != nil {
+			t.Fatalf("SUB(DT, DT) returned an unexpected error: %v", err2)
+		}
 		if result2.(TIME) != expected2 {
 			t.Errorf("SUB_DT(DT, DT) = %v; want %v", result2, expected2)
 		}
 
-		// Test panic on invalid second argument
+		// Test error on invalid second argument
 		t.Run("SUB_DT with invalid type", func(t *testing.T) {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Error("SUB_DT with invalid type did not panic")
-				}
-			}()
-			SUB_DT(dt1, LINT(123))
+			_, err := SUB_DT(dt1, LINT(123))
+			if err == nil {
+				t.Error("SUB_DT with invalid type did not return an error")
+			}
 		})
 	})
 
 	t.Run("SUB_DT with invalid first argument", func(t *testing.T) {
-		defer func() { recover() }() // Expect a panic
-		SUB_DT(LINT(123), TIME(time.Second))
+		_, err := SUB_DT(LINT(123), TIME(time.Second))
+		if err == nil {
+			t.Error("SUB_DT with invalid first argument did not return an error")
+		}
 	})
 
 	t.Run("MUL_TIME", func(t *testing.T) {
 		in1 := TIME(10 * time.Second)
 		in2 := INT(6)
 		expected := TIME(time.Minute)
-		result := MUL_TIME(in1, in2)
-		if result != expected { // This test is for the specific MUL_TIME function
+		result, err := MUL_TIME(in1, in2)
+		if err != nil {
+			t.Fatalf("MUL_TIME returned an unexpected error: %v", err)
+		}
+		if result != expected {
 			t.Errorf("MUL_TIME(%v, %v) = %v; want %v", in1, in2, result, expected)
 		}
 
 		in3 := REAL(2.5)
 		expected2 := TIME(25 * time.Second)
-		result2 := MUL_TIME(in1, in3)
-		if result2 != expected2 { // This test is for the specific MUL_TIME function
+		result2, err := MUL_TIME(in1, in3)
+		if err != nil {
+			t.Fatalf("MUL_TIME(TIME, REAL) returned an unexpected error: %v", err)
+		}
+		if result2 != expected2 {
 			t.Errorf("MUL_TIME(TIME, REAL) = %v; want %v", result2, expected2)
 		}
 	})
@@ -381,14 +408,20 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		in1 := TIME(time.Minute)
 		in2 := INT(4)
 		expected := TIME(15 * time.Second)
-		result := DIV_TIME(in1, in2)
+		result, err := DIV_TIME(in1, in2)
+		if err != nil {
+			t.Fatalf("DIV_TIME returned an unexpected error: %v", err)
+		}
 		if result != expected {
 			t.Errorf("DIV_TIME(%v, %v) = %v; want %v", in1, in2, result, expected)
 		}
 
 		in3 := REAL(2.5)
 		expected2 := TIME(24 * time.Second)
-		result2 := DIV_TIME(in1, in3)
+		result2, err := DIV_TIME(in1, in3)
+		if err != nil {
+			t.Fatalf("DIV_TIME(TIME, REAL) returned an unexpected error: %v", err)
+		}
 		if result2 != expected2 {
 			t.Errorf("DIV_TIME(TIME, REAL) = %v; want %v", result2, expected2)
 		}
@@ -622,7 +655,7 @@ func TestConvertToTargetType(t *testing.T) {
 			{"LINT to LWORD", LINT(0x12345678), reflect.TypeOf(LWORD(0)), LWORD(0x12345678)},
 			{"LINT to TIME", LINT(5000), reflect.TypeOf(TIME(0)), TIME(5 * time.Second)},
 			{"LINT to DATE", LINT(1678886400000), reflect.TypeOf(DATE{}), DATE(time.UnixMilli(1678886400000))},
-			{"LINT to TOD", LINT(3723000), reflect.TypeOf(TOD{}), SubTod(LINT(3723000))},
+			{"LINT to TOD", LINT(3723000), reflect.TypeOf(TOD{}), TOD(time.Time{}.Add(3723000 * time.Millisecond))},
 			{"LINT to DT", LINT(1678886400000), reflect.TypeOf(DT{}), DT(time.UnixMilli(1678886400000))},
 			{"LINT to STRING", LINT(12345), reflect.TypeOf(STRING("")), STRING("12345")},
 
@@ -687,18 +720,12 @@ func TestConvertToTargetType(t *testing.T) {
 	})
 
 	t.Run("LREAL to Inf to INT should panic", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("Expected panic when converting Inf to INT, but did not get one")
-			}
-		}()
 		inf := LREAL(math.Inf(1))
 		// Directly call convertToTargetType to test the error path
 		_, err := convertToTargetType(inf, reflect.TypeOf(INT(0)))
 		if err == nil {
-			t.Fatal("Expected an error when converting Inf to INT, but got nil")
+			t.Fatalf("Expected an error when converting Inf to INT, but got nil")
 		}
-		panic(err) // The calling function (like DIV) would panic, so we simulate that.
 	})
 
 	t.Run("Unhandled accumulator type", func(t *testing.T) {
@@ -726,12 +753,16 @@ func TestConvertToTargetType(t *testing.T) {
 
 func TestTimeSpecificFunctions(t *testing.T) {
 	t.Run("SUB_TOD with invalid type", func(t *testing.T) {
-		defer func() { recover() }()
-		SUB_TOD(TOD(time.Now()), LINT(5))
+		_, err := SUB_TOD(TOD(time.Now()), LINT(5))
+		if err == nil {
+			t.Error("SUB_TOD with invalid type did not return an error")
+		}
 	})
 	t.Run("SUB_DT with invalid type", func(t *testing.T) {
-		defer func() { recover() }()
-		SUB_DT(DT(time.Now()), LINT(5))
+		_, err := SUB_DT(DT(time.Now()), LINT(5))
+		if err == nil {
+			t.Error("SUB_DT with invalid type did not return an error")
+		}
 	})
 }
 

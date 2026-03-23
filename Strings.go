@@ -21,6 +21,7 @@ package royaljelly
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -36,51 +37,51 @@ func LEN(s STRING) LINT {
 
 // LEFT returns the leftmost L characters of the input string IN.
 // Conforms to IEC 61131-3, Table 29.
-func LEFT(IN STRING, L LINT) STRING {
+func LEFT(IN STRING, L LINT) (STRING, error) {
 	s := string(IN)
 	if L < 0 {
-		panic("LEFT: length L cannot be negative")
+		return "", fmt.Errorf("LEFT: length L cannot be negative")
 	}
 	if L >= LINT(len(s)) {
-		return IN // Return the whole string if L is greater than or equal to length
+		return IN, nil // Return the whole string if L is greater than or equal to length
 	}
-	return STRING(s[:L])
+	return STRING(s[:L]), nil
 }
 
 // RIGHT returns the rightmost L characters of the input string IN.
 // Conforms to IEC 61131-3, Table 29.
-func RIGHT(IN STRING, L LINT) STRING {
+func RIGHT(IN STRING, L LINT) (STRING, error) {
 	s := string(IN)
 	if L < 0 {
-		panic("RIGHT: length L cannot be negative")
+		return "", fmt.Errorf("RIGHT: length L cannot be negative")
 	}
 	if L >= LINT(len(s)) {
-		return IN // Return the whole string if L is greater than or equal to length
+		return IN, nil // Return the whole string if L is greater than or equal to length
 	}
-	return STRING(s[len(s)-int(L):])
+	return STRING(s[len(s)-int(L):]), nil
 }
 
 // MID returns L characters of the input string IN, beginning at the P-th character.
 // P is 1-based, as per the IEC standard.
 // Conforms to IEC 61131-3, Table 29.
-func MID(IN STRING, L, P LINT) STRING {
+func MID(IN STRING, L, P LINT) (STRING, error) {
 	s := string(IN)
 	p_zero_based := int(P - 1)
 	l_int := int(L)
 
 	if L < 0 {
-		panic("MID: length L cannot be negative")
+		return "", fmt.Errorf("MID: length L cannot be negative")
 	}
 	if P < 1 {
-		panic("MID: position P cannot be less than 1")
+		return "", fmt.Errorf("MID: position P cannot be less than 1")
 	}
 	if p_zero_based >= len(s) {
-		return "" // Position is out of bounds
+		return "", nil // Position is out of bounds
 	}
 	if p_zero_based+l_int > len(s) {
-		return STRING(s[p_zero_based:]) // Return from P to the end of the string
+		return STRING(s[p_zero_based:]), nil // Return from P to the end of the string
 	}
-	return STRING(s[p_zero_based : p_zero_based+l_int])
+	return STRING(s[p_zero_based : p_zero_based+l_int]), nil
 }
 
 // CONCAT performs extensible concatenation of two or more strings.
@@ -96,16 +97,16 @@ func CONCAT(inputs ...STRING) STRING {
 // INSERT inserts string IN2 into string IN1 after the P-th character position.
 // P is 1-based, as per the IEC standard.
 // Conforms to IEC 61131-3, Table 29.
-func INSERT(IN1, IN2 STRING, P LINT) STRING {
+func INSERT(IN1, IN2 STRING, P LINT) (STRING, error) {
 	s1 := string(IN1)
 	p_zero_based := int(P) // Insert *after* P, so index is P
 	if P < 0 {
-		panic("INSERT: position P cannot be negative")
+		return "", fmt.Errorf("INSERT: position P cannot be negative")
 	}
 	if p_zero_based > len(s1) {
 		p_zero_based = len(s1) // If P is out of bounds, append to the end
 	}
-	return STRING(s1[:p_zero_based] + string(IN2) + s1[p_zero_based:])
+	return STRING(s1[:p_zero_based] + string(IN2) + s1[p_zero_based:]), nil
 }
 
 // DELETE deletes L characters from string IN, beginning at the P-th character.
@@ -257,52 +258,53 @@ func MAP(mapping func(rune) rune, s STRING) STRING {
 }
 
 // REPEAT returns a new string consisting of count copies of the string s.  REPEAT panics if count is negative or if the result of (len(s) * count) overflows.
-func REPEAT(s STRING, count DINT) (out STRING) {
-	if (count > 0) && ((len(s) * int(count)) < 2147483647) {
-		out = STRING(strings.Repeat(string(s), int(count)))
-	} else {
-		out = ""
+func REPEAT(s STRING, count DINT) (STRING, error) {
+	if count < 0 {
+		return "", fmt.Errorf("REPEAT: count cannot be negative")
 	}
-	return out
+	// Check for potential overflow before calling strings.Repeat
+	if len(s) > 0 && int(count) > (math.MaxInt/len(s)) {
+		return "", fmt.Errorf("REPEAT: resulting string length would overflow")
+	}
+	return STRING(strings.Repeat(string(s), int(count))), nil
 }
 
 // REPLACE replaces L characters of string IN1 by string IN2, starting at the P-th character.
 // P is 1-based, as per the IEC standard.
 // Conforms to IEC 61131-3, Table 29. Renamed from REPLACE to avoid conflict.
-func REPLACE(IN1, IN2 STRING, L, P LINT) STRING {
+func REPLACE(IN1, IN2 STRING, L, P LINT) (STRING, error) {
 	s1 := string(IN1)
 	l_int := int(L)
+	p_int := int(P)
 
-	if L < 0 || P < 0 {
-		panic(fmt.Sprintf("REPLACE: invalid L (%d) or P (%d) for string of length %d", L, P, len(s1)))
+	if L < 0 {
+		return "", fmt.Errorf("REPLACE: length L (%d) cannot be negative", L)
+	}
+	if P < 0 {
+		return "", fmt.Errorf("REPLACE: position P (%d) cannot be negative", P)
 	}
 
 	// As per IEC standard, P=0 is equivalent to P=1 for REPLACE.
 	if P == 0 {
-		P = 1
+		p_int = 1
 	}
 
-	p_zero_based := int(P - 1)
+	// When L=0, REPLACE acts like INSERT. INSERT places IN2 *after* position P.
+	if L == 0 {
+		return INSERT(IN1, IN2, P) // INSERT already returns an error
+	}
+
+	p_zero_based := p_int - 1
+	if p_zero_based > len(s1) {
+		return STRING(s1 + string(IN2)), nil
+	}
 
 	end_delete := p_zero_based + l_int
 	if end_delete > len(s1) {
 		end_delete = len(s1)
 	}
 
-	// When L=0, it's an insert *after* position P. Otherwise, it's a replace *at* position P.
-	if L == 0 {
-		// This logic mirrors the INSERT function for P > 0.
-		if int(P) > len(s1) {
-			return STRING(s1 + string(IN2))
-		}
-		return STRING(s1[:P] + string(IN2) + s1[P:])
-	}
-
-	if p_zero_based > len(s1) {
-		return STRING(s1 + string(IN2))
-	}
-
-	return STRING(s1[:p_zero_based] + string(IN2) + s1[end_delete:])
+	return STRING(s1[:p_zero_based] + string(IN2) + s1[end_delete:]), nil
 }
 
 // REPLACE_STR is a wrapper for Go's strings.Replace. It returns a copy of the string s with the first n non-overlapping instances of old replaced by new. If n < 0, there is no limit on the number of replacements.

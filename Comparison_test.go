@@ -177,7 +177,7 @@ func TestNE(t *testing.T) {
 		{"BOOLs false", []interface{}{BOOL(true), BOOL(true)}, false},
 		{"Less than 2 inputs", []interface{}{LINT(10)}, false},
 		{"More than 2 inputs", []interface{}{LINT(10), LINT(20), LINT(30)}, false},
-		{"Incompatible types", []interface{}{LINT(10), STRING("abc")}, true},
+		{"Incompatible types", []interface{}{LINT(10), STRING("abc")}, false},
 	}
 
 	for _, tc := range testCases {

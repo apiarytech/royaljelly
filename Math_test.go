@@ -380,8 +380,17 @@ func TestMathWrappers(t *testing.T) {
 	})
 
 	t.Run("POW10", func(t *testing.T) {
-		if POW10(3) != 1000.0 {
-			t.Errorf("POW10(3) = %v; want 1000.0", POW10(3))
+		res, err := POW10(3)
+		if err != nil || res != 1000.0 {
+			t.Errorf("POW10(3) failed. Got %v, err: %v", res, err)
+		}
+		_, err = POW10(400)
+		if err == nil {
+			t.Error("POW10(400) should have returned an error for overflow")
+		}
+		_, err = POW10(-400)
+		if err == nil {
+			t.Error("POW10(-400) should have returned an error for underflow")
 		}
 	})
 

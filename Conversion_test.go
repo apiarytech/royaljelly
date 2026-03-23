@@ -28,6 +28,18 @@ func TestIntConversions(t *testing.T) {
 	if LINT_TO_BOOL(1) != true {
 		t.Error("LINT_TO_BOOL(1) failed")
 	}
+	if LINT_TO_SINT(130) != 127 {
+		t.Errorf("LINT_TO_SINT overflow failed, got %d, want 127", LINT_TO_SINT(130))
+	}
+	if LINT_TO_SINT(-130) != -128 {
+		t.Errorf("LINT_TO_SINT underflow failed, got %d, want -128", LINT_TO_SINT(-130))
+	}
+	if DINT_TO_INT(40000) != 32767 {
+		t.Errorf("DINT_TO_INT overflow failed, got %d, want 32767", DINT_TO_INT(40000))
+	}
+	if ULINT_TO_UINT(70000) != 65535 {
+		t.Errorf("ULINT_TO_UINT overflow failed, got %d, want 65535", ULINT_TO_UINT(70000))
+	}
 }
 
 func TestRealConversions(t *testing.T) {
@@ -39,6 +51,12 @@ func TestRealConversions(t *testing.T) {
 	}
 	if REAL_TO_BOOL(0.0) != false {
 		t.Error("REAL_TO_BOOL(0.0) failed")
+	}
+	if LREAL_TO_SINT(200.0) != 127 {
+		t.Errorf("LREAL_TO_SINT overflow failed, got %d, want 127", LREAL_TO_SINT(200.0))
+	}
+	if LREAL_TO_USINT(-10.0) != 0 {
+		t.Errorf("LREAL_TO_USINT underflow failed, got %d, want 0", LREAL_TO_USINT(-10.0))
 	}
 }
 
@@ -98,15 +116,35 @@ func TestBitFloatConversions(t *testing.T) {
 }
 
 func TestBCDConversions(t *testing.T) {
-	if USINT_TO_BCD_BYTE(99) != 0x99 {
-		t.Errorf("USINT_TO_BCD_BYTE failed, got 0x%X", USINT_TO_BCD_BYTE(99))
-	}
-	if BYTE_BCD_TO_USINT(0x99) != 99 {
-		t.Errorf("BYTE_BCD_TO_USINT failed, got %d", BYTE_BCD_TO_USINT(0x99))
-	}
-	if WORD_BCD_TO_UINT(0x1234) != 1234 {
-		t.Errorf("WORD_BCD_TO_UINT failed, got %d", WORD_BCD_TO_UINT(0x1234))
-	}
+	t.Run("Valid BCD Conversions", func(t *testing.T) {
+		if USINT_TO_BCD_BYTE(99) != 0x99 {
+			t.Errorf("USINT_TO_BCD_BYTE failed, got 0x%X", USINT_TO_BCD_BYTE(99))
+		}
+		if BYTE_BCD_TO_USINT(0x99) != 99 {
+			t.Errorf("BYTE_BCD_TO_USINT failed, got %d, want 99", BYTE_BCD_TO_USINT(0x99))
+		}
+		if WORD_BCD_TO_UINT(0x1234) != 1234 {
+			t.Errorf("WORD_BCD_TO_UINT failed, got %d", WORD_BCD_TO_UINT(0x1234))
+		}
+	})
+
+	t.Run("Invalid BCD Nibble", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("BYTE_BCD_TO_USINT with invalid nibble did not panic")
+			}
+		}()
+		_ = BYTE_BCD_TO_USINT(0xA0)
+	})
+
+	t.Run("Value too large for BCD", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("USINT_TO_BCD_BYTE with value > 99 did not panic")
+			}
+		}()
+		_ = USINT_TO_BCD_BYTE(101) // Use 101 to avoid ambiguity with hex 0x100
+	})
 }
 
 func TestValueMethods(t *testing.T) {
@@ -129,6 +167,13 @@ func TestValueMethods(t *testing.T) {
 		bZero := BYTE(0)
 		if bZero.Value() != 0 {
 			t.Errorf("BYTE(0).Value() = 0x%X; want 0x0", bZero.Value())
+		}
+		// Test conversion with clamping
+		if SINT_TO_USINT(-1) != 0 {
+			t.Errorf("SINT_TO_USINT(-1) should be clamped to 0, got %d", SINT_TO_USINT(-1))
+		}
+		if INT_TO_SINT(300) != 127 {
+			t.Errorf("INT_TO_SINT(300) should be clamped to 127, got %d", INT_TO_SINT(300))
 		}
 	})
 
@@ -368,38 +413,112 @@ func TestAllConversions(t *testing.T) {
 	})
 
 	t.Run("LINT Conversions", func(t *testing.T) {
-		if LINT_TO_REAL(100) != 100.0 || LINT_TO_LREAL(100) != 100.0 {
+		if LINT_TO_SINT(100) != 100 || LINT_TO_INT(100) != 100 || LINT_TO_DINT(100) != 100 {
+			t.Error("LINT_TO smaller signed integer conversions failed")
+		}
+		if LINT_TO_USINT(100) != 100 || LINT_TO_UINT(100) != 100 || LINT_TO_UDINT(100) != 100 {
+			t.Error("LINT_TO smaller unsigned integer conversions failed")
+		}
+		if LINT_TO_REAL(105) != 105.0 || LINT_TO_LREAL(105) != 105.0 {
 			t.Error("LINT_TO real conversions failed")
 		}
-
-		if LINT_TO_DINT(100) != 100 {
-			t.Error("LINT_TO integer conversions failed")
-		}
-
-		if LINT_TO_UDINT(100) != 100 || LINT_TO_ULINT(100) != 100 {
-			t.Error("LINT_TO unsigned integer conversions failed")
-		}
-
 		if LINT_TO_STRING(65) != "65" {
 			t.Error("LINT_TO_STRING conversion failed")
 		}
 	})
 
 	t.Run("DINT Conversions", func(t *testing.T) {
-		if DINT_TO_REAL(100) != 100.0 || DINT_TO_LREAL(100) != 100.0 {
-			t.Error("DINT_TO real conversions failed")
+		if DINT_TO_SINT(100) != 100 || DINT_TO_INT(100) != 100 || DINT_TO_LINT(100) != 100 {
+			t.Error("DINT_TO other signed integer conversions failed")
 		}
-
-		if DINT_TO_LINT(100) != 100 {
-			t.Error("DINT_TO integer conversions failed")
-		}
-
-		if DINT_TO_UDINT(100) != 100 || DINT_TO_ULINT(100) != 100 {
+		if DINT_TO_USINT(100) != 100 || DINT_TO_UINT(100) != 100 || DINT_TO_UDINT(100) != 100 || DINT_TO_ULINT(100) != 100 {
 			t.Error("DINT_TO unsigned integer conversions failed")
 		}
-
+		if DINT_TO_REAL(105) != 105.0 || DINT_TO_LREAL(105) != 105.0 {
+			t.Error("DINT_TO real conversions failed")
+		}
 		if DINT_TO_STRING(65) != "65" {
 			t.Error("DINT_TO_STRING conversion failed")
+		}
+	})
+
+	t.Run("UINT Conversions", func(t *testing.T) {
+		if UINT_TO_USINT(300) != 255 {
+			t.Errorf("UINT_TO_USINT(300) should be clamped to 255, got %d", UINT_TO_USINT(300))
+		}
+	})
+
+	t.Run("USINT Conversions", func(t *testing.T) {
+		if USINT_TO_SINT(128) != 127 {
+			t.Errorf("USINT_TO_SINT(128) should be clamped to 127, got %d", USINT_TO_SINT(128))
+		}
+		if USINT_TO_REAL(150) != 150.0 {
+			t.Error("USINT_TO_REAL conversion failed")
+		}
+		if USINT_TO_STRING(200) != "200" {
+			t.Error("USINT_TO_STRING conversion failed")
+		}
+	})
+
+	t.Run("UDINT Conversions", func(t *testing.T) {
+		if UDINT_TO_INT(40000) != 32767 {
+			t.Errorf("UDINT_TO_INT(40000) should be clamped to 32767, got %d", UDINT_TO_INT(40000))
+		}
+		if UDINT_TO_REAL(12345) != 12345.0 {
+			t.Error("UDINT_TO_REAL conversion failed")
+		}
+		if UDINT_TO_STRING(54321) != "54321" {
+			t.Error("UDINT_TO_STRING conversion failed")
+		}
+	})
+
+	t.Run("TIME Conversions", func(t *testing.T) {
+		tm := TIME(5 * time.Second)
+		if TIME_TO_LINT(tm) != 5000 {
+			t.Error("TIME_TO_LINT conversion failed")
+		}
+		if TIME_TO_LREAL(tm) != 5000.0 {
+			t.Error("TIME_TO_LREAL conversion failed")
+		}
+		// The string representation is "T#5s"
+		if TIME_TO_STRING(tm) != "T#5s" {
+			t.Errorf("TIME_TO_STRING conversion failed, got %s", TIME_TO_STRING(tm))
+		}
+	})
+
+	t.Run("DATE Conversions", func(t *testing.T) {
+		d := DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		expectedMillis := LINT(time.Time(d).UnixMilli())
+
+		if DATE_TO_LINT(d) != expectedMillis {
+			t.Error("DATE_TO_LINT conversion failed")
+		}
+		if DATE_TO_DT(d) != DT(time.Time(d)) {
+			t.Error("DATE_TO_DT conversion failed")
+		}
+	})
+
+	t.Run("TOD Conversions", func(t *testing.T) {
+		tod := TOD(time.Date(0, 0, 0, 10, 20, 30, 0, time.UTC))
+		expectedMillis := LINT((10*time.Hour + 20*time.Minute + 30*time.Second).Milliseconds())
+
+		if TOD_TO_LINT(tod) != expectedMillis {
+			t.Errorf("TOD_TO_LINT conversion failed, got %d, want %d", TOD_TO_LINT(tod), expectedMillis)
+		}
+		if TOD_TO_STRING(tod) != "TOD#10:20:30.000" {
+			t.Errorf("TOD_TO_STRING conversion failed, got %s", TOD_TO_STRING(tod))
+		}
+	})
+
+	t.Run("DT Conversions", func(t *testing.T) {
+		dt := DT(time.Date(2025, 1, 1, 10, 20, 30, 0, time.UTC))
+		expectedDate := DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		if DT_TO_DATE(dt) != expectedDate {
+			t.Error("DT_TO_DATE conversion failed")
+		}
+		if DT_TO_TOD(dt) != TOD(time.Time(dt)) {
+			t.Error("DT_TO_TOD conversion failed")
 		}
 	})
 }

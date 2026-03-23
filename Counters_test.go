@@ -40,13 +40,13 @@ func TestCTU(t *testing.T) {
 		t.Errorf("State at PV incorrect: CV=%d, Q=%v", fb.CV, fb.Q)
 	}
 
-	// Does not count past PV
+	// Should now count past PV
 	fb.CU = false
 	fb.CTU()
 	fb.CU = true
 	fb.CTU()
-	if fb.CV != 3 {
-		t.Errorf("CV should not exceed PV, got %d", fb.CV)
+	if fb.CV != 4 {
+		t.Errorf("CV should exceed PV, got %d", fb.CV)
 	}
 
 	// Reset
@@ -90,6 +90,17 @@ func TestCTD(t *testing.T) {
 
 	if fb.CV != 0 || fb.Q != true {
 		t.Errorf("State at zero incorrect: CV=%d, Q=%v", fb.CV, fb.Q)
+	}
+
+	// Should now count below 0
+	fb.CD = false
+	fb.CTD()
+	fb.CD = true
+	fb.CTD() // CV=-1
+
+	if fb.CV != -1 || fb.Q != true {
+		// Q should remain true for CV <= 0
+		t.Errorf("State below zero incorrect: CV=%d, Q=%v", fb.CV, fb.Q)
 	}
 }
 
@@ -163,5 +174,30 @@ func TestCTUD(t *testing.T) {
 		if fb.CV != 5 {
 			t.Errorf("CV should not change when CU and CD have simultaneous rising edges, got %d, want 5", fb.CV)
 		}
+	})
+
+	t.Run("Count past limits", func(t *testing.T) {
+		fb := CTUD{}
+		fb.INIT()
+		fb.PV = 3
+		fb.CV = 2
+
+		// Count up to PV
+		fb.CU = true
+		fb.CTUD() // CV=3
+		if fb.CV != 3 || !fb.QU || fb.QD {
+			t.Errorf("State at PV incorrect: CV=%d, QU=%v, QD=%v", fb.CV, fb.QU, fb.QD)
+		}
+		fb.CU = false
+		fb.CTUD()
+
+		// Count past PV
+		fb.CU = true
+		fb.CTUD() // CV=4
+		if fb.CV != 4 || !fb.QU || fb.QD {
+			t.Errorf("State past PV incorrect: CV=%d, QU=%v, QD=%v", fb.CV, fb.QU, fb.QD)
+		}
+		fb.CU = false
+		fb.CTUD()
 	})
 }
