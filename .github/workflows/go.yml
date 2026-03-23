@@ -13,6 +13,13 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+        # Test with a matrix of Node.js versions
+        node-version: [24]
+        # Optional: you can add other versions like 20, 22
+        # node-version: [20, 22, 24]
+        # See supported Node.js versions in the setup-node documentation
+        
     steps:
     - uses: actions/checkout@v4
 
