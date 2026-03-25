@@ -205,9 +205,15 @@ func anyToULINT(val interface{}) (ULINT, error) {
 	case ULINT:
 		return v, nil
 	case REAL:
-		return REAL_TO_ULINT(v), nil
+		if v < 0 {
+			return REAL_TO_ULINT(v), nil // Handle negative floats via LINT
+		}
+		return ULINT(v), nil // Truncation for positive floats
 	case LREAL:
-		return LREAL_TO_ULINT(v), nil
+		if v < 0 {
+			return LREAL_TO_ULINT(v), nil // Handle negative floats via LINT
+		}
+		return ULINT(v), nil // Truncation for positive floats
 	case BOOL:
 		if v {
 			return 1, nil
