@@ -205,9 +205,9 @@ func anyToULINT(val interface{}) (ULINT, error) {
 	case ULINT:
 		return v, nil
 	case REAL:
-		return ULINT(v), nil // Truncation
+		return REAL_TO_ULINT(v), nil
 	case LREAL:
-		return ULINT(v), nil // Truncation
+		return LREAL_TO_ULINT(v), nil
 	case BOOL:
 		if v {
 			return 1, nil
