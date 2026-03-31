@@ -54,27 +54,21 @@ const (
 	MAXUDINT   = math.MaxUint32
 	MAXULINT   = math.MaxUint64
 
-	INITBOOL    BOOL    = false
-	INITBYTE    BYTE    = 0
-	INITWORD    WORD    = 0
-	INITDWORD   DWORD   = 0
-	INITLWORD   LWORD   = 0
-	INITSINT    SINT    = 0
-	INITINT     INT     = 0
-	INITDINT    DINT    = 0
-	INITLINT    LINT    = 0
-	INITUSINT   USINT   = 0
-	INITUINT    UINT    = 0
-	INITUDINT   UDINT   = 0
-	INITULINT   ULINT   = 0
-	INITREAL    REAL    = 0.0
-	INITLREAL   LREAL   = 0.0
-	INITSTRING  STRING  = ""
-	INITWSTRING WSTRING = ' '
-	INITTIME    TIME    = TIME(0)
-	INITDATE    DATE    = DATE(time.Time{})
-	INITTOD     TOD     = TOD(time.Time{})
-	INITDT      DT      = DT(time.Time{})
+	INITBOOL  BOOL  = false
+	INITBYTE  BYTE  = 0
+	INITWORD  WORD  = 0
+	INITDWORD DWORD = 0
+	INITLWORD LWORD = 0
+	INITSINT  SINT  = 0
+	INITINT   INT   = 0
+	INITDINT  DINT  = 0
+	INITLINT  LINT  = 0
+	INITUSINT USINT = 0
+	INITUINT  UINT  = 0
+	INITUDINT UDINT = 0
+	INITULINT ULINT = 0
+	INITREAL  REAL  = 0.0
+	INITLREAL LREAL = 0.0
 
 	// Special character constants for use in strings, as per IEC 61131-3 Table 6.
 	DOLLAR       = STRING("$$")   // Dollar sign ($)
@@ -86,4 +80,17 @@ const (
 	NEWLINE      = STRING("$N")   // Newline
 	FORM_FEED    = STRING("$P")   // Form feed
 	TAB          = STRING("$T")   // Tab
+)
+
+// Default initial values for non-constant types
+var (
+	// TIME is a duration, so TIME(0) is a valid zero duration (T#0s).
+	INITTIME = TIME(0)
+	// DATE, TOD, and DT are based on time.Time. Their zero value is time.Time{}.
+	// This corresponds to the IEC default of 0001-01-01 00:00:00.
+	INITDATE    = DATE(time.Time{})
+	INITTOD     = TOD(time.Time{})
+	INITDT      = DT(time.Time{})
+	INITSTRING  = STRING("")
+	INITWSTRING = WSTRING(' ')
 )
