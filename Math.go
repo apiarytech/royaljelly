@@ -13,7 +13,22 @@ package royaljelly
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"reflect"
+	"time"
 )
+
+// globalRand is a package-level random number generator.
+// It is seeded once during package initialization to ensure different
+// execution runs produce different random sequences.
+var globalRand *rand.Rand
+
+func init() {
+	// Initialize the global random generator with a seed based on the current time.
+	// Using rand.NewSource is preferred over the global rand.Seed for creating
+	// a generator that is not shared with other packages.
+	globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 /*********************************/
 /* IEC 61131-3 Standard Functions*/
@@ -328,4 +343,69 @@ func Y1(x LREAL) LREAL {
 // YN returns the order-n Bessel function of the second kind.
 func YN(n LINT, x LREAL) LREAL {
 	return LREAL(math.Yn(int(n), float64(x)))
+}
+
+// RAND generates a random value of a specified IEC 61131-3 data type.
+// The function takes a selector `dataType` to determine the output type.
+// It returns the generated value as an interface{} and an error if the
+// selector is invalid. This is a non-standard extension.
+func RAND(datatype interface{}) (interface{}, error) {
+	targetType := reflect.TypeOf(datatype)
+	switch targetType {
+	case reflect.TypeOf(INITBOOL):
+		return BOOL(globalRand.Intn(2) == 1), nil
+	case reflect.TypeOf(INITSINT):
+		return SINT(int8(globalRand.Int63())), nil
+	case reflect.TypeOf(INITINT):
+		return INT(int16(globalRand.Int63())), nil
+	case reflect.TypeOf(INITDINT):
+		return DINT(globalRand.Int31()), nil
+	case reflect.TypeOf(INITLINT):
+		return LINT(globalRand.Int63()), nil
+	case reflect.TypeOf(INITUSINT):
+		return USINT(uint8(globalRand.Uint32())), nil
+	case reflect.TypeOf(INITUINT):
+		return UINT(uint16(globalRand.Uint32())), nil
+	case reflect.TypeOf(INITUDINT):
+		return UDINT(globalRand.Uint32()), nil
+	case reflect.TypeOf(INITULINT):
+		return ULINT(globalRand.Uint64()), nil
+	case reflect.TypeOf(INITBYTE):
+		return BYTE(uint8(globalRand.Uint32())), nil
+	case reflect.TypeOf(INITWORD):
+		return WORD(uint16(globalRand.Uint32())), nil
+	case reflect.TypeOf(INITDWORD):
+		return DWORD(globalRand.Uint32()), nil
+	case reflect.TypeOf(INITLWORD):
+		return LWORD(globalRand.Uint64()), nil
+	case reflect.TypeOf(INITREAL):
+		return REAL(globalRand.Float32()), nil
+	case reflect.TypeOf(INITLREAL):
+		return LREAL(globalRand.Float64()), nil
+	case reflect.TypeOf(INITTIME):
+		// Generate a random duration, e.g., up to 24 hours
+		return TIME(time.Duration(globalRand.Int63n(int64(24 * time.Hour)))), nil
+	case reflect.TypeOf(INITDATE):
+		// Generate a random date within a reasonable range, e.g., past 50 years
+		randomSeconds := globalRand.Int63n(50 * 365 * 24 * 60 * 60)
+		return DATE(time.Now().Add(-time.Second * time.Duration(randomSeconds))), nil
+	case reflect.TypeOf(INITTOD):
+		// Generate a random time of day (duration from midnight)
+		return TOD(time.Time{}.Add(time.Duration(globalRand.Int63n(int64(24 * time.Hour))))), nil
+	case reflect.TypeOf(INITDT):
+		// Generate a random date and time
+		randomSeconds := globalRand.Int63n(50 * 365 * 24 * 60 * 60)
+		return DT(time.Now().Add(-time.Second * time.Duration(randomSeconds))), nil
+	case reflect.TypeOf(INITSTRING):
+		// Generate a random string of a variable length (e.g., 5-15 chars)
+		const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		length := globalRand.Intn(11) + 5
+		b := make([]byte, length)
+		for i := range b {
+			b[i] = charset[globalRand.Intn(len(charset))]
+		}
+		return STRING(b), nil
+	default:
+		return nil, fmt.Errorf("RAND: invalid data type selector: %v", targetType)
+	}
 }

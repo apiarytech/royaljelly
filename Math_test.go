@@ -4,6 +4,7 @@ package royaljelly
 
 import (
 	"math"
+	"reflect"
 	"testing"
 )
 
@@ -521,4 +522,70 @@ func TestConstants(t *testing.T) {
 	if NEGINF != math.Inf(-1) {
 		t.Errorf("Constant NEGINF does not match math.Inf(-1)")
 	}
+}
+
+func TestRAND(t *testing.T) {
+	testCases := []struct {
+		name           string
+		dataType       interface{}
+		expectedGoType reflect.Type
+	}{
+		{"BOOL", BOOL(false), reflect.TypeOf(BOOL(false))},
+		{"SINT", SINT(0), reflect.TypeOf(SINT(0))},
+		{"INT", INT(0), reflect.TypeOf(INT(0))},
+		{"DINT", DINT(0), reflect.TypeOf(DINT(0))},
+		{"LINT", LINT(0), reflect.TypeOf(LINT(0))},
+		{"USINT", USINT(0), reflect.TypeOf(USINT(0))},
+		{"UINT", UINT(0), reflect.TypeOf(UINT(0))},
+		{"UDINT", UDINT(0), reflect.TypeOf(UDINT(0))},
+		{"ULINT", ULINT(0), reflect.TypeOf(ULINT(0))},
+		{"BYTE", BYTE(0), reflect.TypeOf(BYTE(0))},
+		{"WORD", WORD(0), reflect.TypeOf(WORD(0))},
+		{"DWORD", DWORD(0), reflect.TypeOf(DWORD(0))},
+		{"LWORD", LWORD(0), reflect.TypeOf(LWORD(0))},
+		{"REAL", REAL(0), reflect.TypeOf(REAL(0))},
+		{"LREAL", LREAL(0), reflect.TypeOf(LREAL(0))},
+		{"TIME", TIME(0), reflect.TypeOf(TIME(0))},
+		{"DATE", DATE{}, reflect.TypeOf(DATE{})},
+		{"TOD", TOD{}, reflect.TypeOf(TOD{})},
+		{"DT", DT{}, reflect.TypeOf(DT{})},
+		{"STRING", STRING(""), reflect.TypeOf(STRING(""))},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Call RAND twice to ensure we get different values and the generator is advancing.
+			val1, err1 := RAND(tc.dataType)
+			if err1 != nil {
+				t.Fatalf("RAND(%T) returned an unexpected error on first call: %v", tc.dataType, err1)
+			}
+
+			val2, err2 := RAND(tc.dataType)
+			if err2 != nil {
+				t.Fatalf("RAND(%T) returned an unexpected error on second call: %v", tc.dataType, err2)
+			}
+
+			// Check the type of the returned value.
+			if reflect.TypeOf(val1) != tc.expectedGoType {
+				t.Errorf("RAND(%T) returned type %T; want %v", tc.dataType, val1, tc.expectedGoType)
+			}
+
+			// It's statistically improbable for most types to get the same value twice.
+			// For BOOL, it's a 50/50 chance, so we don't check for inequality.
+			if _, ok := tc.dataType.(BOOL); !ok && reflect.DeepEqual(val1, val2) {
+				t.Logf("Warning: RAND generated the same value twice in a row: %v. This is statistically unlikely but possible.", val1)
+			}
+
+			t.Logf("Generated random %s: %v", tc.name, val1)
+		})
+	}
+
+	t.Run("Invalid Selector", func(t *testing.T) {
+		// Use a selector that is out of the defined range.
+		invalidSelector := struct{}{} // An unsupported type
+		_, err := RAND(invalidSelector)
+		if err == nil {
+			t.Errorf("RAND with invalid selector type %T did not return an error; expected an error", invalidSelector)
+		}
+	})
 }
