@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"reflect"
 	"time"
 )
 
@@ -350,53 +349,52 @@ func YN(n LINT, x LREAL) LREAL {
 // It returns the generated value as an interface{} and an error if the
 // selector is invalid. This is a non-standard extension.
 func RAND(datatype interface{}) (interface{}, error) {
-	targetType := reflect.TypeOf(datatype)
-	switch targetType {
-	case reflect.TypeOf(INITBOOL):
+	switch targetType := datatype.(type) {
+	case BOOL:
 		return BOOL(globalRand.Intn(2) == 1), nil
-	case reflect.TypeOf(INITSINT):
+	case SINT:
 		return SINT(int8(globalRand.Int63())), nil
-	case reflect.TypeOf(INITINT):
+	case INT:
 		return INT(int16(globalRand.Int63())), nil
-	case reflect.TypeOf(INITDINT):
+	case DINT:
 		return DINT(globalRand.Int31()), nil
-	case reflect.TypeOf(INITLINT):
+	case LINT:
 		return LINT(globalRand.Int63()), nil
-	case reflect.TypeOf(INITUSINT):
+	case USINT:
 		return USINT(uint8(globalRand.Uint32())), nil
-	case reflect.TypeOf(INITUINT):
+	case UINT:
 		return UINT(uint16(globalRand.Uint32())), nil
-	case reflect.TypeOf(INITUDINT):
+	case UDINT:
 		return UDINT(globalRand.Uint32()), nil
-	case reflect.TypeOf(INITULINT):
+	case ULINT:
 		return ULINT(globalRand.Uint64()), nil
-	case reflect.TypeOf(INITBYTE):
+	case BYTE:
 		return BYTE(uint8(globalRand.Uint32())), nil
-	case reflect.TypeOf(INITWORD):
+	case WORD:
 		return WORD(uint16(globalRand.Uint32())), nil
-	case reflect.TypeOf(INITDWORD):
+	case DWORD:
 		return DWORD(globalRand.Uint32()), nil
-	case reflect.TypeOf(INITLWORD):
+	case LWORD:
 		return LWORD(globalRand.Uint64()), nil
-	case reflect.TypeOf(INITREAL):
+	case REAL:
 		return REAL(globalRand.Float32()), nil
-	case reflect.TypeOf(INITLREAL):
+	case LREAL:
 		return LREAL(globalRand.Float64()), nil
-	case reflect.TypeOf(INITTIME):
+	case TIME:
 		// Generate a random duration, e.g., up to 24 hours
 		return TIME(time.Duration(globalRand.Int63n(int64(24 * time.Hour)))), nil
-	case reflect.TypeOf(INITDATE):
+	case DATE:
 		// Generate a random date within a reasonable range, e.g., past 50 years
 		randomSeconds := globalRand.Int63n(50 * 365 * 24 * 60 * 60)
 		return DATE(time.Now().Add(-time.Second * time.Duration(randomSeconds))), nil
-	case reflect.TypeOf(INITTOD):
+	case TOD:
 		// Generate a random time of day (duration from midnight)
 		return TOD(time.Time{}.Add(time.Duration(globalRand.Int63n(int64(24 * time.Hour))))), nil
-	case reflect.TypeOf(INITDT):
+	case DT:
 		// Generate a random date and time
 		randomSeconds := globalRand.Int63n(50 * 365 * 24 * 60 * 60)
 		return DT(time.Now().Add(-time.Second * time.Duration(randomSeconds))), nil
-	case reflect.TypeOf(INITSTRING):
+	case STRING:
 		// Generate a random string of a variable length (e.g., 5-15 chars)
 		const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 		length := globalRand.Intn(11) + 5
