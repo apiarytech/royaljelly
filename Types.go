@@ -131,7 +131,7 @@ type ANY_BIT interface {
 
 // ANY_DATE
 type ANY_DATE interface {
-	time.Time
+	DATE | TOD | DT
 }
 
 // ANY_STRING
@@ -160,7 +160,7 @@ type ANY_MAGNITUDE interface {
 }
 
 // ANY
-type ANY interface {
+type ANY_ELEMENTARY interface {
 	ANY_BIT | ANY_MAGNITUDE | ANY_DATE | ANY_STRING
 }
 
