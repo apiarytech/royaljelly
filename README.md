@@ -152,7 +152,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/apiarytech/oyaljelly"
+	"github.com/apiarytech/royaljelly"
 )
 
 func main() {
