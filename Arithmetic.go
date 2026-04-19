@@ -512,12 +512,11 @@ func getTypeRank(t reflect.Type) int {
 
 // ADD performs addition on a slice of mixed PLC data types.
 // The result type is determined by the type of the last element in the slice.
-// Intermediate calculations are performed using LREAL if any float-like type is present,
-// otherwise LINT. It returns the result and an error if one occurs.
-func ADD[T ANY_NUM | ANY_DATE](nums []T) (interface{}, error) {
+// Intermediate calculations are performed using LREAL if any float-like type is present, otherwise LINT. It returns the result and an error if one occurs.
+func ADD(nums []interface{}) (interface{}, error) {
 	if len(nums) == 0 {
 		// IEC defines the additive identity as 0. Return a default integer type.
-		return LINT(0), nil
+		return 0, nil
 	}
 
 	// --- Special Case: Time Arithmetic (Table 30) ---
