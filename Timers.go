@@ -32,25 +32,30 @@ type TP struct {
 	ET TIME // Elapsed Time
 
 	// Internal state
-	startTime time.Time
-	timing    BOOL
-	re        R_TRIG // Rising-edge detector
+	startTime   time.Time
+	timing      BOOL
+	re          R_TRIG // Rising-edge detector
+	initialized BOOL   // Internal flag to ensure INIT is called
 }
 
 // INIT initializes the TP function block to its default state.
 func (t *TP) INIT() {
-	t.IN = false
-	t.PT = 0
 	t.Q = false
 	t.ET = 0
 	t.startTime = time.Time{}
 	t.timing = false
 	t.re.INIT()
+	t.initialized = true
 }
 
 // Execute runs the logic for the TP function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TP) Execute(now time.Time) {
+	// Defensive check: If INIT has not been called, initialize to a safe state.
+	if !t.initialized {
+		t.INIT()
+	}
+
 	// Per IEC 61131-3, time literals are always positive.
 	if t.PT < 0 {
 		t.Q = false
@@ -98,21 +103,26 @@ type TON struct {
 	ET TIME // Elapsed Time
 
 	// Internal state
-	startTime time.Time
+	startTime   time.Time
+	initialized BOOL
 }
 
 // INIT initializes the TON function block to its default state.
 func (t *TON) INIT() {
-	t.IN = false
-	t.PT = 0
 	t.Q = false
 	t.ET = 0
 	t.startTime = time.Time{}
+	t.initialized = true
 }
 
 // Execute runs the logic for the TON function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TON) Execute(now time.Time) {
+	// Defensive check: If INIT has not been called, initialize to a safe state.
+	if !t.initialized {
+		t.INIT()
+	}
+
 	// --- RECOMMENDED VALIDATION ---
 	// Per IEC 61131-3, time literals are always positive.
 	if t.PT < 0 {
@@ -157,23 +167,28 @@ type TOF struct {
 	ET TIME // Elapsed Time
 
 	// Internal state
-	startTime time.Time
-	mem       BOOL // Internal memory of the previous state of IN
+	startTime   time.Time
+	mem         BOOL // Internal memory of the previous state of IN
+	initialized BOOL
 }
 
 // INIT initializes the TOF function block to its default state.
 func (t *TOF) INIT() {
-	t.IN = false
-	t.PT = 0
 	t.Q = false
 	t.ET = 0
 	t.startTime = time.Time{}
 	t.mem = false
+	t.initialized = true
 }
 
 // Execute runs the logic for the TOF function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TOF) Execute(now time.Time) {
+	// Defensive check: If INIT has not been called, initialize to a safe state.
+	if !t.initialized {
+		t.INIT()
+	}
+
 	// --- RECOMMENDED VALIDATION ---
 	// Per IEC 61131-3, time literals are always positive.
 	if t.PT < 0 {

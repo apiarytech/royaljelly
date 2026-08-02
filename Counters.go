@@ -24,28 +24,28 @@ type CTU struct {
 	Q  BOOL
 	CV INT
 	//INTERNAL
-	re R_TRIG
+	re          R_TRIG
+	initialized BOOL
 }
 
 // INIT CTU Initialization of Counters
-func (CT *CTU) INIT() {
-	CT.EN = true
-	CT.ENO = true
-
-	CT.CU = false
-	CT.re.INIT()
-	CT.R = false
-	CT.PV = 0
-
-	CT.Q = false
-	CT.CV = 0
+func (CTU *CTU) INIT() {
+	CTU.Q = false
+	CTU.CV = 0
+	CTU.re.INIT()
+	CTU.initialized = true
 }
 
 // CTU method to update CTU parameters
-func (CTU *CTU) CTU() {
+func (CTU *CTU) Execute() {
 	if !CTU.EN {
 		CTU.ENO = false
 		return
+	} else {
+		CTU.ENO = true
+	}
+	if !CTU.initialized {
+		CTU.INIT()
 	} else {
 		CTU.ENO = true
 	}
@@ -76,28 +76,28 @@ type CTD struct {
 	Q  BOOL
 	CV INT
 	//INTERNAL
-	re R_TRIG
+	re          R_TRIG
+	initialized BOOL
 }
 
 // INIT CTD Countdown Timer Initialization of Counters
-func (CT *CTD) INIT() {
-	CT.EN = true
-	CT.ENO = true
-
-	CT.CD = false
-	CT.re.INIT()
-	CT.LD = false
-	CT.PV = 0
-
-	CT.Q = false
-	CT.CV = 0
+func (CTD *CTD) INIT() {
+	CTD.Q = false
+	CTD.CV = 0
+	CTD.re.INIT()
+	CTD.initialized = true
 }
 
 // CTD method to update CTD parameters
-func (CTD *CTD) CTD() {
+func (CTD *CTD) Execute() {
 	if !CTD.EN {
 		CTD.ENO = false
 		return
+	} else {
+		CTD.ENO = true
+	}
+	if !CTD.initialized {
+		CTD.INIT()
 	} else {
 		CTD.ENO = true
 	}
@@ -130,35 +130,31 @@ type CTUD struct {
 	QD BOOL
 	CV INT
 	//INTERNAL
-	reUP   R_TRIG
-	reDOWN R_TRIG
+	reUP        R_TRIG
+	reDOWN      R_TRIG
+	initialized BOOL
 }
 
 // INIT CTD Countdown Timer Initialization of Counters
-func (CT *CTUD) INIT() {
-	//
-	CT.EN = true
-	CT.ENO = true
-
-	CT.CU = false
-	CT.CD = false
-	CT.R = false
-	CT.LD = false
-	CT.PV = 0
-
-	CT.QD = false
-	CT.QU = false
-	CT.CV = 0
-
-	CT.reUP.INIT()
-	CT.reDOWN.INIT()
+func (CTUD *CTUD) INIT() {
+	CTUD.QD = false
+	CTUD.QU = false
+	CTUD.CV = 0
+	CTUD.reUP.INIT()
+	CTUD.reDOWN.INIT()
+	CTUD.initialized = true
 }
 
 // CTD method to update CTD parameters
-func (CTUD *CTUD) CTUD() {
+func (CTUD *CTUD) Execute() {
 	if !CTUD.EN {
 		CTUD.ENO = false
 		return
+	} else {
+		CTUD.ENO = true
+	}
+	if !CTUD.initialized {
+		CTUD.INIT()
 	} else {
 		CTUD.ENO = true
 	}

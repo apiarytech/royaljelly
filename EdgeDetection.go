@@ -42,7 +42,6 @@ type F_TRIG struct {
 
 // INIT initializes the R_TRIG function block.
 func (fb *R_TRIG) INIT() {
-	fb.CLK = false
 	fb.Q = false
 	fb.mem = false
 }
@@ -55,7 +54,6 @@ func (fb *R_TRIG) R_TRIG() {
 
 // INIT initializes the F_TRIG function block.
 func (fb *F_TRIG) INIT() {
-	fb.CLK = false
 	fb.Q = false
 	fb.mem = false
 }

@@ -252,3 +252,41 @@ func TestTOF_QuickToggle(t *testing.T) {
 		t.Errorf("IN went high before expiry, Q should be true and ET should reset. Q=%v, ET=%v", tof.Q, tof.ET)
 	}
 }
+
+func TestUninitializedTimers(t *testing.T) {
+	now := time.Now()
+
+	t.Run("Uninitialized TP", func(t *testing.T) {
+		tp := &TP{} // Do not call INIT()
+		tp.Execute(now)
+		// After first execute, it should be initialized to zero values.
+		if tp.Q || tp.ET != 0 || tp.PT != 0 {
+			t.Errorf("Uninitialized TP did not default to a safe state. Q=%v, ET=%v, PT=%v", tp.Q, tp.ET, tp.PT)
+		}
+	})
+
+	t.Run("Uninitialized TON", func(t *testing.T) {
+		ton := &TON{} // Do not call INIT()
+		ton.IN = true
+		ton.PT = TIME(1 * time.Second)
+		ton.Execute(now)
+
+		// After first execute, it should be initialized.
+		// It should behave as if it just started.
+		if ton.Q || ton.ET != 0 {
+			t.Errorf("Uninitialized TON did not start correctly. Q=%v, ET=%v", ton.Q, ton.ET)
+		}
+	})
+
+	t.Run("Uninitialized TOF", func(t *testing.T) {
+		tof := &TOF{} // Do not call INIT()
+		tof.IN = true
+		tof.PT = TIME(1 * time.Second)
+		tof.Execute(now)
+
+		// After first execute, it should be initialized and Q should be true because IN is true.
+		if !tof.Q || tof.ET != 0 {
+			t.Errorf("Uninitialized TOF did not start correctly. Q=%v, ET=%v", tof.Q, tof.ET)
+		}
+	})
+}
