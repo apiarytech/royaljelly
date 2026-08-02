@@ -76,6 +76,12 @@ type COMPLEX complex64
 // LCOMPLEX Real & Imaginary 128 bit
 type LCOMPLEX complex128
 
+// CHAR definition
+type CHAR byte
+
+// WCHAR definition
+type WCHAR rune
+
 // STRING definition
 type STRING string
 
@@ -122,11 +128,28 @@ type TM struct {
 	ms int
 }
 
-// ANY_BIT
+// ANY_BOOL
+type ANY_BOOL interface {
+	~bool
+}
+
+// ANY BYTES
+type ANY_UINTS interface {
+	~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint // Corresponds to BYTE, WORD, DWORD, LWORD
+}
+
+type ANY_SINTS interface {
+	~int8 | ~int16 | ~int32 | ~int64 | ~int // Corresponds to SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT
+}
+
+// ANY_BIT_STRING represents the group of bit-string types as per IEC 61131-3.
 type ANY_BIT interface {
-	~bool |
-		~uint8 | ~uint16 | ~uint32 | ~uint64 |
-		~int8 | ~int16 | ~int32 | ~int64
+	~bool | ANY_UINTS
+}
+
+// ANY_INT
+type ANY_INT interface {
+	~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~int8 | ~int16 | ~int32 | ~int64 | ~int
 }
 
 // ANY_DATE
@@ -139,11 +162,6 @@ type ANY_STRING interface {
 	~string | ~rune
 }
 
-// ANY_INT
-type ANY_INT interface {
-	~uint8 | ~uint16 | ~uint32 | ~uint64 | ~int8 | ~int16 | ~int32 | ~int64
-}
-
 // ANY_REAL
 type ANY_REAL interface {
 	~float32 | ~float64
@@ -151,20 +169,25 @@ type ANY_REAL interface {
 
 // ANY_NUM
 type ANY_NUM interface {
-	ANY_INT | ANY_REAL
+	~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~int8 | ~int16 | ~int32 | ~int64 | ~int | ~float32 | ~float64
+}
+
+// ANY_DURATION
+type ANY_DURATION interface {
+	TIME
 }
 
 // ANY_MAGNITUDE
 type ANY_MAGNITUDE interface {
-	ANY_NUM | TIME
+	ANY_NUM | ANY_DURATION | ANY_STRING
 }
 
 // ANY
 type ANY_ELEMENTARY interface {
-	ANY_BIT | ANY_MAGNITUDE | ANY_DATE | ANY_STRING
+	ANY_BIT | ANY_MAGNITUDE
 }
 
 // ANY_COMPLEX
 type ANY_COMPLEX interface {
-	~complex64 | ~complex128
+	COMPLEX | LCOMPLEX
 }

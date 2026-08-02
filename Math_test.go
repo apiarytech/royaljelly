@@ -4,7 +4,6 @@ package royaljelly
 
 import (
 	"math"
-	"reflect"
 	"testing"
 )
 
@@ -526,30 +525,29 @@ func TestConstants(t *testing.T) {
 
 func TestRAND(t *testing.T) {
 	testCases := []struct {
-		name           string
-		dataType       interface{}
-		expectedGoType reflect.Type
+		name     string
+		dataType interface{}
 	}{
-		{"BOOL", BOOL(false), reflect.TypeOf(BOOL(false))},
-		{"SINT", SINT(0), reflect.TypeOf(SINT(0))},
-		{"INT", INT(0), reflect.TypeOf(INT(0))},
-		{"DINT", DINT(0), reflect.TypeOf(DINT(0))},
-		{"LINT", LINT(0), reflect.TypeOf(LINT(0))},
-		{"USINT", USINT(0), reflect.TypeOf(USINT(0))},
-		{"UINT", UINT(0), reflect.TypeOf(UINT(0))},
-		{"UDINT", UDINT(0), reflect.TypeOf(UDINT(0))},
-		{"ULINT", ULINT(0), reflect.TypeOf(ULINT(0))},
-		{"BYTE", BYTE(0), reflect.TypeOf(BYTE(0))},
-		{"WORD", WORD(0), reflect.TypeOf(WORD(0))},
-		{"DWORD", DWORD(0), reflect.TypeOf(DWORD(0))},
-		{"LWORD", LWORD(0), reflect.TypeOf(LWORD(0))},
-		{"REAL", REAL(0), reflect.TypeOf(REAL(0))},
-		{"LREAL", LREAL(0), reflect.TypeOf(LREAL(0))},
-		{"TIME", TIME(0), reflect.TypeOf(TIME(0))},
-		{"DATE", DATE{}, reflect.TypeOf(DATE{})},
-		{"TOD", TOD{}, reflect.TypeOf(TOD{})},
-		{"DT", DT{}, reflect.TypeOf(DT{})},
-		{"STRING", STRING(""), reflect.TypeOf(STRING(""))},
+		{"BOOL", BOOL(false)},
+		{"SINT", SINT(0)},
+		{"INT", INT(0)},
+		{"DINT", DINT(0)},
+		{"LINT", LINT(0)},
+		{"USINT", USINT(0)},
+		{"UINT", UINT(0)},
+		{"UDINT", UDINT(0)},
+		{"ULINT", ULINT(0)},
+		{"BYTE", BYTE(0)},
+		{"WORD", WORD(0)},
+		{"DWORD", DWORD(0)},
+		{"LWORD", LWORD(0)},
+		{"REAL", REAL(0)},
+		{"LREAL", LREAL(0)},
+		{"TIME", TIME(0)},
+		{"DATE", DATE{}},
+		{"TOD", TOD{}},
+		{"DT", DT{}},
+		{"STRING", STRING("")},
 	}
 
 	for _, tc := range testCases {
@@ -566,13 +564,56 @@ func TestRAND(t *testing.T) {
 			}
 
 			// Check the type of the returned value.
-			if reflect.TypeOf(val1) != tc.expectedGoType {
-				t.Errorf("RAND(%T) returned type %T; want %v", tc.dataType, val1, tc.expectedGoType)
+			validType := false
+			switch tc.dataType.(type) {
+			case BOOL:
+				_, validType = val1.(BOOL)
+			case SINT:
+				_, validType = val1.(SINT)
+			case INT:
+				_, validType = val1.(INT)
+			case DINT:
+				_, validType = val1.(DINT)
+			case LINT:
+				_, validType = val1.(LINT)
+			case USINT:
+				_, validType = val1.(USINT)
+			case UINT:
+				_, validType = val1.(UINT)
+			case UDINT:
+				_, validType = val1.(UDINT)
+			case ULINT:
+				_, validType = val1.(ULINT)
+			case BYTE:
+				_, validType = val1.(BYTE)
+			case WORD:
+				_, validType = val1.(WORD)
+			case DWORD:
+				_, validType = val1.(DWORD)
+			case LWORD:
+				_, validType = val1.(LWORD)
+			case REAL:
+				_, validType = val1.(REAL)
+			case LREAL:
+				_, validType = val1.(LREAL)
+			case TIME:
+				_, validType = val1.(TIME)
+			case DATE:
+				_, validType = val1.(DATE)
+			case TOD:
+				_, validType = val1.(TOD)
+			case DT:
+				_, validType = val1.(DT)
+			case STRING:
+				_, validType = val1.(STRING)
+			}
+			if !validType {
+				t.Errorf("RAND(%T) returned incorrect type %T", tc.dataType, val1)
 			}
 
 			// It's statistically improbable for most types to get the same value twice.
 			// For BOOL, it's a 50/50 chance, so we don't check for inequality.
-			if _, ok := tc.dataType.(BOOL); !ok && reflect.DeepEqual(val1, val2) {
+			if _, ok := tc.dataType.(BOOL); !ok && val1 == val2 {
 				t.Logf("Warning: RAND generated the same value twice in a row: %v. This is statistically unlikely but possible.", val1)
 			}
 

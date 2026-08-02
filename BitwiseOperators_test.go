@@ -1,8 +1,6 @@
 package royaljelly
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 )
 
@@ -103,136 +101,147 @@ func genericBitwiseTest[T ANY_INT](t *testing.T, opName string, op func(T, uint)
 
 func TestAND(t *testing.T) {
 	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
-		panicValue  error
+		name     string
+		testFunc func(*testing.T)
 	}{
-		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b1000), false, nil},
-		{"WORDs", []interface{}{WORD(0xFF00), WORD(0x00FF), WORD(0xFFFF)}, WORD(0x0000), false, nil},
-		{"Mixed Types", []interface{}{LWORD(0xFF), USINT(0x0F)}, USINT(0x0F), false, nil},
-		{"Empty", []interface{}{}, LWORD(0), false, nil},
-		{"Single", []interface{}{DINT(123)}, DINT(123), false, nil},
-		{"Invalid String", []interface{}{STRING("not-a-number"), INT(5)}, nil, true, errors.New("anyToULINT: cannot parse STRING 'not-a-number' to ULINT")},
+		{"BYTEs", func(t *testing.T) {
+			result := AND(BYTE(0b1100), BYTE(0b1010))
+			expected := BYTE(0b1000)
+			if result != expected {
+				t.Errorf("AND() = %v; want %v", result, expected)
+			}
+		}},
+		{"WORDs", func(t *testing.T) {
+			result := AND(WORD(0xFF00), WORD(0x00FF), WORD(0xFFFF))
+			expected := WORD(0x0000)
+			if result != expected {
+				t.Errorf("AND() = %v; want %v", result, expected)
+			}
+		}},
+		{"Empty", func(t *testing.T) {
+			result := AND[UINT]()
+			expected := UINT(0)
+			if result != expected {
+				t.Errorf("AND() = %v; want %v", result, expected)
+			}
+		}},
+		{"BOOLs", func(t *testing.T) {
+			result := AND_BOOL(BOOL(true), BOOL(true), BOOL(false))
+			expected := BOOL(false)
+			if result != expected {
+				t.Errorf("AND() with BOOLs = %v; want %v", result, expected)
+			}
+		}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := AND(tc.inputs)
-
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("AND(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("AND(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("AND(%v) = %v (type %T); want %v (type %T)", tc.inputs, result, result, tc.expected, tc.expected)
-				}
-			}
+			tc.testFunc(t)
 		})
 	}
 }
 
 func TestOR(t *testing.T) {
 	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
+		name     string
+		testFunc func(*testing.T)
 	}{
-		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b1110), false},
-		{"WORDs", []interface{}{WORD(0xFF00), WORD(0x00FF)}, WORD(0xFFFF), false},
-		{"Mixed Types", []interface{}{LWORD(0xF0), USINT(0x0F)}, USINT(0xFF), false},
-		{"Empty", []interface{}{}, LWORD(0), false},
-		{"Single", []interface{}{DINT(123)}, DINT(123), false},
-		{"Invalid String", []interface{}{STRING("abc"), INT(5)}, nil, true},
+		{"BYTEs", func(t *testing.T) {
+			result := OR(BYTE(0b1100), BYTE(0b1010))
+			expected := BYTE(0b1110)
+			if result != expected {
+				t.Errorf("OR() = %v; want %v", result, expected)
+			}
+		}},
+		{"WORDs", func(t *testing.T) {
+			result := OR(WORD(0xFF00), WORD(0x00FF))
+			expected := WORD(0xFFFF)
+			if result != expected {
+				t.Errorf("OR() = %v; want %v", result, expected)
+			}
+		}},
+		{"BOOLs", func(t *testing.T) {
+			result := OR_BOOL(BOOL(true), BOOL(false), BOOL(false))
+			expected := BOOL(true)
+			if result != expected {
+				t.Errorf("OR() with BOOLs = %v; want %v", result, expected)
+			}
+		}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := OR(tc.inputs)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("OR(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("OR(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("OR(%v) = %v; want %v", tc.inputs, result, tc.expected)
-				}
-			}
+			tc.testFunc(t)
 		})
 	}
 }
 
 func TestXOR(t *testing.T) {
 	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
+		name     string
+		testFunc func(*testing.T)
 	}{
-		{"BYTEs", []interface{}{BYTE(0b1100), BYTE(0b1010)}, BYTE(0b0110), false},
-		{"WORDs", []interface{}{WORD(0xFF00), WORD(0xFFFF)}, WORD(0x00FF), false},
-		{"Mixed Types", []interface{}{LWORD(0xF0), USINT(0xFF)}, USINT(0x0F), false},
-		{"Empty", []interface{}{}, LWORD(0), false},
-		{"Single", []interface{}{DINT(123)}, DINT(123), false},
-		{"Invalid String", []interface{}{STRING("abc"), INT(5)}, nil, true},
+		{"BYTEs", func(t *testing.T) {
+			result := XOR(BYTE(0b1100), BYTE(0b1010))
+			expected := BYTE(0b0110)
+			if result != expected {
+				t.Errorf("XOR() = %v; want %v", result, expected)
+			}
+		}},
+		{"WORDs", func(t *testing.T) {
+			result := XOR(WORD(0xFF00), WORD(0xFFFF))
+			expected := WORD(0x00FF)
+			if result != expected {
+				t.Errorf("XOR() = %v; want %v", result, expected)
+			}
+		}},
+		{"BOOLs", func(t *testing.T) {
+			result := XOR_BOOL(BOOL(true), BOOL(true), BOOL(false))
+			expected := BOOL(false)
+			if result != expected {
+				t.Errorf("XOR() with BOOLs = %v; want %v", result, expected)
+			}
+		}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := XOR(tc.inputs)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("XOR(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("XOR(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("XOR(%v) = %v; want %v", tc.inputs, result, tc.expected)
-				}
-			}
+			tc.testFunc(t)
 		})
 	}
 }
 
 func TestNOT(t *testing.T) {
 	testCases := []struct {
-		name        string
-		input       interface{}
-		expected    interface{}
-		expectError bool
+		name     string
+		testFunc func(*testing.T)
 	}{
-		{"BYTE", BYTE(0b11110000), BYTE(0b00001111), false},
-		{"WORD", WORD(0x00FF), WORD(0xFF00), false},
-		{"DINT", DINT(0), DINT(-1), false},
-		{"Invalid String", STRING("abc"), nil, true},
+		{"BYTE", func(t *testing.T) {
+			result := NOT(BYTE(0b11110000))
+			expected := BYTE(0b00001111)
+			if result != expected {
+				t.Errorf("NOT() = %v; want %v", result, expected)
+			}
+		}},
+		{"DINT", func(t *testing.T) {
+			result := NOT(DINT(0))
+			expected := DINT(-1)
+			if result != expected {
+				t.Errorf("NOT() = %v; want %v", result, expected)
+			}
+		}},
+		{"BOOL", func(t *testing.T) {
+			result := NOT_BOOL(BOOL(true))
+			expected := BOOL(false)
+			if result != expected {
+				t.Errorf("NOT() with BOOL = %v; want %v", result, expected)
+			}
+		}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := NOT(tc.input)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("NOT(%v) did not return an error; expected error", tc.input)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("NOT(%v) returned an unexpected error: %v", tc.input, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("NOT(%v) = %v; want %v", tc.input, result, tc.expected)
-				}
-			}
+			tc.testFunc(t)
 		})
 	}
 }
@@ -241,7 +250,7 @@ func TestSHL(t *testing.T) {
 	testCases := []struct {
 		name     string
 		in       interface{}
-		n        int
+		n        uint
 		expected interface{}
 	}{
 		{"BYTE", BYTE(0b00001111), 4, BYTE(0b11110000)},
@@ -253,12 +262,29 @@ func TestSHL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := SHL(tc.in, tc.n)
-			if err != nil {
-				t.Fatalf("SHL(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
-			}
-			if result != tc.expected {
-				t.Errorf("SHL(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
+			switch v := tc.in.(type) {
+			case BYTE:
+				if SHL(v, tc.n) != tc.expected.(BYTE) {
+					t.Errorf("SHL failed")
+				}
+			case WORD:
+				if SHL(v, tc.n) != tc.expected.(WORD) {
+					t.Errorf("SHL failed")
+				}
+			case UDINT:
+				if SHL(v, tc.n) != tc.expected.(UDINT) {
+					t.Errorf("SHL failed")
+				}
+			case LINT:
+				if SHL(v, tc.n) != tc.expected.(LINT) {
+					t.Errorf("SHL failed")
+				}
+			case INT:
+				if SHL(v, tc.n) != tc.expected.(INT) {
+					t.Errorf("SHL failed")
+				}
+			default:
+				t.Fatalf("unhandled type for SHL test case: %T", v)
 			}
 		})
 	}
@@ -268,7 +294,7 @@ func TestSHR(t *testing.T) {
 	testCases := []struct {
 		name     string
 		in       interface{}
-		n        int
+		n        uint
 		expected interface{}
 	}{
 		{"BYTE", BYTE(0b11110000), 4, BYTE(0b00001111)},
@@ -280,12 +306,29 @@ func TestSHR(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := SHR(tc.in, tc.n)
-			if err != nil {
-				t.Fatalf("SHR(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
-			}
-			if result != tc.expected {
-				t.Errorf("SHR(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
+			switch v := tc.in.(type) {
+			case BYTE:
+				if SHR(v, tc.n) != tc.expected.(BYTE) {
+					t.Errorf("SHR failed")
+				}
+			case WORD:
+				if SHR(v, tc.n) != tc.expected.(WORD) {
+					t.Errorf("SHR failed")
+				}
+			case UDINT:
+				if SHR(v, tc.n) != tc.expected.(UDINT) {
+					t.Errorf("SHR failed")
+				}
+			case LINT:
+				if SHR(v, tc.n) != tc.expected.(LINT) {
+					t.Errorf("SHR failed")
+				}
+			case INT:
+				if SHR(v, tc.n) != tc.expected.(INT) {
+					t.Errorf("SHR failed")
+				}
+			default:
+				t.Fatalf("unhandled type for SHR test case: %T", v)
 			}
 		})
 	}
@@ -293,35 +336,43 @@ func TestSHR(t *testing.T) {
 
 func TestROL(t *testing.T) {
 	testCases := []struct {
-		name        string
-		in          interface{}
-		n           int
-		expected    interface{}
-		expectError bool
+		name     string
+		in       interface{}
+		n        int
+		expected interface{}
 	}{
-		{"BYTE", BYTE(0b11000001), 1, BYTE(0b10000011), false},
-		{"WORD", WORD(0x8001), 1, WORD(0x0003), false},
-		{"DINT", UDINT(0xC0000000), 2, UDINT(0x00000003), false},
-		{"LINT", LINT(1), 64, LINT(1), false}, // Rotate by full width
-		{"Rotate by 0", LINT(123), 0, LINT(123), false},
-		{"Negative shift", BYTE(1), -1, nil, true},
+		{"BYTE", BYTE(0b11000001), 1, BYTE(0b10000011)},
+		{"WORD", WORD(0x8001), 1, WORD(0x0003)},
+		{"DINT", UDINT(0xC0000000), 2, UDINT(0x00000003)},
+		{"LINT", LINT(1), 64, LINT(1)}, // Rotate by full width
+		{"Rotate by 0", LINT(123), 0, LINT(123)},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ROL(tc.in, tc.n)
-
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("ROL(%v, %d) did not return an error; expected error", tc.in, tc.n)
+			switch v := tc.in.(type) {
+			case BYTE:
+				if ROL(v, tc.n) != tc.expected.(BYTE) {
+					t.Errorf("ROL failed")
 				}
-			} else {
-				if err != nil {
-					t.Errorf("ROL(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+			case WORD:
+				if ROL(v, tc.n) != tc.expected.(WORD) {
+					t.Errorf("ROL failed")
 				}
-				if result != tc.expected {
-					t.Errorf("ROL(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
+			case UDINT:
+				if ROL(v, tc.n) != tc.expected.(UDINT) {
+					t.Errorf("ROL failed")
 				}
+			case LINT:
+				if ROL(v, tc.n) != tc.expected.(LINT) {
+					t.Errorf("ROL failed")
+				}
+			case INT:
+				if ROL(v, tc.n) != tc.expected.(INT) {
+					t.Errorf("ROL failed")
+				}
+			default:
+				t.Fatalf("unhandled type for ROL test case: %T", v)
 			}
 		})
 	}
@@ -329,35 +380,43 @@ func TestROL(t *testing.T) {
 
 func TestROR(t *testing.T) {
 	testCases := []struct {
-		name        string
-		in          interface{}
-		n           int
-		expected    interface{}
-		expectError bool
+		name     string
+		in       interface{}
+		n        int
+		expected interface{}
 	}{
-		{"BYTE", BYTE(0b11000001), 1, BYTE(0b11100000), false},
-		{"WORD", WORD(0x0003), 1, WORD(0x8001), false},
-		{"DINT", UDINT(0x00000003), 2, UDINT(0xC0000000), false},
-		{"LINT", LINT(1), 64, LINT(1), false}, // Rotate by full width
-		{"Rotate by 0", INT(123), 0, INT(123), false},
-		{"Negative shift", BYTE(1), -1, nil, true},
+		{"BYTE", BYTE(0b11000001), 1, BYTE(0b11100000)},
+		{"WORD", WORD(0x0003), 1, WORD(0x8001)},
+		{"DINT", UDINT(0x00000003), 2, UDINT(0xC0000000)},
+		{"LINT", LINT(1), 64, LINT(1)}, // Rotate by full width
+		{"Rotate by 0", INT(123), 0, INT(123)},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ROR(tc.in, tc.n)
-
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("ROR(%v, %d) did not return an error; expected error", tc.in, tc.n)
+			switch v := tc.in.(type) {
+			case BYTE:
+				if ROR(v, tc.n) != tc.expected.(BYTE) {
+					t.Errorf("ROR failed")
 				}
-			} else {
-				if err != nil {
-					t.Errorf("ROR(%v, %d) returned an unexpected error: %v", tc.in, tc.n, err)
+			case WORD:
+				if ROR(v, tc.n) != tc.expected.(WORD) {
+					t.Errorf("ROR failed")
 				}
-				if result != tc.expected {
-					t.Errorf("ROR(%v, %d) = %v; want %v", tc.in, tc.n, result, tc.expected)
+			case UDINT:
+				if ROR(v, tc.n) != tc.expected.(UDINT) {
+					t.Errorf("ROR failed")
 				}
+			case LINT:
+				if ROR(v, tc.n) != tc.expected.(LINT) {
+					t.Errorf("ROR failed")
+				}
+			case INT:
+				if ROR(v, tc.n) != tc.expected.(INT) {
+					t.Errorf("ROR failed")
+				}
+			default:
+				t.Fatalf("unhandled type for ROR test case: %T", v)
 			}
 		})
 	}

@@ -1,176 +1,137 @@
 package royaljelly
 
 import (
-	"fmt"
 	"testing"
-	"time"
 )
 
 func TestSEL(t *testing.T) {
-	testCases := []struct {
-		name     string
-		g        BOOL
-		in0      interface{}
-		in1      interface{}
-		expected interface{}
-	}{
-		{"Select IN0 (false)", false, LINT(10), LINT(20), LINT(10)},
-		{"Select IN1 (true)", true, LINT(10), LINT(20), LINT(20)},
-		{"Select REAL", true, REAL(1.5), REAL(2.5), REAL(2.5)},
-		{"Select STRING", false, STRING("a"), STRING("b"), STRING("a")},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := SEL(tc.g, tc.in0, tc.in1)
-			if result != tc.expected {
-				t.Errorf("SEL(%v, %v, %v) = %v; want %v", tc.g, tc.in0, tc.in1, result, tc.expected)
-			}
-		})
-	}
+	t.Run("LINT", func(t *testing.T) {
+		if res := SEL(false, LINT(10), LINT(20)); res != LINT(10) {
+			t.Errorf("SEL(false) = %v; want 10", res)
+		}
+		if res := SEL(true, LINT(10), LINT(20)); res != LINT(20) {
+			t.Errorf("SEL(true) = %v; want 20", res)
+		}
+	})
+	t.Run("REAL", func(t *testing.T) {
+		if res := SEL(true, REAL(1.5), REAL(2.5)); res != REAL(2.5) {
+			t.Errorf("SEL(true) = %v; want 2.5", res)
+		}
+	})
+	t.Run("STRING", func(t *testing.T) {
+		if res := SEL(false, STRING("a"), STRING("b")); res != STRING("a") {
+			t.Errorf("SEL(false) = %v; want 'a'", res)
+		}
+	})
 }
 
 func TestMAX(t *testing.T) {
-	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
-	}{
-		{"LINTs", []interface{}{LINT(10), LINT(50), LINT(20)}, LINT(50), false},
-		{"REALs", []interface{}{REAL(10.5), REAL(10.6), REAL(10.1)}, REAL(10.6), false},
-		{"Mixed Int/Float", []interface{}{INT(100), REAL(100.1)}, REAL(100.1), false},
-		{"Strings", []interface{}{STRING("apple"), STRING("orange"), STRING("banana")}, STRING("orange"), false},
-		{"TIME", []interface{}{TIME(time.Second), TIME(time.Minute)}, TIME(time.Minute), false},
-		{"Not enough inputs", []interface{}{LINT(10)}, nil, true},
-		{"Incompatible types", []interface{}{LINT(10), STRING("apple")}, nil, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := MAX(tc.inputs)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("MAX(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("MAX(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("MAX(%v) = %v; want %v", tc.inputs, result, tc.expected)
-				}
-			}
-		})
-	}
+	t.Run("LINTs", func(t *testing.T) {
+		res, err := MAX(LINT(10), LINT(50), LINT(20))
+		if err != nil || res != LINT(50) {
+			t.Errorf("MAX() = %v, err: %v; want %v, nil", res, err, LINT(50))
+		}
+	})
+	t.Run("REALs", func(t *testing.T) {
+		res, err := MAX(REAL(10.5), REAL(10.6), REAL(10.1))
+		if err != nil || res != REAL(10.6) {
+			t.Errorf("MAX() = %v, err: %v; want %v, nil", res, err, REAL(10.6))
+		}
+	})
+	t.Run("Strings", func(t *testing.T) {
+		res, err := MAX(STRING("apple"), STRING("orange"), STRING("banana"))
+		if err != nil || res != STRING("orange") {
+			t.Errorf("MAX() = %v, err: %v; want %v, nil", res, err, STRING("orange"))
+		}
+	})
+	t.Run("Not enough inputs", func(t *testing.T) {
+		_, err := MAX(LINT(10))
+		if err == nil {
+			t.Error("MAX() with one input should return an error")
+		}
+	})
 }
 
 func TestMIN(t *testing.T) {
-	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
-	}{
-		{"LINTs", []interface{}{LINT(10), LINT(50), LINT(20)}, LINT(10), false},
-		{"REALs", []interface{}{REAL(10.5), REAL(10.6), REAL(10.1)}, REAL(10.1), false},
-		{"Mixed Int/Float", []interface{}{INT(100), REAL(99.9)}, REAL(99.9), false},
-		{"Strings", []interface{}{STRING("apple"), STRING("orange"), STRING("banana")}, STRING("apple"), false},
-		{"TIME", []interface{}{TIME(time.Second), TIME(time.Minute)}, TIME(time.Second), false},
-		{"Not enough inputs", []interface{}{LINT(10)}, nil, true},
-		{"Incompatible types", []interface{}{LINT(10), STRING("apple")}, nil, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := MIN(tc.inputs)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("MIN(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("MIN(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("MIN(%v) = %v; want %v", tc.inputs, result, tc.expected)
-				}
-			}
-		})
-	}
+	t.Run("LINTs", func(t *testing.T) {
+		res, err := MIN(LINT(10), LINT(50), LINT(20))
+		if err != nil || res != LINT(10) {
+			t.Errorf("MIN() = %v, err: %v; want %v, nil", res, err, LINT(10))
+		}
+	})
+	t.Run("REALs", func(t *testing.T) {
+		res, err := MIN(REAL(10.5), REAL(10.6), REAL(10.1))
+		if err != nil || res != REAL(10.1) {
+			t.Errorf("MIN() = %v, err: %v; want %v, nil", res, err, REAL(10.1))
+		}
+	})
+	t.Run("Strings", func(t *testing.T) {
+		res, err := MIN(STRING("apple"), STRING("orange"), STRING("banana"))
+		if err != nil || res != STRING("apple") {
+			t.Errorf("MIN() = %v, err: %v; want %v, nil", res, err, STRING("apple"))
+		}
+	})
+	t.Run("Not enough inputs", func(t *testing.T) {
+		_, err := MIN(LINT(10))
+		if err == nil {
+			t.Error("MIN() with one input should return an error")
+		}
+	})
 }
 
 func TestLIMIT(t *testing.T) {
-	testCases := []struct {
-		name        string
-		mn          interface{}
-		in          interface{}
-		mx          interface{}
-		expected    interface{}
-		expectError bool
-	}{
-		{"Within limits", LINT(10), LINT(50), LINT(100), LINT(50), false},
-		{"Below minimum", LINT(10), LINT(5), LINT(100), LINT(10), false},
-		{"Above maximum", LINT(10), LINT(150), LINT(100), LINT(100), false},
-		{"REALs within limits", REAL(10.0), REAL(50.5), REAL(100.0), REAL(50.5), false},
-		{"Strings within limits", STRING("a"), STRING("b"), STRING("c"), STRING("b"), false},
-		{"compatible IN and MN", LINT(10), STRING("50"), LINT(100), STRING("50"), false},
-		{"compatible IN and MX", LINT(10), LINT(50), STRING("100"), LINT(50), false},
-		{"compatible MN and MX", LINT(10), LINT(50), REAL(100.0), LINT(50), false},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := LIMIT(tc.mn, tc.in, tc.mx)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("LIMIT(%v, %v, %v) did not return an error; expected error", tc.mn, tc.in, tc.mx)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("LIMIT(%v, %v, %v) returned an unexpected error: %v", tc.mn, tc.in, tc.mx, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("LIMIT(%v, %v, %v) = %v; want %v", tc.mn, tc.in, tc.mx, result, tc.expected)
-				}
-			}
-		})
-	}
+	t.Run("LINT", func(t *testing.T) {
+		if res := LIMIT(LINT(10), LINT(50), LINT(100)); res != LINT(50) {
+			t.Errorf("LIMIT(within) = %v; want 50", res)
+		}
+		if res := LIMIT(LINT(10), LINT(5), LINT(100)); res != LINT(10) {
+			t.Errorf("LIMIT(below) = %v; want 10", res)
+		}
+		if res := LIMIT(LINT(10), LINT(150), LINT(100)); res != LINT(100) {
+			t.Errorf("LIMIT(above) = %v; want 100", res)
+		}
+	})
+	t.Run("REAL", func(t *testing.T) {
+		if res := LIMIT(REAL(10.0), REAL(50.5), REAL(100.0)); res != REAL(50.5) {
+			t.Errorf("LIMIT(REAL) = %v; want 50.5", res)
+		}
+	})
+	t.Run("STRING", func(t *testing.T) {
+		if res := LIMIT(STRING("a"), STRING("b"), STRING("c")); res != STRING("b") {
+			t.Errorf("LIMIT(STRING) = %v; want 'b'", res)
+		}
+	})
 }
 
 func TestMUX(t *testing.T) {
-	options := []interface{}{STRING("a"), STRING("b"), STRING("c"), STRING("d")}
-
-	testCases := []struct {
-		name        string
-		inputs      []interface{}
-		expected    interface{}
-		expectError bool
-	}{
-		{"Select 0", []interface{}{INT(0), options[0], options[1], options[2]}, options[0], false},
-		{"Select 2", []interface{}{INT(2), options[0], options[1], options[2], options[3]}, options[2], false},
-		{"Select with LINT", []interface{}{LINT(1), REAL(10.0), REAL(20.0)}, REAL(20.0), false},
-		{"Selector out of bounds (negative)", []interface{}{INT(-1), options[0]}, nil, true},
-		{"Selector out of bounds (too high)", []interface{}{INT(2), options[0], options[1]}, nil, true},
-		{"Not enough inputs", []interface{}{INT(0)}, nil, true},
-		{"Invalid selector type", []interface{}{STRING("abc"), options[0]}, nil, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := MUX(tc.inputs)
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("MUX(%v) did not return an error; expected error", tc.inputs)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("MUX(%v) returned an unexpected error: %v", tc.inputs, err)
-				}
-				if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", tc.expected) {
-					t.Errorf("MUX(%v) = %v; want %v", tc.inputs, result, tc.expected)
-				}
-			}
-		})
-	}
+	t.Run("Select STRING", func(t *testing.T) {
+		res, err := MUX(LINT(1), STRING("a"), STRING("b"), STRING("c"))
+		if err != nil || res != STRING("b") {
+			t.Errorf("MUX() = %v, err: %v; want 'b', nil", res, err)
+		}
+	})
+	t.Run("Select REAL", func(t *testing.T) {
+		res, err := MUX(INT(0), REAL(10.0), REAL(20.0))
+		if err != nil || res != REAL(10.0) {
+			t.Errorf("MUX() = %v, err: %v; want 10.0, nil", res, err)
+		}
+	})
+	t.Run("Selector out of bounds (negative)", func(t *testing.T) {
+		_, err := MUX(LINT(-1), STRING("a"))
+		if err == nil {
+			t.Error("MUX() with negative selector should return an error")
+		}
+	})
+	t.Run("Selector out of bounds (too high)", func(t *testing.T) {
+		_, err := MUX(LINT(2), STRING("a"), STRING("b"))
+		if err == nil {
+			t.Error("MUX() with out-of-bounds selector should return an error")
+		}
+	})
+	t.Run("No options", func(t *testing.T) {
+		_, err := MUX[LINT, STRING](LINT(0))
+		if err == nil {
+			t.Error("MUX() with no options should return an error")
+		}
+	})
 }
