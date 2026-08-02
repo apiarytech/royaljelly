@@ -237,6 +237,9 @@ func anyToULINT[T any](val T) (ULINT, error) {
 		return ULINT(time.Time(v).UnixMilli()), nil
 	case STRING:
 		// Bitwise operations on strings are not standard, but can be interpreted as parsing to an integer.
+		// The string is parsed as an unsigned integer.
+		// Note: The base is auto-detected from the string prefix.
+		// "0x" for hexadecimal, "0" for octal, otherwise decimal.
 		i, err := strconv.ParseUint(string(v), 0, 64) // Use ParseUint with base 0 for auto-detection (e.g., "0xFF")
 		if err != nil {
 			return 0, fmt.Errorf("anyToULINT: cannot parse STRING '%s' to ULINT: %w", v, err)
