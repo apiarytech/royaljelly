@@ -12,7 +12,7 @@ A Go library for writing PLC (Programmable Logic Controller) programs using Go s
   - [Data Types](#data-types)
   - [Function Blocks](#function-blocks)
   - [Standard Functions](#standard-functions)
-C- [TinyGo Support](#tinygo-support)
+- [TinyGo Support](#tinygo-support)
 - [Licensing](#licensing)
 - [Contributing](#contributing)
 
