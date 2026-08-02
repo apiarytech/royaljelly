@@ -180,6 +180,12 @@ func TestDIV(t *testing.T) {
 				t.Errorf("DIV() did not return an error; expected error")
 			}
 		}, true},
+		{"LREAL Div by Zero", func(t *testing.T) {
+			_, err := DIV(LREAL(100.0), LREAL(0.0))
+			if err == nil {
+				t.Errorf("DIV() with LREAL did not return an error for division by zero; expected error")
+			}
+		}, true},
 	}
 
 	for _, tc := range testCases {
