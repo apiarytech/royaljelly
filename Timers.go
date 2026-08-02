@@ -51,6 +51,13 @@ func (t *TP) INIT() {
 // Execute runs the logic for the TP function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TP) Execute(now time.Time) {
+	// Per IEC 61131-3, time literals are always positive.
+	if t.PT < 0 {
+		t.Q = false
+		t.ET = 0
+		return
+	}
+
 	t.re.CLK = t.IN
 	t.re.R_TRIG()
 
@@ -106,6 +113,14 @@ func (t *TON) INIT() {
 // Execute runs the logic for the TON function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TON) Execute(now time.Time) {
+	// --- RECOMMENDED VALIDATION ---
+	// Per IEC 61131-3, time literals are always positive.
+	if t.PT < 0 {
+		t.Q = false
+		t.ET = 0
+		return
+	}
+	// --- END VALIDATION ---
 	if !t.IN {
 		// If input is false, reset everything.
 		t.Q = false
@@ -159,6 +174,14 @@ func (t *TOF) INIT() {
 // Execute runs the logic for the TOF function block for the current scan cycle.
 // The `now` parameter represents the current time of the scan.
 func (t *TOF) Execute(now time.Time) {
+	// --- RECOMMENDED VALIDATION ---
+	// Per IEC 61131-3, time literals are always positive.
+	if t.PT < 0 {
+		t.Q = false
+		t.ET = 0
+		return
+	}
+	// --- END VALIDATION ---
 	// Detect the falling edge of IN
 	fallingEdge := !t.IN && t.mem
 

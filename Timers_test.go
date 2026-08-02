@@ -87,6 +87,19 @@ func TestTP(t *testing.T) {
 			t.Errorf("ET should reset to 0 when IN goes low after a pulse. Got %v", p.ET)
 		}
 	})
+
+	t.Run("Invalid PT", func(t *testing.T) {
+		tp_invalid := &TP{}
+		tp_invalid.INIT()
+		tp_invalid.PT = TIME(-1 * time.Second) // Invalid negative preset time
+		tp_invalid.IN = true
+
+		tp_invalid.Execute(now)
+
+		if tp_invalid.Q || tp_invalid.ET != 0 {
+			t.Errorf("With negative PT, Q should be false and ET should be 0. Q=%v, ET=%v", tp_invalid.Q, tp_invalid.ET)
+		}
+	})
 }
 
 func TestTON(t *testing.T) {
@@ -132,6 +145,19 @@ func TestTON(t *testing.T) {
 	if ton.Q || ton.ET != 0 {
 		t.Errorf("After IN goes false, timer should reset. Q=%v, ET=%v", ton.Q, ton.ET)
 	}
+
+	t.Run("Invalid PT", func(t *testing.T) {
+		ton_invalid := &TON{}
+		ton_invalid.INIT()
+		ton_invalid.PT = TIME(-1 * time.Second) // Invalid negative preset time
+		ton_invalid.IN = true
+
+		ton_invalid.Execute(now)
+
+		if ton_invalid.Q || ton_invalid.ET != 0 {
+			t.Errorf("With negative PT, Q should be false and ET should be 0. Q=%v, ET=%v", ton_invalid.Q, ton_invalid.ET)
+		}
+	})
 }
 
 func TestTOF(t *testing.T) {
@@ -185,6 +211,19 @@ func TestTOF(t *testing.T) {
 	if !tof.Q || tof.ET != 0 {
 		t.Errorf("IN goes true again, timer should reset. Q=%v, ET=%v", tof.Q, tof.ET)
 	}
+
+	t.Run("Invalid PT", func(t *testing.T) {
+		tof_invalid := &TOF{}
+		tof_invalid.INIT()
+		tof_invalid.PT = TIME(-1 * time.Second) // Invalid negative preset time
+		tof_invalid.IN = true
+
+		tof_invalid.Execute(now)
+
+		if tof_invalid.Q || tof_invalid.ET != 0 {
+			t.Errorf("With negative PT, Q should be false and ET should be 0. Q=%v, ET=%v", tof_invalid.Q, tof_invalid.ET)
+		}
+	})
 }
 
 func TestTOF_QuickToggle(t *testing.T) {
