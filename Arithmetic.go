@@ -76,7 +76,9 @@ func anyToLREAL[T any](val T) (LREAL, error) {
 		}
 		return 0.0, nil
 	case TIME:
-		return LREAL(time.Duration(v).Milliseconds()), nil
+		// Convert nanoseconds to milliseconds as a float to preserve sub-millisecond precision.
+		// A TIME duration of 1,234,567 ns will become 1.234567 ms.
+		return LREAL(v) / 1e6, nil
 	case DATE:
 		return LREAL(time.Time(v).UnixMilli()), nil
 	case TOD:
@@ -138,7 +140,8 @@ func anyToLINT[T any](val T) (LINT, error) {
 		}
 		return 0, nil
 	case TIME:
-		return LINT(time.Duration(v).Milliseconds()), nil
+		// Note: Converts to whole milliseconds, truncating any sub-millisecond precision.
+		return LINT(time.Duration(v).Nanoseconds() / 1e6), nil
 	case DATE:
 		return LINT(time.Time(v).UnixMilli()), nil
 	case TOD:
@@ -226,7 +229,8 @@ func anyToULINT[T any](val T) (ULINT, error) {
 	case LWORD:
 		return ULINT(v), nil
 	case TIME:
-		return ULINT(time.Duration(v).Milliseconds()), nil
+		// Note: Converts to whole milliseconds, truncating any sub-millisecond precision.
+		return ULINT(time.Duration(v).Nanoseconds() / 1e6), nil
 	case DATE:
 		return ULINT(time.Time(v).UnixMilli()), nil
 	case TOD:
