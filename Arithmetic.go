@@ -21,6 +21,65 @@ import (
 /*  IEC Arithmatic definitions   */
 /*********************************/
 
+// ConversionError represents a structured error that occurs during type conversion.
+// It is reflection-free.
+type ConversionError struct {
+	Value    any    // The original value that failed to convert.
+	FromType string // The string name of the original value's type.
+	ToType   string // The name of the target type.
+	Reason   string // A description of why the conversion failed.
+	Err      error  // The underlying error, if any.
+}
+
+// Error implements the error interface for ConversionError.
+func (e *ConversionError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("conversion to %s failed for value '%v' (type %s): %s: %v", e.ToType, e.Value, e.FromType, e.Reason, e.Err)
+	}
+	return fmt.Sprintf("conversion to %s failed for value '%v' (type %s): %s", e.ToType, e.Value, e.FromType, e.Reason)
+}
+
+// Unwrap allows for error chaining with errors.Is and errors.As.
+func (e *ConversionError) Unwrap() error {
+	return e.Err
+}
+
+// getTypeName returns a string representation of a supported PLC type without using reflection.
+func getTypeName(v any) string {
+	switch v.(type) {
+	case BOOL:
+		return "BOOL"
+	case SINT:
+		return "SINT"
+	case INT:
+		return "INT"
+	case DINT:
+		return "DINT"
+	case LINT:
+		return "LINT"
+	case USINT:
+		return "USINT"
+	case UINT:
+		return "UINT"
+	case UDINT:
+		return "UDINT"
+	case ULINT:
+		return "ULINT"
+	case REAL:
+		return "REAL"
+	case LREAL:
+		return "LREAL"
+	case STRING:
+		return "STRING"
+	case TIME, DATE, TOD, DT:
+		return "Time/Date Type"
+	case BYTE, WORD, DWORD, LWORD:
+		return "Bit-String Type"
+	default:
+		return "unknown"
+	}
+}
+
 // --- Helper Functions ---
 
 // isPlcFloatType checks if the given Type is one of the PLC float types.
@@ -61,8 +120,14 @@ func IsPlcTimeType[T any](val T) bool {
 func anytoREAL[T any](val T) (REAL, error) {
 	lrealVal, err := anyToLREAL(val)
 	if err != nil {
-		// Modify the error message to be specific to this function's context.
-		return 0, fmt.Errorf("anytoREAL: failed during intermediate conversion to LREAL: %w", err)
+		// Wrap the structured error to provide more context.
+		return 0, &ConversionError{
+			Value:    val,
+			FromType: getTypeName(val),
+			ToType:   "REAL",
+			Reason:   "failed during intermediate conversion to LREAL",
+			Err:      err,
+		}
 	}
 	return REAL(lrealVal), nil
 }
@@ -90,7 +155,13 @@ func anyToLREAL[T any](val T) (LREAL, error) {
 	case STRING:
 		f, err := strconv.ParseFloat(string(v), 64)
 		if err != nil {
-			return 0, fmt.Errorf("anyToLREAL: cannot parse STRING '%s' to LREAL: %w", v, err)
+			return 0, &ConversionError{
+				Value:    v,
+				FromType: "STRING",
+				ToType:   "LREAL",
+				Reason:   "string could not be parsed as a float",
+				Err:      err,
+			}
 		}
 		return LREAL(f), nil
 	// Handle numeric types explicitly to avoid reflection.
@@ -127,7 +198,12 @@ func anyToLREAL[T any](val T) (LREAL, error) {
 	case LWORD:
 		return LREAL(v), nil
 	default:
-		return 0, fmt.Errorf("anyToLREAL: unsupported type %T for conversion", v)
+		return 0, &ConversionError{
+			Value:    val,
+			FromType: getTypeName(val),
+			ToType:   "LREAL",
+			Reason:   "unsupported source type",
+		}
 	}
 }
 
@@ -153,7 +229,13 @@ func anyToLINT[T any](val T) (LINT, error) {
 	case STRING:
 		i, err := strconv.Atoi(string(v))
 		if err != nil {
-			return 0, fmt.Errorf("anyToLINT: cannot parse STRING '%s' to LINT: %w", v, err)
+			return 0, &ConversionError{
+				Value:    v,
+				FromType: "STRING",
+				ToType:   "LINT",
+				Reason:   "string could not be parsed as an integer",
+				Err:      err,
+			}
 		}
 		return LINT(i), nil
 	// Handle numeric types explicitly.
@@ -182,7 +264,12 @@ func anyToLINT[T any](val T) (LINT, error) {
 		uVal, _ := anyToULINT(v)
 		return LINT(uVal), nil
 	default:
-		return 0, fmt.Errorf("anyToLINT: unsupported type %T for conversion", v)
+		return 0, &ConversionError{
+			Value:    val,
+			FromType: getTypeName(val),
+			ToType:   "LINT",
+			Reason:   "unsupported source type",
+		}
 	}
 }
 
@@ -246,12 +333,23 @@ func anyToULINT[T any](val T) (ULINT, error) {
 		// "0x" for hexadecimal, "0" for octal, otherwise decimal.
 		i, err := strconv.ParseUint(string(v), 0, 64) // Use ParseUint with base 0 for auto-detection (e.g., "0xFF")
 		if err != nil {
-			return 0, fmt.Errorf("anyToULINT: cannot parse STRING '%s' to ULINT: %w", v, err)
+			return 0, &ConversionError{
+				Value:    v,
+				FromType: "STRING",
+				ToType:   "ULINT",
+				Reason:   "string could not be parsed as an unsigned integer",
+				Err:      err,
+			}
 		}
 		return ULINT(i), nil
 	default:
 		// Return an error for types that are not bitwise-compatible.
-		return 0, fmt.Errorf("anyToULINT: unsupported type %T for conversion to ULINT", val)
+		return 0, &ConversionError{
+			Value:    val,
+			FromType: getTypeName(val),
+			ToType:   "ULINT",
+			Reason:   "unsupported source type",
+		}
 	}
 }
 
@@ -363,7 +461,12 @@ func ConvertTo[T any](in any) (T, error) {
 		// For any other type, we can attempt a promotion to LREAL or LINT as an intermediate.
 		// This part shows the complexity of a truly universal converter.
 		// For this example, we'll primarily rely on the explicit cases.
-		return zero, fmt.Errorf("ConvertTo: unsupported target type %T", zero)
+		return zero, &ConversionError{
+			Value:    in,
+			FromType: getTypeName(in),
+			ToType:   getTypeName(zero),
+			Reason:   "unsupported target type for conversion",
+		}
 	}
 
 	if err != nil {
@@ -375,7 +478,12 @@ func ConvertTo[T any](in any) (T, error) {
 		return finalResult, nil
 	}
 
-	return zero, fmt.Errorf("ConvertTo: internal error, failed to cast result to %T", zero)
+	return zero, &ConversionError{
+		Value:    in,
+		FromType: getTypeName(in),
+		ToType:   getTypeName(zero),
+		Reason:   fmt.Sprintf("internal error: failed to cast result from %T", result),
+	}
 }
 
 // ADD performs addition on a slice of numeric types.
@@ -516,7 +624,13 @@ func SUB_DT_DT(in1, in2 DT) TIME {
 func MUL_TIME(in1 TIME, in2 any) (TIME, error) {
 	val, err := anyToLREAL(in2)
 	if err != nil {
-		return 0, fmt.Errorf("MUL_TIME: error converting multiplier %v to LREAL: %w", in2, err)
+		return 0, &ConversionError{
+			Value:    in2,
+			FromType: getTypeName(in2),
+			ToType:   "LREAL (for multiplication with TIME)",
+			Reason:   "invalid multiplier for TIME",
+			Err:      err,
+		}
 	}
 	return TIME(float64(in1) * float64(val)), nil
 }
@@ -525,7 +639,13 @@ func MUL_TIME(in1 TIME, in2 any) (TIME, error) {
 func DIV_TIME(in1 TIME, in2 any) (TIME, error) {
 	val, err := anyToLREAL(in2)
 	if err != nil {
-		return 0, fmt.Errorf("DIV_TIME: error converting divisor %v to LREAL: %w", in2, err)
+		return 0, &ConversionError{
+			Value:    in2,
+			FromType: getTypeName(in2),
+			ToType:   "LREAL (for division with TIME)",
+			Reason:   "invalid divisor for TIME",
+			Err:      err,
+		}
 	}
 	if val == 0 {
 		return 0, fmt.Errorf("DIV_TIME: division by zero")

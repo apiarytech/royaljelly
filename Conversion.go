@@ -70,7 +70,7 @@ simplified converstions
 func SubByte(in interface{}) (BYTE, error) {
 	val, err := anyToULINT(in)
 	if err != nil {
-		return 0, fmt.Errorf("SubByte: conversion error: %w", err)
+		return 0, err // Propagate the original ConversionError
 	}
 	return BYTE(val), nil
 }
@@ -78,7 +78,7 @@ func SubByte(in interface{}) (BYTE, error) {
 func SubWord(in interface{}) (WORD, error) {
 	val, err := anyToULINT(in)
 	if err != nil {
-		return 0, fmt.Errorf("SubWord: conversion error: %w", err)
+		return 0, err
 	}
 	return WORD(val), nil
 }
@@ -86,7 +86,7 @@ func SubWord(in interface{}) (WORD, error) {
 func SubDword(in interface{}) (DWORD, error) {
 	val, err := anyToULINT(in)
 	if err != nil {
-		return 0, fmt.Errorf("SubDword: conversion error: %w", err)
+		return 0, err
 	}
 	return DWORD(val), nil
 }
@@ -94,7 +94,7 @@ func SubDword(in interface{}) (DWORD, error) {
 func SubLword(in interface{}) (LWORD, error) {
 	val, err := anyToULINT(in)
 	if err != nil {
-		return 0, fmt.Errorf("SubLword: conversion error: %w", err)
+		return 0, err
 	}
 	return LWORD(val), nil
 }
@@ -102,7 +102,7 @@ func SubLword(in interface{}) (LWORD, error) {
 func SubDt(in interface{}) (DT, error) {
 	val, err := anyToLINT(in)
 	if err != nil {
-		return DT{}, fmt.Errorf("SubDt: conversion error: %w", err)
+		return DT{}, err
 	}
 	// Assuming the integer value represents milliseconds since Unix epoch
 	return DT(time.UnixMilli(int64(val))), nil
@@ -111,7 +111,7 @@ func SubDt(in interface{}) (DT, error) {
 func SubDate(in interface{}) (DATE, error) {
 	val, err := anyToLINT(in)
 	if err != nil {
-		return DATE{}, fmt.Errorf("SubDate: conversion error: %w", err)
+		return DATE{}, err
 	}
 	// Assuming the integer value represents milliseconds since Unix epoch
 	return DATE(time.UnixMilli(int64(val))), nil
@@ -121,7 +121,7 @@ func SubTod(in interface{}) (TOD, error) {
 	// Assuming input is milliseconds since midnight
 	val, err := anyToLINT(in)
 	if err != nil {
-		return INITTOD, fmt.Errorf("SubTod: conversion error: %v", err)
+		return INITTOD, err
 	}
 	// A TOD is a duration since midnight on an arbitrary day.
 	return TOD(time.Time{}.Add(time.Duration(val) * time.Millisecond)), nil
@@ -130,7 +130,7 @@ func SubTod(in interface{}) (TOD, error) {
 func SubTime(in interface{}) (TIME, error) {
 	val, err := anyToLINT(in)
 	if err != nil {
-		return 0, fmt.Errorf("SubTime: conversion error: %w", err)
+		return 0, err
 	}
 	return TIME(time.Duration(val) * time.Millisecond), nil
 }
@@ -1515,7 +1515,12 @@ func uintToBCD(in uint64) (uint64, error) {
 		shift += 4
 	}
 	if val > 0 {
-		return 0, fmt.Errorf("uintToBCD: input value %d too large for 64-bit BCD representation", in)
+		return 0, &ConversionError{
+			Value:    in,
+			FromType: "uint64",
+			ToType:   "BCD",
+			Reason:   "input value too large for 64-bit BCD representation",
+		}
 	}
 	return res, nil
 }
@@ -1528,7 +1533,12 @@ func bcdToUint(in uint64) (uint64, error) {
 	for i := 0; i < 16; i++ { // Process up to 16 nibbles (64 bits)
 		nibble := (tempVal >> (i * 4)) & 0xF
 		if nibble > 9 {
-			return 0, fmt.Errorf("bcdToUint: invalid BCD nibble %d in value 0x%X", nibble, in)
+			return 0, &ConversionError{
+				Value:    in,
+				FromType: "BCD",
+				ToType:   "uint64",
+				Reason:   fmt.Sprintf("invalid BCD nibble %d", nibble),
+			}
 		}
 		res += nibble * factor
 		if tempVal>>((i+1)*4) == 0 {
@@ -1539,26 +1549,42 @@ func bcdToUint(in uint64) (uint64, error) {
 	return res, nil
 }
 
-func USINT_TO_BCD_BYTE(in USINT) BYTE {
+func USINT_TO_BCD_BYTE(in USINT) (BYTE, error) {
 	out, err := uintToBCD(uint64(in))
 	if err != nil || out > MAXUSINT {
-		// According to some interpretations, invalid BCD should result in 0.
-		// Or it could be an error state. Panicking is an option for unrecoverable states.
-		panic(fmt.Sprintf("USINT_TO_BCD_BYTE: value %d is invalid for BCD conversion to BYTE: %v", in, err))
+		return 0, &ConversionError{Value: in, FromType: "USINT", ToType: "BCD_BYTE", Reason: "value out of range", Err: err}
 	}
-	return BYTE(out)
+	return BYTE(out), nil
 }
-func UINT_TO_BCD_WORD(in UINT) WORD     { out, _ := uintToBCD(uint64(in)); return WORD(out) }
-func UDINT_TO_BCD_DWORD(in UDINT) DWORD { out, _ := uintToBCD(uint64(in)); return DWORD(out) }
-func ULINT_TO_BCD_LWORD(in ULINT) LWORD { out, _ := uintToBCD(uint64(in)); return LWORD(out) }
+func UINT_TO_BCD_WORD(in UINT) (WORD, error) {
+	out, err := uintToBCD(uint64(in))
+	return WORD(out), err
+}
+func UDINT_TO_BCD_DWORD(in UDINT) (DWORD, error) {
+	out, err := uintToBCD(uint64(in))
+	return DWORD(out), err
+}
+func ULINT_TO_BCD_LWORD(in ULINT) (LWORD, error) {
+	out, err := uintToBCD(uint64(in))
+	return LWORD(out), err
+}
 
-func BYTE_BCD_TO_USINT(in BYTE) USINT {
+func BYTE_BCD_TO_USINT(in BYTE) (USINT, error) {
 	out, err := bcdToUint(uint64(in))
 	if err != nil {
-		panic(fmt.Sprintf("BYTE_BCD_TO_USINT: invalid BCD value 0x%X: %v", in, err))
+		return 0, err
 	}
-	return USINT(clampULINT(ULINT(out), MAXUSINT))
+	return USINT(clampULINT(ULINT(out), MAXUSINT)), nil
 }
-func WORD_BCD_TO_UINT(in WORD) UINT     { out, _ := bcdToUint(uint64(in)); return UINT(out) }
-func DWORD_BCD_TO_UDINT(in DWORD) UDINT { out, _ := bcdToUint(uint64(in)); return UDINT(out) }
-func LWORD_BCD_TO_ULINT(in LWORD) ULINT { out, _ := bcdToUint(uint64(in)); return ULINT(out) }
+func WORD_BCD_TO_UINT(in WORD) (UINT, error) {
+	out, err := bcdToUint(uint64(in))
+	return UINT(out), err
+}
+func DWORD_BCD_TO_UDINT(in DWORD) (UDINT, error) {
+	out, err := bcdToUint(uint64(in))
+	return UDINT(out), err
+}
+func LWORD_BCD_TO_ULINT(in LWORD) (ULINT, error) {
+	out, err := bcdToUint(uint64(in))
+	return ULINT(out), err
+}

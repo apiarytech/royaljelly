@@ -1,6 +1,7 @@
 package royaljelly
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -116,33 +117,46 @@ func TestBitFloatConversions(t *testing.T) {
 
 func TestBCDConversions(t *testing.T) {
 	t.Run("Valid BCD Conversions", func(t *testing.T) {
-		if USINT_TO_BCD_BYTE(99) != 0x99 {
-			t.Errorf("USINT_TO_BCD_BYTE failed, got 0x%X", USINT_TO_BCD_BYTE(99))
+		val1, err1 := USINT_TO_BCD_BYTE(99)
+		if err1 != nil || val1 != 0x99 {
+			t.Errorf("USINT_TO_BCD_BYTE failed, got 0x%X, err: %v", val1, err1)
 		}
-		if BYTE_BCD_TO_USINT(0x99) != 99 {
-			t.Errorf("BYTE_BCD_TO_USINT failed, got %d, want 99", BYTE_BCD_TO_USINT(0x99))
+
+		val2, err2 := BYTE_BCD_TO_USINT(0x99)
+		if err2 != nil || val2 != 99 {
+			t.Errorf("BYTE_BCD_TO_USINT failed, got %d, err: %v", val2, err2)
 		}
-		if WORD_BCD_TO_UINT(0x1234) != 1234 {
-			t.Errorf("WORD_BCD_TO_UINT failed, got %d", WORD_BCD_TO_UINT(0x1234))
+
+		val3, err3 := WORD_BCD_TO_UINT(0x1234)
+		if err3 != nil || val3 != 1234 {
+			t.Errorf("WORD_BCD_TO_UINT failed, got %d, err: %v", val3, err3)
 		}
 	})
 
 	t.Run("Invalid BCD Nibble", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("BYTE_BCD_TO_USINT with invalid nibble did not panic")
-			}
-		}()
-		_ = BYTE_BCD_TO_USINT(0xA0)
+		_, err := BYTE_BCD_TO_USINT(0xA0)
+		if err == nil {
+			t.Error("BYTE_BCD_TO_USINT with invalid nibble should have returned an error")
+		}
+
+		var convErr *ConversionError
+		if !errors.As(err, &convErr) {
+			t.Errorf("Expected a ConversionError, but got %T", err)
+		}
 	})
 
 	t.Run("Value too large for BCD", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("USINT_TO_BCD_BYTE with value > 99 did not panic")
-			}
-		}()
-		_ = USINT_TO_BCD_BYTE(101) // Use 101 to avoid ambiguity with hex 0x100
+		_, err := USINT_TO_BCD_BYTE(101) // Use 101 to avoid ambiguity with hex 0x100
+		if err == nil {
+			t.Error("USINT_TO_BCD_BYTE with value > 99 should have returned an error")
+		}
+
+		var convErr *ConversionError
+		if !errors.As(err, &convErr) {
+			t.Errorf("Expected a ConversionError, but got %T", err)
+		} else if convErr.Reason != "value out of range" {
+			t.Errorf("Unexpected error reason: got %q, want 'value out of range'", convErr.Reason)
+		}
 	})
 }
 
@@ -1407,32 +1421,37 @@ func TestAllConversions(t *testing.T) {
 
 func TestBCDConversionsExtended(t *testing.T) {
 	t.Run("UINT_TO_BCD_WORD", func(t *testing.T) {
-		if UINT_TO_BCD_WORD(1234) != 0x1234 {
-			t.Errorf("UINT_TO_BCD_WORD failed, got 0x%X", UINT_TO_BCD_WORD(1234))
+		val, err := UINT_TO_BCD_WORD(1234)
+		if err != nil || val != 0x1234 {
+			t.Errorf("UINT_TO_BCD_WORD failed, got 0x%X, err: %v", val, err)
 		}
 	})
 
 	t.Run("UDINT_TO_BCD_DWORD", func(t *testing.T) {
-		if UDINT_TO_BCD_DWORD(12345678) != 0x12345678 {
-			t.Errorf("UDINT_TO_BCD_DWORD failed, got 0x%X", UDINT_TO_BCD_DWORD(12345678))
+		val, err := UDINT_TO_BCD_DWORD(12345678)
+		if err != nil || val != 0x12345678 {
+			t.Errorf("UDINT_TO_BCD_DWORD failed, got 0x%X, err: %v", val, err)
 		}
 	})
 
 	t.Run("ULINT_TO_BCD_LWORD", func(t *testing.T) {
-		if ULINT_TO_BCD_LWORD(1234567890123456) != 0x1234567890123456 {
-			t.Errorf("ULINT_TO_BCD_LWORD failed, got 0x%X", ULINT_TO_BCD_LWORD(1234567890123456))
+		val, err := ULINT_TO_BCD_LWORD(1234567890123456)
+		if err != nil || val != 0x1234567890123456 {
+			t.Errorf("ULINT_TO_BCD_LWORD failed, got 0x%X, err: %v", val, err)
 		}
 	})
 
 	t.Run("DWORD_BCD_TO_UDINT", func(t *testing.T) {
-		if DWORD_BCD_TO_UDINT(0x12345678) != 12345678 {
-			t.Errorf("DWORD_BCD_TO_UDINT failed, got %d", DWORD_BCD_TO_UDINT(0x12345678))
+		val, err := DWORD_BCD_TO_UDINT(0x12345678)
+		if err != nil || val != 12345678 {
+			t.Errorf("DWORD_BCD_TO_UDINT failed, got %d, err: %v", val, err)
 		}
 	})
 
 	t.Run("LWORD_BCD_TO_ULINT", func(t *testing.T) {
-		if LWORD_BCD_TO_ULINT(0x1234567890123456) != 1234567890123456 {
-			t.Errorf("LWORD_BCD_TO_ULINT failed, got %d", LWORD_BCD_TO_ULINT(0x1234567890123456))
+		val, err := LWORD_BCD_TO_ULINT(0x1234567890123456)
+		if err != nil || val != 1234567890123456 {
+			t.Errorf("LWORD_BCD_TO_ULINT failed, got %d, err: %v", val, err)
 		}
 	})
 }

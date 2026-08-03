@@ -116,7 +116,13 @@ func LOCAL(t TIMESPEC) TIMESPEC {
 func STRING_TO_TIME(in STRING) (TIME, error) {
 	d, err := time.ParseDuration(string(in))
 	if err != nil {
-		return 0, err
+		return 0, &ConversionError{
+			Value:    in,
+			FromType: "STRING",
+			ToType:   "TIME",
+			Reason:   "string could not be parsed as a duration (e.g., '1h30m15s')",
+			Err:      err,
+		}
 	}
 	return TIME(d), nil
 }
@@ -125,7 +131,13 @@ func STRING_TO_TIME(in STRING) (TIME, error) {
 func STRING_TO_DATE(in STRING) (DATE, error) {
 	t, err := time.Parse("2006-01-02", string(in))
 	if err != nil {
-		return DATE(time.Time{}), err
+		return DATE(time.Time{}), &ConversionError{
+			Value:    in,
+			FromType: "STRING",
+			ToType:   "DATE",
+			Reason:   "string could not be parsed as a date (format 'YYYY-MM-DD')",
+			Err:      err,
+		}
 	}
 	return DATE(t), nil
 }
@@ -135,7 +147,13 @@ func STRING_TO_TOD(in STRING) (TOD, error) {
 	// We parse it against a known date, then the date part is ignored by the TOD type's usage.
 	t, err := time.Parse("2006-01-02 15:04:05", "1970-01-01 "+string(in))
 	if err != nil {
-		return TOD(time.Time{}), err
+		return TOD(time.Time{}), &ConversionError{
+			Value:    in,
+			FromType: "STRING",
+			ToType:   "TOD",
+			Reason:   "string could not be parsed as a time of day (format 'HH:MM:SS')",
+			Err:      err,
+		}
 	}
 	return TOD(t), nil
 }
@@ -144,7 +162,13 @@ func STRING_TO_TOD(in STRING) (TOD, error) {
 func STRING_TO_DT(in STRING) (DT, error) {
 	t, err := time.Parse("2006-01-02-15:04:05", string(in))
 	if err != nil {
-		return DT(time.Time{}), err
+		return DT(time.Time{}), &ConversionError{
+			Value:    in,
+			FromType: "STRING",
+			ToType:   "DT",
+			Reason:   "string could not be parsed as a date and time (format 'YYYY-MM-DD-HH:MM:SS')",
+			Err:      err,
+		}
 	}
 	return DT(t), nil
 }

@@ -1,6 +1,7 @@
 package royaljelly
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -413,6 +414,56 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		result := CONCAT_DATE_TOD(in1, in2)
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("CONCAT_DATE_TOD(%v, %v) = %v; want %v", in1, in2, result, expected)
+		}
+	})
+}
+
+func TestConversionError(t *testing.T) {
+	t.Run("STRING to LINT failure", func(t *testing.T) {
+		invalidInput := STRING("not-a-number")
+		_, err := anyToLINT(invalidInput)
+
+		if err == nil {
+			t.Fatal("anyToLINT with invalid string should have returned an error, but got nil")
+		}
+
+		var convErr *ConversionError
+		if !errors.As(err, &convErr) {
+			t.Fatalf("Expected error of type *ConversionError, but got %T", err)
+		}
+
+		if convErr.Value != invalidInput {
+			t.Errorf("ConversionError.Value = %v; want %v", convErr.Value, invalidInput)
+		}
+		if convErr.FromType != "STRING" {
+			t.Errorf("ConversionError.FromType = %q; want 'STRING'", convErr.FromType)
+		}
+		if convErr.ToType != "LINT" {
+			t.Errorf("ConversionError.ToType = %q; want 'LINT'", convErr.ToType)
+		}
+		if convErr.Reason != "string could not be parsed as an integer" {
+			t.Errorf("ConversionError.Reason = %q; want 'string could not be parsed as an integer'", convErr.Reason)
+		}
+		if convErr.Err == nil {
+			t.Error("ConversionError.Err should not be nil for a parse error")
+		}
+	})
+
+	t.Run("Unsupported type to LREAL failure", func(t *testing.T) {
+		invalidInput := struct{}{} // An unsupported type
+		_, err := anyToLREAL(invalidInput)
+
+		if err == nil {
+			t.Fatal("anyToLREAL with unsupported type should have returned an error, but got nil")
+		}
+
+		var convErr *ConversionError
+		if !errors.As(err, &convErr) {
+			t.Fatalf("Expected error of type *ConversionError, but got %T", err)
+		}
+
+		if convErr.ToType != "LREAL" {
+			t.Errorf("ConversionError.ToType = %q; want 'LREAL'", convErr.ToType)
 		}
 	})
 }
