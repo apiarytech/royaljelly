@@ -12,13 +12,14 @@ A Go library for writing PLC (Programmable Logic Controller) programs using Go s
   - [Data Types](#data-types)
   - [Function Blocks](#function-blocks)
   - [Standard Functions](#standard-functions)
-C- [TinyGo Support](#tinygo-support)
+- [TinyGo Support](#tinygo-support)
 - [Licensing](#licensing)
 - [Contributing](#contributing)
 
 ## Features
 
 `royaljelly` aims to translate the core concepts of IEC 61131-3 into idiomatic Go, offering:
+- **IEC 61131-3 Software Model**: A hierarchical structure (`Configuration` -> `Resource` -> `Task` -> `Program`) for organizing and scheduling control logic, managed by a priority-based, TinyGo-compatible scheduler.
 
 - **IEC 61131-3 Data Types**: Go types representing standard IEC types like `BOOL`, `INT`, `REAL`, `TIME`, `DATE`, `TOD`, `DT`, etc.
 - **Standard Function Blocks**: Implementations of common FBs as Go structs with `INIT` and `Execute` methods, including:
@@ -42,6 +43,52 @@ go get github.com/apiarytech/royaljelly
 ```
 
 ## Usage
+
+### Structuring a PLC Application
+
+`royaljelly` provides a framework to structure your application according to the IEC 61131-3 software model. This creates a clear hierarchy for managing your control logic, orchestrated by a resource-level scheduler.
+
+*   **Configuration**: The top-level object representing the entire PLC system.
+*   **Resource**: Represents a processing unit (like a CPU) and runs a priority-based task scheduler.
+*   **Task**: Controls the execution properties of programs (e.g., cyclic interval or event-driven).
+*   **Program**: Contains your control logic, written as a Go closure.
+
+The following snippet, taken from the `4-way traffic light` example, demonstrates how to assemble this structure:
+
+```go
+package main
+
+import (
+	"time"
+	plc "github.com/apiarytech/royaljelly"
+)
+
+func main() {
+	// 1. Define the hierarchy
+	config := &plc.Configuration{Name: "TrafficLightController"}
+	resource := &plc.Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
+	task := plc.NewTask("TrafficLightTask", plc.CyclicTask, 1, 1*time.Second)
+
+	// 2. Define the program logic as a closure
+	trafficProgram := &plc.Program{
+		Name: "TrafficLightLogic",
+		Logic: func(now time.Time) {
+			// ... state machine logic for the traffic light ...
+		},
+	}
+
+	// 3. Assemble the structure and start the resource
+	task.AddProgram(trafficProgram)
+	resource.AddTask(task)
+	resource.Start()
+
+	// Keep the simulation running
+	time.Sleep(40 * time.Second)
+	resource.Stop()
+}
+```
+
+A complete, runnable version of this is available in the `examples/4-way_traffic_light` directory.
 
 ### Data Types
 
