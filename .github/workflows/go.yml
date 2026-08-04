@@ -33,10 +33,26 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Build
-      run: |
-        go get ./...
-        go install .
-        go build -v ./...
+      run: go build -v ./...
 
     - name: Test
       run: go test -v ./...
+
+  tinygo-test:
+    name: TinyGo Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 'stable' # TinyGo needs a Go installation
+
+      - name: Set up TinyGo
+        uses: tinygo-org/setup-tinygo@v0.10.0
+        with:
+          tinygo-version: 'latest'
+
+      - name: Build with TinyGo
+        run: tinygo build -v -target=wasm ./...
