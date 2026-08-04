@@ -52,7 +52,7 @@ jobs:
       - name: Set up TinyGo
         uses: acifani/setup-tinygo@v3
         with:
-          tinygo-version: 'latest'
+          tinygo-version: '0.41.1' # Specify the TinyGo version you want to use
 
       - name: Build with TinyGo
         run: tinygo build -v -target=wasm ./...
