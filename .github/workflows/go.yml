@@ -50,9 +50,12 @@ jobs:
           go-version: 'stable' # TinyGo needs a Go installation
 
       - name: Set up TinyGo
-        uses: tinygo-org/setup-tinygo@v0.10.0
+        uses: acifani/setup-tinygo@v3
         with:
           tinygo-version: 'latest'
 
       - name: Build with TinyGo
         run: tinygo build -v -target=wasm ./...
+
+      - name: Test with TinyGo
+        run: tinygo test -v ./...
