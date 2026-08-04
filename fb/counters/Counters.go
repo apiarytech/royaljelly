@@ -1,0 +1,188 @@
+/*
+ * Copyright (C) 2026 Franklin D. Amador
+ *
+ * This software is dual-licensed under:
+ * - GPL v2.0
+ * - Commercial
+ *
+ * You may choose to use this software under the terms of either license.
+ * See the LICENSE files in the project root for full license text.
+ */
+
+package counters
+
+import (
+	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/fb/triggers"
+)
+
+// CTU Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+type CTU struct {
+	//ENABLES
+	EN  BOOL //enable
+	ENO BOOL //enable output
+	//INPUTS
+	CU BOOL
+	R  BOOL
+	PV INT
+	//OUTPUTS
+	Q  BOOL
+	CV INT
+	//INTERNAL
+	re          R_TRIG
+	initialized BOOL
+}
+
+// INIT CTU Initialization of Counters
+func (CTU *CTU) INIT() {
+	CTU.Q = false
+	CTU.CV = 0
+	CTU.re.INIT()
+	CTU.initialized = true
+}
+
+// CTU method to update CTU parameters
+func (CTU *CTU) Execute() {
+	if !CTU.EN {
+		CTU.ENO = false
+		return
+	} else {
+		CTU.ENO = true
+	}
+	if !CTU.initialized {
+		CTU.INIT()
+	} else {
+		CTU.ENO = true
+	}
+
+	CTU.re.CLK = CTU.CU
+	CTU.re.R_TRIG()
+
+	if CTU.R {
+		CTU.CV = 0
+	} else if CTU.re.Q { // Standard allows CV to increment past PV
+		CTU.CV += 1
+	}
+
+	CTU.Q = CTU.CV >= CTU.PV
+
+}
+
+// CT Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+type CTD struct {
+	//ENABLES
+	EN  BOOL //enable
+	ENO BOOL //enable output
+	//INPUTS
+	CD BOOL
+	LD BOOL
+	PV INT
+	//OUTPUTS
+	Q  BOOL
+	CV INT
+	//INTERNAL
+	re          R_TRIG
+	initialized BOOL
+}
+
+// INIT CTD Countdown Timer Initialization of Counters
+func (CTD *CTD) INIT() {
+	CTD.Q = false
+	CTD.CV = 0
+	CTD.re.INIT()
+	CTD.initialized = true
+}
+
+// CTD method to update CTD parameters
+func (CTD *CTD) Execute() {
+	if !CTD.EN {
+		CTD.ENO = false
+		return
+	} else {
+		CTD.ENO = true
+	}
+	if !CTD.initialized {
+		CTD.INIT()
+	} else {
+		CTD.ENO = true
+	}
+
+	CTD.re.CLK = CTD.CD
+	CTD.re.R_TRIG()
+
+	if CTD.LD {
+		CTD.CV = CTD.PV
+	} else if CTD.re.Q { // Standard allows CV to decrement past 0
+		CTD.CV -= 1
+	}
+
+	CTD.Q = CTD.CV <= 0
+}
+
+// CTUD Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+type CTUD struct {
+	//ENABLES
+	EN  BOOL //enable
+	ENO BOOL //enable output
+	//INPUTS
+	CU BOOL
+	CD BOOL
+	R  BOOL
+	LD BOOL
+	PV INT
+	//OUTPUS
+	QU BOOL
+	QD BOOL
+	CV INT
+	//INTERNAL
+	reUP        R_TRIG
+	reDOWN      R_TRIG
+	initialized BOOL
+}
+
+// INIT CTD Countdown Timer Initialization of Counters
+func (CTUD *CTUD) INIT() {
+	CTUD.QD = false
+	CTUD.QU = false
+	CTUD.CV = 0
+	CTUD.reUP.INIT()
+	CTUD.reDOWN.INIT()
+	CTUD.initialized = true
+}
+
+// CTD method to update CTD parameters
+func (CTUD *CTUD) Execute() {
+	if !CTUD.EN {
+		CTUD.ENO = false
+		return
+	} else {
+		CTUD.ENO = true
+	}
+	if !CTUD.initialized {
+		CTUD.INIT()
+	} else {
+		CTUD.ENO = true
+	}
+
+	CTUD.reUP.CLK = CTUD.CU
+	CTUD.reUP.R_TRIG()
+	CTUD.reDOWN.CLK = CTUD.CD
+	CTUD.reDOWN.R_TRIG()
+
+	if CTUD.R {
+		CTUD.CV = 0
+	} else if CTUD.LD {
+		CTUD.CV = CTUD.PV
+	} else {
+		// As per standard, if both CU and CD have a rising edge in the same scan, no action is taken.
+		if CTUD.reUP.Q && !CTUD.reDOWN.Q { // Standard allows CV to increment past PV
+			// Count up only on a rising edge of CU
+			CTUD.CV += 1
+		} else if CTUD.reDOWN.Q && !CTUD.reUP.Q { // Standard allows CV to decrement past 0
+			// Count down only on a rising edge of CD
+			CTUD.CV -= 1
+		}
+	}
+	CTUD.QU = CTUD.CV >= CTUD.PV
+	CTUD.QD = CTUD.CV <= 0
+}
