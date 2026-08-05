@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -126,7 +127,19 @@ func AnyToREAL[T any](val T) (REAL, error) {
 			Err:      err,
 		}
 	}
-	return REAL(lrealVal), nil
+	// Check for overflow before casting from LREAL (float64) to REAL (float32).
+	if lrealVal > MAXREAL { // Compare float64 with float64
+		return MAXREAL, &ConversionError{Value: val, FromType: GetTypeName(val), ToType: "REAL", Reason: "overflow: value is greater than REAL max"}
+	}
+	if lrealVal < -MAXREAL { // Compare float64 with float64
+		return -MAXREAL, &ConversionError{Value: val, FromType: GetTypeName(val), ToType: "REAL", Reason: "overflow: value is less than REAL min"}
+	}
+	// A direct cast can also produce +/- Inf, which we want to avoid silently.
+	if math.IsInf(float64(lrealVal), 0) {
+		return REAL(lrealVal), &ConversionError{Value: val, FromType: GetTypeName(val), ToType: "REAL", Reason: "value is infinite"}
+	}
+
+	return REAL(lrealVal), nil // Safe to cast now.
 }
 
 // AnyToLREAL converts a supported PLC type to LREAL. It uses a type switch on the generic parameter T.
@@ -224,7 +237,7 @@ func AnyToLINT[T any](val T) (LINT, error) {
 	case DT:
 		return LINT(time.Time(v).UnixMilli()), nil
 	case STRING:
-		i, err := strconv.Atoi(string(v))
+		i, err := strconv.ParseInt(string(v), 10, 64)
 		if err != nil {
 			return 0, &ConversionError{
 				Value:    v,
@@ -249,11 +262,23 @@ func AnyToLINT[T any](val T) (LINT, error) {
 	case UINT:
 		return LINT(v), nil
 	case UDINT:
+		if ULINT(v) > MAXLINT {
+			return MAXLINT, &ConversionError{Value: v, FromType: "UDINT", ToType: "LINT", Reason: "overflow"}
+		}
 		return LINT(v), nil
 	case ULINT:
-		return LINT(v), nil // Note: Potential for overflow
+		if v > MAXLINT {
+			return MAXLINT, &ConversionError{Value: v, FromType: "ULINT", ToType: "LINT", Reason: "overflow"}
+		}
+		return LINT(v), nil
 	case REAL:
-		return LINT(v), nil // Note: Truncation will occur
+		if v > MAXLINT {
+			return MAXLINT, &ConversionError{Value: v, FromType: "REAL", ToType: "LINT", Reason: "overflow"}
+		}
+		if v < MINLINT {
+			return MINLINT, &ConversionError{Value: v, FromType: "REAL", ToType: "LINT", Reason: "overflow"}
+		}
+		return LINT(v), nil
 	case LREAL:
 		return LINT(v), nil // Note: Truncation will occur
 	case BYTE, WORD, DWORD, LWORD:
@@ -290,15 +315,15 @@ func AnyToULINT[T any](val T) (ULINT, error) {
 	case ULINT:
 		return v, nil
 	case REAL:
-		if v < 0 {
-			return ULINT(RoundAndClampLREAL(LREAL(v), 0, MAXULINT)), nil // Handle negative floats via LINT
+		if v < 0 { // Negative values are not representable in ULINT
+			return 0, &ConversionError{Value: v, FromType: "REAL", ToType: "ULINT", Reason: "cannot convert negative float to unsigned integer"}
 		}
-		return ULINT(v), nil // Truncation for positive floats
+		return ULINT(v), nil
 	case LREAL:
-		if v < 0 {
-			return ULINT(RoundAndClampLREAL(v, 0, MAXULINT)), nil // Handle negative floats via LINT
+		if v < 0 { // Negative values are not representable in ULINT
+			return 0, &ConversionError{Value: v, FromType: "LREAL", ToType: "ULINT", Reason: "cannot convert negative float to unsigned integer"}
 		}
-		return ULINT(v), nil // Truncation for positive floats
+		return ULINT(v), nil
 	case BOOL:
 		if v {
 			return 1, nil
@@ -353,107 +378,103 @@ func AnyToULINT[T any](val T) (ULINT, error) {
 // ConvertTo provides a generic, type-safe way to convert any supported PLC type to a specific target type `T`.
 // It replaces the need for the reflection-based `convertToTargetType` function.
 func ConvertTo[T any](in any) (T, error) {
-	var zero T
-	var result any
-	var err error
-
+	var zero T // zero value of the target type T
 	// Use a type switch on the *target* type `T`.
 	// We create a zero value of T and switch on its type.
 	switch any(zero).(type) {
 	case SINT:
 		val, err := AnyToLINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXSINT || val < MINSINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "SINT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = SINT(val)
+		return any(SINT(val)).(T), nil
 	case DINT:
 		val, err := AnyToLINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXDINT || val < MINDINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DINT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = DINT(val)
+		return any(DINT(val)).(T), nil
 	case LINT:
-		result, err = AnyToLINT(in)
+		val, err := AnyToLINT(in)
+		return any(val).(T), err
 	case INT:
 		val, err := AnyToLINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXINT || val < MININT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "INT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = INT(val)
+		return any(INT(val)).(T), nil
 	case USINT:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUSINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "USINT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = USINT(val)
+		return any(USINT(val)).(T), nil
 	case UINT:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UINT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = UINT(val)
+		return any(UINT(val)).(T), nil
 	case UDINT:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUDINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UDINT", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = UDINT(val)
+		return any(UDINT(val)).(T), nil
 	case ULINT:
-		result, err = AnyToULINT(in)
+		val, err := AnyToULINT(in)
+		return any(val).(T), err
 	case BOOL:
-		val, err := AnyToLINT(in)
-		if err != nil {
-			// Fallback for non-numeric types like STRING "true"
-			if s, ok := in.(STRING); ok && (s == "true" || s == "TRUE") {
-				val = 1
-			} else {
-				return zero, err
-			}
-		}
-		result = BOOL(val != 0)
+		val, err := AnyToBOOL(in)
+		return any(val).(T), err
 	case BYTE:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUSINT { // BYTE is alias for uint8
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "BYTE", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = BYTE(val)
+		return any(BYTE(val)).(T), nil
 	case WORD:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUINT { // WORD is alias for uint16
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "WORD", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = WORD(val)
+		return any(WORD(val)).(T), nil
 	case DWORD:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
+		if err != nil || val > MAXUDINT { // DWORD is alias for uint32
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DWORD", Reason: "overflow or conversion failed", Err: err}
 		}
-		result = DWORD(val)
+		return any(DWORD(val)).(T), nil
 	case LWORD:
 		val, err := AnyToULINT(in)
-		if err != nil {
-			return zero, err
-		}
-		result = LWORD(val)
+		return any(LWORD(val)).(T), err
 	case TIME:
-		result, err = SubTime(in)
+		val, err := SubTime(in)
+		return any(val).(T), err
 	case DATE:
-		result, err = SubDate(in)
+		val, err := SubDate(in)
+		return any(val).(T), err
 	case TOD:
-		result, err = SubTod(in)
+		val, err := SubTod(in)
+		return any(val).(T), err
 	case DT:
-		result, err = SubDt(in)
+		val, err := SubDt(in)
+		return any(val).(T), err
 	case REAL:
-		result, err = AnyToREAL(in)
+		val, err := AnyToREAL(in)
+		return any(val).(T), err
 	case LREAL:
-		result, err = AnyToLREAL(in)
+		val, err := AnyToLREAL(in)
+		return any(val).(T), err
 	case STRING:
 		// Special handling for string conversion
+		var result STRING
 		if s, ok := in.(fmt.Stringer); ok {
 			result = STRING(s.String())
 		} else {
 			result = STRING(fmt.Sprintf("%v", in))
 		}
+		return any(result).(T), nil
 	default:
 		// For any other type, we can attempt a promotion to LREAL or LINT as an intermediate.
 		// This part shows the complexity of a truly universal converter.
@@ -464,22 +485,6 @@ func ConvertTo[T any](in any) (T, error) {
 			ToType:   GetTypeName(zero),
 			Reason:   "unsupported target type for conversion",
 		}
-	}
-
-	if err != nil {
-		return zero, err
-	}
-
-	// Final type assertion to the requested generic type T.
-	if finalResult, ok := result.(T); ok {
-		return finalResult, nil
-	}
-
-	return zero, &ConversionError{
-		Value:    in,
-		FromType: GetTypeName(in),
-		ToType:   GetTypeName(zero),
-		Reason:   fmt.Sprintf("internal error: failed to cast result from %T", result),
 	}
 }
 
@@ -549,6 +554,25 @@ func SubTime(in interface{}) (TIME, error) {
 		return 0, err
 	}
 	return TIME(time.Duration(val) * time.Millisecond), nil
+}
+
+func AnyToBOOL[T any](val T) (BOOL, error) {
+	// First, try a numeric conversion via LINT.
+	lintVal, err := AnyToLINT(val)
+	if err == nil {
+		// Numeric conversion successful (0 is false, non-zero is true).
+		return lintVal != 0, nil
+	}
+
+	// If numeric conversion fails, check for specific string values.
+	if s, ok := any(val).(STRING); ok {
+		lowerS := strings.ToLower(string(s))
+		if lowerS == "true" || lowerS == "t" || lowerS == "1" {
+			return true, nil
+		}
+	}
+
+	return false, err // Return the original error from AnyToLINT if string check also fails.
 }
 
 func SubBool(in BOOL) (out INT) {

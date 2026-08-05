@@ -121,3 +121,186 @@ func TestTaskEnableDisable(t *testing.T) {
 		t.Errorf("Task ran after being disabled. Expected 2 total runs, but got %d", runCount.Load())
 	}
 }
+
+func TestRemoveFunctions(t *testing.T) {
+	t.Run("TestRemoveProgram", func(t *testing.T) {
+		task := NewTask("TestTask", CyclicTask, 1, 1*time.Second)
+		prog1 := &Program{Name: "Prog1"}
+		prog2 := &Program{Name: "Prog2"}
+		task.AddProgram(prog1)
+		task.AddProgram(prog2)
+
+		if len(task.Programs) != 2 {
+			t.Fatalf("Expected 2 programs initially, got %d", len(task.Programs))
+		}
+
+		// Test removing an existing program
+		removed := task.RemoveProgram("Prog1")
+		if !removed {
+			t.Error("Expected RemoveProgram to return true for an existing program")
+		}
+		if len(task.Programs) != 1 {
+			t.Errorf("Expected 1 program after removal, got %d", len(task.Programs))
+		}
+		if task.Programs[0].Name != "Prog2" {
+			t.Errorf("Incorrect program remained. Expected 'Prog2', got '%s'", task.Programs[0].Name)
+		}
+
+		// Test removing a non-existent program
+		removed = task.RemoveProgram("NonExistentProg")
+		if removed {
+			t.Error("Expected RemoveProgram to return false for a non-existent program")
+		}
+		if len(task.Programs) != 1 {
+			t.Errorf("Program count should not change when removing a non-existent program. Got %d", len(task.Programs))
+		}
+	})
+
+	t.Run("TestRemoveTask", func(t *testing.T) {
+		resource := &Resource{Name: "TestResource"}
+		task1 := NewTask("Task1", CyclicTask, 1, 1*time.Second)
+		task2 := NewTask("Task2", CyclicTask, 2, 1*time.Second)
+		resource.AddTask(task1)
+		resource.AddTask(task2)
+
+		if len(resource.Tasks) != 2 {
+			t.Fatalf("Expected 2 tasks initially, got %d", len(resource.Tasks))
+		}
+
+		// Test removing an existing task
+		removed := resource.RemoveTask("Task1")
+		if !removed {
+			t.Error("Expected RemoveTask to return true for an existing task")
+		}
+		if len(resource.Tasks) != 1 {
+			t.Errorf("Expected 1 task after removal, got %d", len(resource.Tasks))
+		}
+		if resource.Tasks[0].Name != "Task2" {
+			t.Errorf("Incorrect task remained. Expected 'Task2', got '%s'", resource.Tasks[0].Name)
+		}
+
+		// Test removing a non-existent task
+		removed = resource.RemoveTask("NonExistentTask")
+		if removed {
+			t.Error("Expected RemoveTask to return false for a non-existent task")
+		}
+		if len(resource.Tasks) != 1 {
+			t.Errorf("Task count should not change when removing a non-existent task. Got %d", len(resource.Tasks))
+		}
+	})
+
+	t.Run("TestRemoveResource", func(t *testing.T) {
+		config := &Configuration{Name: "TestConfig"}
+		res1 := &Resource{Name: "Resource1", Cycle: 10 * time.Millisecond}
+		res2 := &Resource{Name: "Resource2", Cycle: 10 * time.Millisecond}
+		config.WithResource(res1).WithResource(res2)
+
+		// Start one of the resources to test the stop functionality
+		res1.Start()
+		time.Sleep(20 * time.Millisecond) // Let it run for a moment
+
+		if len(config.Resources) != 2 {
+			t.Fatalf("Expected 2 resources initially, got %d", len(config.Resources))
+		}
+
+		// Test removing an existing (and running) resource
+		removed := config.RemoveResource("Resource1")
+		if !removed {
+			t.Error("Expected RemoveResource to return true for an existing resource")
+		}
+		if len(config.Resources) != 1 {
+			t.Errorf("Expected 1 resource after removal, got %d", len(config.Resources))
+		}
+		if config.Resources[0].Name != "Resource2" {
+			t.Errorf("Incorrect resource remained. Expected 'Resource2', got '%s'", config.Resources[0].Name)
+		}
+
+		// Verify the removed resource is no longer running
+		if res1.running {
+			t.Error("Removed resource should have been stopped, but its 'running' flag is still true")
+		} else {
+			// As an extra check, try to stop it again to ensure it doesn't panic or deadlock.
+			// This tests the idempotency of the Stop() method.
+			res1.Stop()
+		}
+	})
+}
+
+func TestFindFunctions(t *testing.T) {
+	// Setup a hierarchy: Config -> Resource -> Task -> Program
+	config := &Configuration{Name: "TestConfig"}
+	res1 := &Resource{Name: "Resource1", Cycle: 10 * time.Millisecond}
+	res2 := &Resource{Name: "Resource2", Cycle: 10 * time.Millisecond}
+	config.WithResource(res1).WithResource(res2)
+
+	task1 := NewTask("Task1", CyclicTask, 1, 1*time.Second)
+	task2 := NewTask("Task2", CyclicTask, 2, 1*time.Second)
+	res1.WithTask(task1).WithTask(task2)
+
+	prog1 := &Program{Name: "Prog1"}
+	prog2 := &Program{Name: "Prog2"}
+	task1.WithProgram(prog1).WithProgram(prog2)
+
+	t.Run("TestFindResource", func(t *testing.T) {
+		// Test finding an existing resource
+		foundRes := config.FindResource("Resource1")
+		if foundRes == nil {
+			t.Error("Expected to find Resource1, but got nil")
+		}
+		if foundRes != res1 {
+			t.Errorf("Found incorrect resource. Expected %p, got %p", res1, foundRes)
+		}
+
+		// Test finding a non-existent resource
+		foundRes = config.FindResource("NonExistentResource")
+		if foundRes != nil {
+			t.Errorf("Expected to find nil for non-existent resource, but got %p", foundRes)
+		}
+	})
+
+	t.Run("TestFindTask", func(t *testing.T) {
+		// Test finding an existing task
+		foundTask := res1.FindTask("Task1")
+		if foundTask == nil {
+			t.Error("Expected to find Task1 in Resource1, but got nil")
+		}
+		if foundTask != task1 {
+			t.Errorf("Found incorrect task. Expected %p, got %p", task1, foundTask)
+		}
+
+		// Test finding a non-existent task in res1
+		foundTask = res1.FindTask("NonExistentTask")
+		if foundTask != nil {
+			t.Errorf("Expected to find nil for non-existent task, but got %p", foundTask)
+		}
+
+		// Test finding a task in the wrong resource
+		foundTask = res2.FindTask("Task1")
+		if foundTask != nil {
+			t.Errorf("Expected to find nil for Task1 in Resource2, but got %p", foundTask)
+		}
+	})
+
+	t.Run("TestFindProgram", func(t *testing.T) {
+		// Test finding an existing program
+		foundProg := task1.FindProgram("Prog1")
+		if foundProg == nil {
+			t.Error("Expected to find Prog1 in Task1, but got nil")
+		}
+		if foundProg != prog1 {
+			t.Errorf("Found incorrect program. Expected %p, got %p", prog1, foundProg)
+		}
+
+		// Test finding a non-existent program in task1
+		foundProg = task1.FindProgram("NonExistentProg")
+		if foundProg != nil {
+			t.Errorf("Expected to find nil for non-existent program, but got %p", foundProg)
+		}
+
+		// Test finding a program in the wrong task (assuming task2 has no programs initially)
+		foundProg = task2.FindProgram("Prog1")
+		if foundProg != nil {
+			t.Errorf("Expected to find nil for Prog1 in Task2, but got %p", foundProg)
+		}
+	})
+}

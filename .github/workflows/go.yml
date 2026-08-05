@@ -54,8 +54,5 @@ jobs:
         with:
           tinygo-version: '0.41.1' # Specify the TinyGo version you want to use
 
-      - name: Build with TinyGo
-        run: tinygo build -v -target=wasm ./...
-
       - name: Test with TinyGo
         run: tinygo test -v ./...

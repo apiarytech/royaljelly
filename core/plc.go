@@ -121,6 +121,37 @@ func (t *Task) Trigger() error {
 	return nil
 }
 
+// RemoveProgram removes a program from the task by its name.
+// It returns true if the program was found and removed, false otherwise.
+func (t *Task) RemoveProgram(name string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for i, p := range t.Programs {
+		if p.Name == name {
+			// Remove the element at index i from t.Programs.
+			t.Programs = append(t.Programs[:i], t.Programs[i+1:]...)
+			return true
+		}
+	}
+
+	// Program not found.
+	return false
+}
+
+// FindProgram finds a program within the task by its name.
+// It returns the program pointer or nil if not found.
+func (t *Task) FindProgram(name string) *Program {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	for _, p := range t.Programs {
+		if p.Name == name {
+			return p
+		}
+	}
+	return nil
+}
+
 // taskSorter implements the sort.Interface for a slice of *Task pointers,
 // allowing for reflection-free sorting.
 type taskSorter []*Task
@@ -141,18 +172,56 @@ type Resource struct {
 	Tasks []*Task
 
 	stopChan chan struct{}
+	wg       sync.WaitGroup
 	running  bool
 	mu       sync.Mutex
 }
 
 // AddTask adds a task to the resource.
 func (r *Resource) AddTask(t *Task) {
-	r.Tasks = append(r.Tasks, t)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Tasks = append(r.Tasks, t) // Add the new task
+	SortTasks(r.Tasks)           // Re-sort the entire slice
 }
 
 // WithTask adds a task to the resource and returns the resource for chaining.
 func (r *Resource) WithTask(t *Task) *Resource {
 	r.AddTask(t)
+	return r
+}
+
+// RemoveTask removes a task from the resource by its name.
+// It returns true if the task was found and removed, false otherwise.
+// This operation is safe to call even when the resource is running.
+func (r *Resource) RemoveTask(name string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, t := range r.Tasks {
+		if t.Name == name {
+			r.Tasks = append(r.Tasks[:i], r.Tasks[i+1:]...)
+			SortTasks(r.Tasks) // Re-sort after removal to maintain priority order.
+			return true
+		}
+	}
+	return false
+}
+
+// FindTask finds a task within the resource by its name.
+// It returns the task pointer or nil if not found.
+func (r *Resource) FindTask(name string) *Task {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range r.Tasks {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
+
+func (r *Resource) WithResource(t *Task) *Resource {
 	return r
 }
 
@@ -169,28 +238,38 @@ func (r *Resource) Start() {
 
 	r.running = true
 	r.stopChan = make(chan struct{})
+	r.wg.Add(1)
 	r.mu.Unlock()
 
 	go func() {
 		// Use a ticker for the resource's main execution loop.
 		// A reasonable default could be 1ms for high-speed control.
+		// This ensures the scheduler runs at least at the specified cycle.
 		if r.Cycle == 0 {
 			r.Cycle = time.Millisecond
 		}
 		ticker := time.NewTicker(r.Cycle)
 		defer ticker.Stop()
+		defer r.wg.Done()
 
 		for {
 			select {
 			case now := <-ticker.C:
-				// Iterate through tasks in priority order.
-				for _, task := range r.Tasks {
-					task.mu.Lock() // Lock the task for the entire check-and-run operation.
+				// Acquire lock to get a consistent snapshot of tasks for this cycle.
+				// This prevents race conditions if r.Tasks is modified (added/removed/sorted)
+				// by another goroutine during this iteration.
+				r.mu.Lock()
+				currentTasks := make([]*Task, len(r.Tasks))
+				copy(currentTasks, r.Tasks)
+				r.mu.Unlock() // Release the lock as soon as the copy is made.
 
-					shouldRun := false
+				for _, task := range currentTasks {
+					var shouldRun bool
+					task.mu.RLock() // Use a read lock to check if the task should run.
 					if task.Enabled {
 						switch task.Type {
 						case CyclicTask:
+							// Check if the interval has passed.
 							if now.Sub(task.lastRun) >= task.Interval {
 								shouldRun = true
 							}
@@ -202,45 +281,47 @@ func (r *Resource) Start() {
 							}
 						}
 					}
+					task.mu.RUnlock()
 
 					if shouldRun {
 						executionStartTime := time.Now()
+
+						// Lock the task with a write lock only when modifying its state.
+						task.mu.Lock()
 						// Calculate CycleTime (delta) if it's not the first run.
 						if !task.lastRun.IsZero() {
 							task.CycleTime = now.Sub(task.lastRun)
 						}
 
 						// Calculate Drift for cyclic tasks.
-						if task.Type == CyclicTask && !task.lastRun.IsZero() {
+						if task.Type == CyclicTask {
 							scheduledRunTime := task.lastRun.Add(task.Interval)
 							task.Drift = now.Sub(scheduledRunTime)
 						} else {
 							task.Drift = 0 // Drift is not applicable here.
 						}
 						task.lastRun = now
+						task.mu.Unlock() // *** Release the lock before executing user code ***
 
 						for _, p := range task.Programs {
-							func() {
-								defer func() {
+							// The panic recovery can be simplified slightly.
+							// It's good practice to keep it to protect the scheduler loop.
+							func(program *Program) {
+								defer func(progName string) {
 									if rec := recover(); rec != nil {
-										// Use a type switch for robust, reflection-free error logging.
-										switch v := rec.(type) {
-										case error:
-											fmt.Printf("PANIC RECOVERED: Task '%s', Program '%s': %s\n", task.Name, p.Name, v.Error())
-										default:
-											fmt.Printf("PANIC RECOVERED: Task '%s', Program '%s': %v\n", task.Name, p.Name, v)
-										}
+										fmt.Printf("PANIC RECOVERED: Task '%s', Program '%s': %v\n", task.Name, progName, rec)
 									}
-								}()
-								p.Execute(now)
-							}()
+								}(program.Name)
+								program.Execute(now)
+							}(p)
 						}
 
+						// Re-acquire the lock briefly to update the final metric.
+						task.mu.Lock()
 						// Record the total execution time for this run.
 						task.ExecutionTime = time.Since(executionStartTime)
+						task.mu.Unlock()
 					}
-
-					task.mu.Unlock()
 				}
 			case <-r.stopChan:
 				return
@@ -251,7 +332,16 @@ func (r *Resource) Start() {
 
 // Stop terminates the resource's task scheduler.
 func (r *Resource) Stop() {
+	r.mu.Lock()
+	if !r.running {
+		r.mu.Unlock()
+		return
+	}
 	close(r.stopChan)
+	r.running = false
+	r.mu.Unlock()
+
+	r.wg.Wait() // Wait for the scheduler goroutine to exit.
 }
 
 // Configuration is the top-level element, representing the entire PLC system.
@@ -264,4 +354,33 @@ type Configuration struct {
 func (c *Configuration) WithResource(r *Resource) *Configuration {
 	c.Resources = append(c.Resources, r)
 	return c
+}
+
+// RemoveResource removes a resource from the configuration by its name.
+// It returns true if the resource was found and removed, false otherwise.
+func (c *Configuration) RemoveResource(name string) bool {
+	for i, r := range c.Resources {
+		if r.Name == name {
+			// Stop the resource before removing it to ensure clean shutdown.
+			if r.running {
+				r.Stop()
+			}
+			c.Resources = append(c.Resources[:i], c.Resources[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// FindResource finds a resource within the configuration by its name.
+// It returns the resource pointer or nil if not found.
+func (c *Configuration) FindResource(name string) *Resource {
+	// The list of resources is typically static or managed at a higher level,
+	// so locking is not implemented here, matching the pattern of RemoveResource.
+	for _, r := range c.Resources {
+		if r.Name == name {
+			return r
+		}
+	}
+	return nil
 }

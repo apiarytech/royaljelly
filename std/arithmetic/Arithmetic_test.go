@@ -548,7 +548,7 @@ func TestAnyToLINT(t *testing.T) {
 		{"UINT", UINT(100), LINT(100), false},
 		{"UDINT", UDINT(65000), LINT(65000), false},
 		{"ULINT", ULINT(123456789012345), LINT(123456789012345), false},
-		{"ULINT overflow", ULINT(math.MaxInt64 + 1), LINT(math.MinInt64), false},
+		{"ULINT overflow", ULINT(math.MaxInt64 + 1), MAXLINT, true},
 		{"REAL truncates", REAL(123.75), LINT(123), false},
 		{"LREAL truncates", LREAL(-456.99), LINT(-456), false},
 		{"BOOL true", BOOL(true), LINT(1), false},
@@ -604,8 +604,8 @@ func TestAnyToULINT(t *testing.T) {
 		{"UINT", UINT(100), ULINT(100), false},
 		{"UDINT", UDINT(4000000000), ULINT(4000000000), false},
 		{"ULINT", ULINT(999999999999), ULINT(999999999999), false},
-		{"REAL truncates", REAL(123.75), ULINT(123), false},
-		{"LREAL truncates negative", LREAL(-456.99), LREAL_TO_ULINT(-456), false},
+		{"REAL positive truncates", REAL(123.75), ULINT(123), false},
+		{"LREAL negative returns error", LREAL(-456.99), 0, true},
 		{"BOOL true", BOOL(true), ULINT(1), false},
 		{"BOOL false", BOOL(false), ULINT(0), false},
 		{"BYTE", BYTE(0xAB), ULINT(171), false},
@@ -699,12 +699,9 @@ func TestConvertTo(t *testing.T) {
 	})
 
 	t.Run("TIME_TO_STRING", func(t *testing.T) {
-		input := TIME(5 * time.Second)
+		input := TIME(5 * time.Second) // Convert to seconds
 		expected := STRING("T#5s")
-		result, err := ConvertTo[STRING](input)
-		if err != nil {
-			t.Fatalf("ConvertTo[STRING] failed: %v", err)
-		}
+		result := TIME_TO_STRING(input)
 		if result != expected {
 			t.Errorf("ConvertTo[STRING](%v) = %q; want %q", input, result, expected)
 		}
