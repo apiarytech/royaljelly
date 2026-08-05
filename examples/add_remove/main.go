@@ -16,12 +16,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/core"
 )
 
 // IsRunning checks the private 'running' field of a resource.
 // This is a helper for demonstration purposes.
-func IsRunning(r *core.Resource) bool {
+func IsRunning(r *Resource) bool {
 	type runningChecker interface {
 		IsRunning() bool
 	}
@@ -38,8 +38,8 @@ func main() {
 	var highFreqCounter, lowFreqCounter atomic.Int32
 
 	// Create a high-frequency task that runs every 250ms
-	highFreqTask := core.NewTask("HighFrequencyTask", core.CyclicTask, 1, 250*time.Millisecond)
-	highFreqTask.WithProgram(&core.Program{
+	highFreqTask := NewTask("HighFrequencyTask", CyclicTask, 1, 250*time.Millisecond)
+	highFreqTask.WithProgram(&Program{
 		Name: "HighFreqCounter",
 		Logic: func(now time.Time) {
 			highFreqCounter.Add(1)
@@ -48,8 +48,8 @@ func main() {
 	})
 	// `ConvertTo` function in `helper.go` is quite large. Can you refactor it for better readability and maintenance?
 	// Create a low-frequency task that runs every 1 second
-	lowFreqTask := core.NewTask("LowFrequencyTask", core.CyclicTask, 10, 1*time.Second)
-	lowFreqTask.WithProgram(&core.Program{
+	lowFreqTask := NewTask("LowFrequencyTask", CyclicTask, 10, 1*time.Second)
+	lowFreqTask.WithProgram(&Program{
 		Name: "LowFreqCounter",
 		Logic: func(now time.Time) {
 			lowFreqCounter.Add(1)
@@ -58,11 +58,11 @@ func main() {
 	})
 
 	// Create a resource and add the tasks to it
-	resource := &core.Resource{Name: "MainCPU", Cycle: 50 * time.Millisecond}
+	resource := &Resource{Name: "MainCPU", Cycle: 50 * time.Millisecond}
 	resource.WithTask(highFreqTask).WithTask(lowFreqTask)
 
 	// Add the resource to the main configuration
-	config := &core.Configuration{Name: "MainConfig"}
+	config := &Configuration{Name: "MainConfig"}
 	config.WithResource(resource)
 
 	// --- 2. Start the PLC ---

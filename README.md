@@ -60,14 +60,14 @@ package main
 
 import (
 	"time"
-	plc "github.com/apiarytech/royaljelly"
+	. "github.com/apiarytech/royaljelly/core"
 )
 
 func main() {
 	// 1. Define the hierarchy
-	config := &plc.Configuration{Name: "TrafficLightController"}
-	resource := &plc.Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
-	task := plc.NewTask("TrafficLightTask", plc.CyclicTask, 1, 1*time.Second)
+	config := &Configuration{Name: "TrafficLightController"}
+	resource := &Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
+	task := NewTask("TrafficLightTask", CyclicTask, 1, 1*time.Second)
 
 	// 2. Define the program logic as a closure
 	trafficProgram := &plc.Program{
@@ -100,14 +100,14 @@ package main
 import (
 	"fmt"
 	"time"
-	plc "github.com/apiarytech/royaljelly"
+	. "github.com/apiarytech/royaljelly/core"
 )
 
 func main() {
-	var myBool plc.BOOL = true
-	var myInt plc.INT = 123
-	var myReal plc.REAL = 45.67
-	var myTime plc.TIME = plc.TIME(10 * time.Second)
+	var myBool BOOL = true
+	var myInt INT = 123
+	var myReal REAL = 45.67
+	var myTime TIME = TIME(10 * time.Second)
 
 	fmt.Printf("BOOL: %v\n", myBool)
 	fmt.Printf("INT: %v\n", myInt)
@@ -126,14 +126,15 @@ package main
 import (
 	"fmt"
 	"time"
-	plc "github.com/apiarytech/royaljelly"
+	. "github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/fb/timers"
 )
 
 func main() {
 	// Example: TON (On-Delay Timer)
-	ton1 := plc.TON{}
+	ton1 := timers.TON{}
 	ton1.INIT()
-	ton1.PT = plc.TIME(5 * time.Second) // Preset Time: 5 seconds
+	ton1.PT = TIME(5 * time.Second) // Preset Time: 5 seconds
 
 	now := time.Now()
 
@@ -161,14 +162,15 @@ package main
 import (
 	"fmt"
 	"time"
-	plc "github.com/apiarytech/royaljelly"
+	. "github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/fb/timers"
 )
 
 func main() {
 	// Example: TP (Pulse Timer)
-	tp1 := plc.TP{}
+	tp1 := timers.TP{}
 	tp1.INIT()
-	tp1.PT = plc.TIME(3 * time.Second) // Preset Time: 3-second pulse
+	tp1.PT = TIME(3 * time.Second) // Preset Time: 3-second pulse
 
 	now := time.Now()
 	fmt.Println("TP Simulation Start")
@@ -200,17 +202,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/apiarytech/royaljelly"
+	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/std/arithmetic"
+	. "github.com/apiarytech/royaljelly/std/selection"
+	. "github.com/apiarytech/royaljelly/std/strings"
 )
 
 func main() {
-	result, _ := plc.ADD([]interface{}{plc.INT(10), plc.REAL(5.5)})
-	fmt.Printf("ADD(10, 5.5) = %v (Type: %T)\n", result, result) // Output: 15.5 (Type: plc.REAL)
+	result := ADD(INT(10), REAL(5.5))
+	fmt.Printf("ADD(10, 5.5) = %v (Type: %T)\n", result, result) // Output: 15.5 (Type: core.REAL)
 
-	strLen := plc.LEN("Hello, RoyalJelly!")
+	strLen := LEN("Hello, RoyalJelly!")
 	fmt.Printf("LEN(\"Hello, RoyalJelly!\") = %v\n", strLen) // Output: 18
 
-	maxVal, _ := plc.MAX([]interface{}{plc.LINT(100), plc.DINT(50), plc.LINT(120)})
+	maxVal := MAX(LINT(100), DINT(50), LINT(120))
 	fmt.Printf("MAX(100, 50, 120) = %v\n", maxVal) // Output: 120
 }
 ```
