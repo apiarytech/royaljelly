@@ -12,7 +12,6 @@
 package core
 
 import (
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -107,17 +106,29 @@ func TestTaskEnableDisable(t *testing.T) {
 	resource.AddTask(task)
 	resource.Start()
 
-	time.Sleep(45 * time.Millisecond) // Should run 2 times (at ~20ms, ~40ms). Check before the 3rd run at ~60ms.
+	// --- Robust waiting logic ---
+	// Instead of a fixed sleep, poll until the desired state is reached or a timeout occurs.
+	// This makes the test resilient to scheduler jitter on different environments like GitHub Actions.
+	timeout := time.After(200 * time.Millisecond)
+	for runCount.Load() < 2 {
+		select {
+		case <-timeout:
+			t.Fatalf("Timeout: Expected 2 runs, but got %d", runCount.Load())
+		case <-time.After(5 * time.Millisecond):
+			// Poll every 5ms
+		}
+	}
+
 	if runCount.Load() != 2 {
 		t.Errorf("Expected 2 runs, but got %d", runCount.Load())
 	}
 
 	task.Disable()
-	fmt.Println("Task disabled")
-	time.Sleep(55 * time.Millisecond) // Should not run anymore
+	// Wait a bit to ensure the disabled task doesn't run again.
+	time.Sleep(55 * time.Millisecond)
 	resource.Stop()
 
-	if runCount.Load() != 2 {
+	if runCount.Load() > 2 {
 		t.Errorf("Task ran after being disabled. Expected 2 total runs, but got %d", runCount.Load())
 	}
 }
