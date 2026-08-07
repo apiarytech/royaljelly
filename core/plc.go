@@ -59,14 +59,14 @@ type Task struct {
 	Enabled  BOOL // If false, the task will not be scheduled.
 
 	// --- Runtime Metrics ---
-	ExecutionTime time.Duration // Last execution time of the task's programs.
-	CycleTime     time.Duration // Time between the last two executions (delta).
-	Drift         time.Duration // For cyclic tasks, the deviation from the scheduled interval.
+	executionTime time.Duration // Last execution time of the task's programs.
+	cycleTime     time.Duration // Time between the last two executions (delta).
+	drift         time.Duration // For cyclic tasks, the deviation from the scheduled interval.
 
 	// Internal state for the scheduler
 	runSignal chan struct{} // For event-driven tasks.
 	lastRun   time.Time     // For cyclic tasks.
-	mu        sync.RWMutex  // Protects all mutable fields in the task.
+	mu        sync.RWMutex  // Protects all mutable fields in the task, including metrics.
 }
 
 // NewTask creates and initializes a new task.
@@ -150,6 +150,30 @@ func (t *Task) FindProgram(name string) *Program {
 		}
 	}
 	return nil
+}
+
+// ExecutionTime returns the duration of the last execution of the task's programs.
+// This method is safe for concurrent use.
+func (t *Task) ExecutionTime() time.Duration {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.executionTime
+}
+
+// CycleTime returns the time between the last two executions of the task (delta).
+// This method is safe for concurrent use.
+func (t *Task) CycleTime() time.Duration {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.cycleTime
+}
+
+// Drift returns the deviation from the scheduled interval for cyclic tasks.
+// This method is safe for concurrent use.
+func (t *Task) Drift() time.Duration {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.drift
 }
 
 // taskSorter implements the sort.Interface for a slice of *Task pointers,
@@ -263,49 +287,18 @@ func (r *Resource) Start() {
 				copy(currentTasks, r.Tasks)
 				r.mu.Unlock() // Release the lock as soon as the copy is made.
 
-				for _, task := range currentTasks {
+				for _, task := range currentTasks { // Iterating over a safe copy.
+					// The decision to run and the update of task state should be atomic.
+					// We can determine if a run is needed inside the task's write lock.
 					var shouldRun bool
-					task.mu.RLock() // Use a read lock to check if the task should run.
-					if task.Enabled {
-						switch task.Type {
-						case CyclicTask:
-							// Check if the interval has passed.
-							if now.Sub(task.lastRun) >= task.Interval {
-								shouldRun = true
-							}
-						case EventDrivenTask:
-							// Check for and consume a signal atomically.
-							if len(task.runSignal) > 0 {
-								<-task.runSignal // Consume one signal
-								shouldRun = true
-							}
-						}
-					}
-					task.mu.RUnlock()
+					task.mu.Lock()
+					shouldRun = task.shouldRun(now)
+					task.mu.Unlock()
 
 					if shouldRun {
 						executionStartTime := time.Now()
 
-						// Lock the task with a write lock only when modifying its state.
-						task.mu.Lock()
-						// Calculate CycleTime (delta) if it's not the first run.
-						if !task.lastRun.IsZero() {
-							task.CycleTime = now.Sub(task.lastRun)
-						}
-
-						// Calculate Drift for cyclic tasks.
-						if task.Type == CyclicTask {
-							scheduledRunTime := task.lastRun.Add(task.Interval)
-							task.Drift = now.Sub(scheduledRunTime)
-						} else {
-							task.Drift = 0 // Drift is not applicable here.
-						}
-						task.lastRun = now
-						task.mu.Unlock() // *** Release the lock before executing user code ***
-
 						for _, p := range task.Programs {
-							// The panic recovery can be simplified slightly.
-							// It's good practice to keep it to protect the scheduler loop.
 							func(program *Program) {
 								defer func(progName string) {
 									if rec := recover(); rec != nil {
@@ -316,10 +309,9 @@ func (r *Resource) Start() {
 							}(p)
 						}
 
-						// Re-acquire the lock briefly to update the final metric.
+						// Now, lock the task once to update all its runtime metrics.
 						task.mu.Lock()
-						// Record the total execution time for this run.
-						task.ExecutionTime = time.Since(executionStartTime)
+						task.updateMetrics(now, executionStartTime)
 						task.mu.Unlock()
 					}
 				}
@@ -328,6 +320,55 @@ func (r *Resource) Start() {
 			}
 		}
 	}()
+}
+
+// shouldRun checks if a task should execute in the current cycle and updates its
+// state accordingly. This method must be called within a task's write lock (t.mu.Lock).
+func (t *Task) shouldRun(now time.Time) bool {
+	if !t.Enabled {
+		return false
+	}
+
+	switch t.Type {
+	case CyclicTask:
+		if now.Sub(t.lastRun) >= t.Interval {
+			return true
+		}
+	case EventDrivenTask:
+		// Use a non-blocking receive to atomically check for and consume a signal.
+		select {
+		case <-t.runSignal:
+			return true // Signal was present and consumed.
+		default:
+			return false // No signal.
+		}
+	}
+	return false
+}
+
+// updateMetrics calculates and sets the task's runtime metrics after an execution.
+// This method must be called within a task's write lock (t.mu.Lock).
+func (t *Task) updateMetrics(runTime, executionStartTime time.Time) {
+	// Calculate CycleTime (delta) if it's not the first run.
+	if !t.lastRun.IsZero() {
+		t.cycleTime = runTime.Sub(t.lastRun)
+	}
+
+	// Calculate Drift for cyclic tasks.
+	if t.Type == CyclicTask {
+		// Drift is the deviation from the *scheduled* run time.
+		scheduledRunTime := t.lastRun.Add(t.Interval)
+		t.drift = runTime.Sub(scheduledRunTime)
+	} else {
+		// Drift is not applicable to event-driven tasks.
+		t.drift = 0
+	}
+
+	// Record the time of this run for the next cycle's calculation.
+	t.lastRun = runTime
+
+	// Record the total execution time for this run.
+	t.executionTime = time.Since(executionStartTime)
 }
 
 // Stop terminates the resource's task scheduler.

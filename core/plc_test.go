@@ -49,87 +49,154 @@ func TestResourceSchedulerWithMetrics(t *testing.T) {
 
 	// --- Assertions ---
 
-	// Lock the task to safely read its metrics
-	cyclicTask.mu.RLock()
-	defer cyclicTask.mu.RUnlock()
-
 	if executionCount.Load() < 2 {
 		t.Fatalf("Task was expected to run at least 2 times, but ran %d times", executionCount.Load())
 	}
 
 	// 1. Test ExecutionTime
-	if cyclicTask.ExecutionTime <= programSleep {
-		t.Errorf("ExecutionTime (%v) should be greater than the program's sleep time (%v)", cyclicTask.ExecutionTime, programSleep)
+	execTime := cyclicTask.ExecutionTime()
+	if execTime <= programSleep {
+		t.Errorf("ExecutionTime (%v) should be greater than the program's sleep time (%v)", execTime, programSleep)
 	}
 	// It should also be reasonably close, not excessively long.
-	if cyclicTask.ExecutionTime > programSleep*3 {
-		t.Logf("Warning: ExecutionTime (%v) is much longer than program sleep time (%v)", cyclicTask.ExecutionTime, programSleep)
+	if execTime > programSleep*3 {
+		t.Logf("Warning: ExecutionTime (%v) is much longer than program sleep time (%v)", execTime, programSleep)
 	}
-	t.Logf("Metric - ExecutionTime: %v", cyclicTask.ExecutionTime)
+	t.Logf("Metric - ExecutionTime: %v", execTime)
 
 	// 2. Test CycleTime (delta between last two runs)
-	if cyclicTask.CycleTime <= 0 {
-		t.Errorf("CycleTime should be a positive duration, but got %v", cyclicTask.CycleTime)
+	cycleTime := cyclicTask.CycleTime()
+	if cycleTime <= 0 {
+		t.Errorf("CycleTime should be a positive duration, but got %v", cycleTime)
 	}
 	// The cycle time should be close to the task's interval.
 	// We allow for some deviation due to scheduler timing.
 	expectedCycleTime := taskInterval
 	minCycle := expectedCycleTime - resourceCycle*2
 	maxCycle := expectedCycleTime + resourceCycle*2
-	if cyclicTask.CycleTime < minCycle || cyclicTask.CycleTime > maxCycle {
-		t.Errorf("CycleTime (%v) is outside the expected range [%v, %v]", cyclicTask.CycleTime, minCycle, maxCycle)
+	if cycleTime < minCycle || cycleTime > maxCycle {
+		t.Errorf("CycleTime (%v) is outside the expected range [%v, %v]", cycleTime, minCycle, maxCycle)
 	}
-	t.Logf("Metric - CycleTime: %v", cyclicTask.CycleTime)
+	t.Logf("Metric - CycleTime: %v", cycleTime)
 
 	// 3. Test Drift
+	drift := cyclicTask.Drift()
 	// Drift is the difference between the actual run time and the scheduled run time.
 	// It can be positive or negative but should be small.
 	maxDrift := resourceCycle * 2 // Should not drift more than a couple of resource cycles.
-	if cyclicTask.Drift > maxDrift || cyclicTask.Drift < -maxDrift {
-		t.Errorf("Drift (%v) is larger than the expected maximum (%v)", cyclicTask.Drift, maxDrift)
+	if drift > maxDrift || drift < -maxDrift {
+		t.Errorf("Drift (%v) is larger than the expected maximum (%v)", drift, maxDrift)
 	}
-	t.Logf("Metric - Drift: %v", cyclicTask.Drift)
+	t.Logf("Metric - Drift: %v", drift)
 }
 
 func TestTaskEnableDisable(t *testing.T) {
 	resource := &Resource{Name: "EnableDisableCPU", Cycle: 10 * time.Millisecond}
+	taskInterval := 30 * time.Millisecond
 	var runCount atomic.Int32
 
-	task := NewTask("SwitchableTask", CyclicTask, 1, 20*time.Millisecond)
+	task := NewTask("SwitchableTask", CyclicTask, 1, taskInterval)
 	task.AddProgram(&Program{
 		Name: "Counter",
 		Logic: func(now time.Time) {
 			runCount.Add(1)
 		},
 	})
-
 	resource.AddTask(task)
 	resource.Start()
+	defer resource.Stop()
 
-	// --- Robust waiting logic ---
-	// Instead of a fixed sleep, poll until the desired state is reached or a timeout occurs.
-	// This makes the test resilient to scheduler jitter on different environments like GitHub Actions.
-	timeout := time.After(200 * time.Millisecond)
-	for runCount.Load() < 2 {
+	// 1. Wait for the task to run (it starts enabled by default).
+	// Use robust polling to avoid flaky tests.
+	waitTimeout := time.After(200 * time.Millisecond)
+	initialRun := false
+	for !initialRun {
 		select {
-		case <-timeout:
-			t.Fatalf("Timeout: Expected 2 runs, but got %d", runCount.Load())
+		case <-waitTimeout:
+			t.Fatalf("Timeout: Task did not run initially")
 		case <-time.After(5 * time.Millisecond):
-			// Poll every 5ms
+			if runCount.Load() > 0 {
+				initialRun = true
+			}
 		}
 	}
+	t.Logf("Task ran %d time(s) initially.", runCount.Load())
 
-	if runCount.Load() != 2 {
-		t.Errorf("Expected 2 runs, but got %d", runCount.Load())
+	// 2. Disable the task and verify it stops running.
+	task.Disable()
+	currentRuns := runCount.Load()
+	time.Sleep(taskInterval * 2) // Wait for a couple of cycles where it should have run.
+
+	if runCount.Load() != currentRuns {
+		t.Errorf("Task ran after being disabled. Expected %d runs, but got %d", currentRuns, runCount.Load())
+	}
+	t.Log("Task correctly stopped after being disabled.")
+
+	// 3. Enable the task again and verify it resumes.
+	task.Enable()
+	waitTimeout = time.After(200 * time.Millisecond)
+	resumedRun := false
+	for !resumedRun {
+		select {
+		case <-waitTimeout:
+			t.Fatalf("Timeout: Task did not resume after being enabled")
+		case <-time.After(5 * time.Millisecond):
+			if runCount.Load() > currentRuns {
+				resumedRun = true
+			}
+		}
+	}
+	if runCount.Load() <= currentRuns {
+		t.Errorf("Task did not resume after being enabled. Expected more than %d runs, got %d", currentRuns, runCount.Load())
+	}
+	t.Logf("Task correctly resumed after being enabled, running %d time(s).", runCount.Load())
+}
+
+func TestEventDrivenTaskTrigger(t *testing.T) {
+	resource := &Resource{Name: "EventCPU", Cycle: 5 * time.Millisecond}
+	var runCount atomic.Int32
+
+	eventTask := NewTask("EventTask", EventDrivenTask, 1, 0)
+	eventTask.AddProgram(&Program{
+		Name: "EventCounter",
+		Logic: func(now time.Time) {
+			runCount.Add(1)
+		},
+	})
+
+	resource.AddTask(eventTask)
+	resource.Start()
+	defer resource.Stop()
+
+	// 1. Verify it doesn't run without a trigger.
+	time.Sleep(50 * time.Millisecond)
+	if runCount.Load() != 0 {
+		t.Fatalf("Event task ran without a trigger. Count: %d", runCount.Load())
 	}
 
-	task.Disable()
-	// Wait a bit to ensure the disabled task doesn't run again.
-	time.Sleep(55 * time.Millisecond)
-	resource.Stop()
+	// 2. Trigger the task and verify it runs once.
+	t.Log("Triggering event task...")
+	if err := eventTask.Trigger(); err != nil {
+		t.Fatalf("Trigger() failed: %v", err)
+	}
 
-	if runCount.Load() > 2 {
-		t.Errorf("Task ran after being disabled. Expected 2 total runs, but got %d", runCount.Load())
+	// Wait for the run count to become 1
+	waitTimeout := time.After(100 * time.Millisecond)
+	select {
+	case <-waitTimeout:
+		t.Fatalf("Timeout: Event task did not run after trigger. Count: %d", runCount.Load())
+	case <-time.After(50 * time.Millisecond): // Give it ample time to execute
+		if runCount.Load() != 1 {
+			t.Errorf("Expected run count of 1 after trigger, but got %d", runCount.Load())
+		}
+	}
+	t.Log("Event task ran successfully after trigger.")
+
+	// 3. Test that triggering a non-event-driven task returns an error.
+	cyclicTask := NewTask("CyclicForTriggerTest", CyclicTask, 1, 1*time.Second)
+	err := cyclicTask.Trigger()
+	if err == nil {
+		t.Error("Expected an error when triggering a cyclic task, but got nil")
 	}
 }
 
@@ -314,4 +381,67 @@ func TestFindFunctions(t *testing.T) {
 			t.Errorf("Expected to find nil for Prog1 in Task2, but got %p", foundProg)
 		}
 	})
+}
+
+func TestBuilderMethods(t *testing.T) {
+	t.Run("TestWithResource", func(t *testing.T) {
+		config := &Configuration{Name: "TestConfig"}
+		res1 := &Resource{Name: "R1"}
+		res2 := &Resource{Name: "R2"}
+
+		// Chain the calls
+		config.WithResource(res1).WithResource(res2)
+
+		if len(config.Resources) != 2 {
+			t.Fatalf("Expected 2 resources after chaining WithResource, got %d", len(config.Resources))
+		}
+		if config.Resources[0] != res1 || config.Resources[1] != res2 {
+			t.Error("WithResource did not add resources in the correct order")
+		}
+	})
+
+	t.Run("TestWithTask", func(t *testing.T) {
+		resource := &Resource{Name: "TestResource"}
+		task1 := NewTask("T1", CyclicTask, 1, 1*time.Second)
+		task2 := NewTask("T2", CyclicTask, 2, 1*time.Second)
+
+		resource.WithTask(task1).WithTask(task2)
+
+		if len(resource.Tasks) != 2 {
+			t.Fatalf("Expected 2 tasks after chaining WithTask, got %d", len(resource.Tasks))
+		}
+		if resource.Tasks[0] != task1 || resource.Tasks[1] != task2 {
+			t.Error("WithTask did not add tasks in the correct order")
+		}
+	})
+}
+
+func TestResourceStartIdempotency(t *testing.T) {
+	resource := &Resource{Name: "IdempotentCPU", Cycle: 10 * time.Millisecond}
+	var runCount atomic.Int32
+
+	task := NewTask("IdempotentTask", CyclicTask, 1, 20*time.Millisecond)
+	task.AddProgram(&Program{
+		Name: "Counter",
+		Logic: func(now time.Time) {
+			runCount.Add(1)
+		},
+	})
+	resource.AddTask(task)
+
+	// Start the resource
+	resource.Start()
+
+	// Immediately try to start it again. This should be a no-op.
+	resource.Start()
+
+	time.Sleep(50 * time.Millisecond) // Let it run for a few cycles
+
+	// Stop the resource. If Start() was not idempotent, this might hang or panic.
+	resource.Stop()
+
+	if runCount.Load() == 0 {
+		t.Error("Task did not run, indicating the scheduler might not have started correctly.")
+	}
+	t.Logf("Task ran %d times. Calling Start() multiple times did not cause issues.", runCount.Load())
 }

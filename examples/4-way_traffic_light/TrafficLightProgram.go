@@ -80,6 +80,6 @@ func (p *TrafficLightProgram) Logic(now time.Time) {
 	// Execute timer logic for the current scan
 	p.sequenceTimer.Execute(now)
 
-	fmt.Printf("State=%d | NS: [R:%v Y:%v G:%v] | EW: [R:%v Y:%v G:%v] | Timer ET: %-4v\n",
-		p.state, p.nsLights.Red, p.nsLights.Yellow, p.nsLights.Green, p.ewLights.Red, p.ewLights.Yellow, p.ewLights.Green, p.sequenceTimer.ET)
+	fmt.Printf("State=%d | NS: [R:%v Y:%v G:%v] | EW: [R:%v Y:%v G:%v] | Timer ET: %.1fs\n",
+		p.state, p.nsLights.Red, p.nsLights.Yellow, p.nsLights.Green, p.ewLights.Red, p.ewLights.Yellow, p.ewLights.Green, time.Duration(p.sequenceTimer.ET).Seconds())
 }

@@ -384,14 +384,20 @@ func ConvertTo[T any](in any) (T, error) {
 	switch any(zero).(type) {
 	case SINT:
 		val, err := AnyToLINT(in)
-		if err != nil || val > MAXSINT || val < MINSINT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "SINT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "SINT", Reason: "conversion failed", Err: err}
+		}
+		if val < MINSINT || val > MAXSINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "SINT", Reason: "overflow"}
 		}
 		return any(SINT(val)).(T), nil
 	case DINT:
 		val, err := AnyToLINT(in)
-		if err != nil || val > MAXDINT || val < MINDINT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DINT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DINT", Reason: "conversion failed", Err: err}
+		}
+		if val < MINDINT || val > MAXDINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DINT", Reason: "overflow"}
 		}
 		return any(DINT(val)).(T), nil
 	case LINT:
@@ -399,50 +405,71 @@ func ConvertTo[T any](in any) (T, error) {
 		return any(val).(T), err
 	case INT:
 		val, err := AnyToLINT(in)
-		if err != nil || val > MAXINT || val < MININT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "INT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "INT", Reason: "conversion failed", Err: err}
+		}
+		if val < MININT || val > MAXINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "INT", Reason: "overflow"}
 		}
 		return any(INT(val)).(T), nil
 	case USINT:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUSINT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "USINT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "USINT", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUSINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "USINT", Reason: "overflow"}
 		}
 		return any(USINT(val)).(T), nil
 	case UINT:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUINT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UINT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UINT", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UINT", Reason: "overflow"}
 		}
 		return any(UINT(val)).(T), nil
 	case UDINT:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUDINT {
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UDINT", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UDINT", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUDINT {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "UDINT", Reason: "overflow"}
 		}
 		return any(UDINT(val)).(T), nil
 	case ULINT:
 		val, err := AnyToULINT(in)
 		return any(val).(T), err
 	case BOOL:
-		val, err := AnyToBOOL(in)
+		val, err := AnyToBOOL[any](in)
 		return any(val).(T), err
 	case BYTE:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUSINT { // BYTE is alias for uint8
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "BYTE", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "BYTE", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUSINT { // BYTE is alias for uint8
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "BYTE", Reason: "overflow"}
 		}
 		return any(BYTE(val)).(T), nil
 	case WORD:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUINT { // WORD is alias for uint16
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "WORD", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "WORD", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUINT { // WORD is alias for uint16
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "WORD", Reason: "overflow"}
 		}
 		return any(WORD(val)).(T), nil
 	case DWORD:
 		val, err := AnyToULINT(in)
-		if err != nil || val > MAXUDINT { // DWORD is alias for uint32
-			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DWORD", Reason: "overflow or conversion failed", Err: err}
+		if err != nil {
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DWORD", Reason: "conversion failed", Err: err}
+		}
+		if val > MAXUDINT { // DWORD is alias for uint32
+			return zero, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "DWORD", Reason: "overflow"}
 		}
 		return any(DWORD(val)).(T), nil
 	case LWORD:
@@ -492,6 +519,9 @@ func SubByte(in interface{}) (BYTE, error) {
 	val, err := AnyToULINT(in)
 	if err != nil {
 		return 0, err // Propagate the original ConversionError
+	}
+	if val > MAXUSINT {
+		return 0, &ConversionError{Value: in, FromType: GetTypeName(in), ToType: "BYTE", Reason: "overflow"}
 	}
 	return BYTE(val), nil
 }
@@ -557,6 +587,12 @@ func SubTime(in interface{}) (TIME, error) {
 }
 
 func AnyToBOOL[T any](val T) (BOOL, error) {
+	// Handle floats separately to avoid incorrect truncation to zero.
+	if lrealVal, err := AnyToLREAL(val); err == nil {
+		// For floats, any non-zero value is true.
+		return lrealVal != 0.0, nil
+	}
+
 	// First, try a numeric conversion via LINT.
 	lintVal, err := AnyToLINT(val)
 	if err == nil {
