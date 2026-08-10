@@ -191,9 +191,10 @@ func SortTasks(tasks []*Task) {
 
 // Resource represents a processing unit within the configuration, like a CPU.
 type Resource struct {
-	Name  string
-	Cycle time.Duration // The base scan cycle of the resource scheduler.
-	Tasks []*Task
+	Name     string
+	Cycle    time.Duration // The base scan cycle of the resource scheduler.
+	Affinity int           // Optional: OS CPU core to pin to. -1 or 0 means no affinity.
+	Tasks    []*Task
 
 	stopChan chan struct{}
 	wg       sync.WaitGroup
@@ -249,79 +250,6 @@ func (r *Resource) WithResource(t *Task) *Resource {
 	return r
 }
 
-// Start begins the resource's priority-based task scheduler.
-func (r *Resource) Start() {
-	r.mu.Lock()
-	if r.running {
-		r.mu.Unlock()
-		return
-	}
-
-	// Sort tasks by priority (lower number is higher priority)
-	SortTasks(r.Tasks)
-
-	r.running = true
-	r.stopChan = make(chan struct{})
-	r.wg.Add(1)
-	r.mu.Unlock()
-
-	go func() {
-		// Use a ticker for the resource's main execution loop.
-		// A reasonable default could be 1ms for high-speed control.
-		// This ensures the scheduler runs at least at the specified cycle.
-		if r.Cycle == 0 {
-			r.Cycle = time.Millisecond
-		}
-		ticker := time.NewTicker(r.Cycle)
-		defer ticker.Stop()
-		defer r.wg.Done()
-
-		for {
-			select {
-			case now := <-ticker.C:
-				// Acquire lock to get a consistent snapshot of tasks for this cycle.
-				// This prevents race conditions if r.Tasks is modified (added/removed/sorted)
-				// by another goroutine during this iteration.
-				r.mu.Lock()
-				currentTasks := make([]*Task, len(r.Tasks))
-				copy(currentTasks, r.Tasks)
-				r.mu.Unlock() // Release the lock as soon as the copy is made.
-
-				for _, task := range currentTasks { // Iterating over a safe copy.
-					// The decision to run and the update of task state should be atomic.
-					// We can determine if a run is needed inside the task's write lock.
-					var shouldRun bool
-					task.mu.Lock()
-					shouldRun = task.shouldRun(now)
-					task.mu.Unlock()
-
-					if shouldRun {
-						executionStartTime := time.Now()
-
-						for _, p := range task.Programs {
-							func(program *Program) {
-								defer func(progName string) {
-									if rec := recover(); rec != nil {
-										fmt.Printf("PANIC RECOVERED: Task '%s', Program '%s': %v\n", task.Name, progName, rec)
-									}
-								}(program.Name)
-								program.Execute(now)
-							}(p)
-						}
-
-						// Now, lock the task once to update all its runtime metrics.
-						task.mu.Lock()
-						task.updateMetrics(now, executionStartTime)
-						task.mu.Unlock()
-					}
-				}
-			case <-r.stopChan:
-				return
-			}
-		}
-	}()
-}
-
 // shouldRun checks if a task should execute in the current cycle and updates its
 // state accordingly. This method must be called within a task's write lock (t.mu.Lock).
 func (t *Task) shouldRun(now time.Time) bool {
@@ -369,6 +297,53 @@ func (t *Task) updateMetrics(runTime, executionStartTime time.Time) {
 
 	// Record the total execution time for this run.
 	t.executionTime = time.Since(executionStartTime)
+}
+
+// schedulerLoop is the core execution loop for a resource. It's called by the platform-specific Start methods.
+func (r *Resource) schedulerLoop(ticker *time.Ticker) {
+	for {
+		select {
+		case now := <-ticker.C:
+			// Acquire lock to get a consistent snapshot of tasks for this cycle.
+			// This prevents race conditions if r.Tasks is modified (added/removed/sorted)
+			// by another goroutine during this iteration.
+			r.mu.Lock()
+			currentTasks := make([]*Task, len(r.Tasks))
+			copy(currentTasks, r.Tasks)
+			r.mu.Unlock() // Release the lock as soon as the copy is made.
+
+			for _, task := range currentTasks { // Iterating over a safe copy.
+				// The decision to run and the update of task state should be atomic.
+				// We can determine if a run is needed inside the task's write lock.
+				var shouldRun bool
+				task.mu.Lock()
+				shouldRun = task.shouldRun(now)
+				task.mu.Unlock()
+
+				if shouldRun {
+					executionStartTime := time.Now()
+
+					for _, p := range task.Programs {
+						func(program *Program) {
+							defer func(progName string) {
+								if rec := recover(); rec != nil {
+									fmt.Printf("PANIC RECOVERED: Task '%s', Program '%s': %v\n", task.Name, progName, rec)
+								}
+							}(program.Name)
+							program.Execute(now)
+						}(p)
+					}
+
+					// Now, lock the task once to update all its runtime metrics.
+					task.mu.Lock()
+					task.updateMetrics(now, executionStartTime)
+					task.mu.Unlock()
+				}
+			}
+		case <-r.stopChan:
+			return
+		}
+	}
 }
 
 // Stop terminates the resource's task scheduler.

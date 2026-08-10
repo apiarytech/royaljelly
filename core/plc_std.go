@@ -1,0 +1,62 @@
+//go:build !tinygo
+
+/*
+ * Copyright (C) 2026 Franklin D. Amador
+ *
+ * This software is dual-licensed under:
+ * - GPL v2.0
+ * - Commercial
+ *
+ * You may choose to use this software under the terms of either license.
+ * See the LICENSE files in the project root for full license text.
+ */
+
+package core
+
+import (
+	"runtime"
+	"time"
+)
+
+func init() {
+	// For standard Go builds, automatically set GOMAXPROCS to use all available CPU cores.
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
+// Start begins the resource's priority-based task scheduler.
+// This version is for standard Go and supports CPU affinity.
+func (r *Resource) Start() {
+	r.mu.Lock()
+	if r.running {
+		r.mu.Unlock()
+		return
+	}
+
+	// Sort tasks by priority (lower number is higher priority)
+	SortTasks(r.Tasks)
+
+	r.running = true
+	r.stopChan = make(chan struct{})
+	r.wg.Add(1)
+	affinity := r.Affinity // Capture affinity before unlocking
+	r.mu.Unlock()
+
+	go func() {
+		// Pin this goroutine to a specific OS thread if requested.
+		// This is a prerequisite for influencing CPU core placement.
+		if affinity > 0 {
+			runtime.LockOSThread()
+		}
+
+		// Use a ticker for the resource's main execution loop.
+		if r.Cycle == 0 {
+			r.Cycle = time.Millisecond
+		}
+		ticker := time.NewTicker(r.Cycle)
+		defer ticker.Stop()
+		defer r.wg.Done()
+
+		// The core scheduling loop.
+		r.schedulerLoop(ticker)
+	}()
+}
