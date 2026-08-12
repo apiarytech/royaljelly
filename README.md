@@ -20,9 +20,9 @@ A Go library for writing PLC (Programmable Logic Controller) programs using Go s
 
 `royaljelly` aims to translate the core concepts of IEC 61131-3 into idiomatic Go, offering:
 - **IEC 61131-3 Software Model**: A hierarchical structure (`Configuration` -> `Resource` -> `Task` -> `Program`) for organizing and scheduling control logic, managed by a priority-based, TinyGo-compatible scheduler.
-   - **Multi-Core Support (Standard Go)**: The scheduler automatically utilizes all available CPU cores (`runtime.GOMAXPROCS`). Resources can be pinned to specific CPU cores using the `Affinity` property for predictable, real-time performance.
-   - **TinyGo Compatibility**: The scheduler is fully compatible with TinyGo, running efficiently in a single-threaded, cooperative multitasking environment.
 - **IEC 61131-3 Data Types**: Go types representing standard IEC types like `BOOL`, `INT`, `REAL`, `TIME`, `DATE`, `TOD`, `DT`, etc.
+   - **Multi-Core & CPU Affinity (Standard Go)**: For standard Go builds on Linux and Windows, the scheduler can pin `Resource` execution to specific CPU cores using the `Affinity` property. This enables advanced, real-time patterns like redundant execution, as shown in the examples.
+   - **TinyGo Compatibility**: The scheduler is fully compatible with TinyGo, running efficiently in a single-threaded, cooperative multitasking environment suitable for microcontrollers.
 - **Standard Function Blocks**: Implementations of common FBs as Go structs with `INIT` and `Execute` methods, including:
     - **Timers**: `TP` (Pulse Timer), `TON` (On-Delay Timer), `TOF` (Off-Delay Timer) (IEC 61131-3, Table 35)
     - **Counters**: `CTU` (Count Up), `CTD` (Count Down), `CTUD` (Count Up/Down) (IEC 61131-3, Table 36)

@@ -46,6 +46,11 @@ func (r *Resource) Start() {
 		// This is a prerequisite for influencing CPU core placement.
 		if affinity > 0 {
 			runtime.LockOSThread()
+
+			// Now, use gopsutil to set the CPU affinity for the locked thread.
+			// The affinity value is 1-based, so we subtract 1 for the 0-based core index.
+			coreID := affinity - 1 // Convert 1-based affinity to 0-based core ID
+			setAffinity(coreID)
 		}
 
 		// Use a ticker for the resource's main execution loop.

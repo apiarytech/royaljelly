@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	. "github.com/apiarytech/royaljelly/core"
@@ -23,25 +24,60 @@ import (
 // RedundantProgram holds the logic and its output.
 // Each instance will have its own state.
 type RedundantProgram struct {
-	Output LINT
+	Output      LINT
+	InjectFault BOOL // Flag to control fault injection
+	// internal state for intermittent faults
+	faultyCount LINT
+}
+
+// FaultyRedundantProgram is a struct that embeds the original
+// RedundantProgram and adds fault injection capabilities for this example.
+type FaultyRedundantProgram struct {
+	RedundantProgram // Embed the original program
+	faultyCount      LINT
 }
 
 // Logic is the function that will be executed by the PLC task.
 func (p *RedundantProgram) Logic(now time.Time) {
 	p.Output++
+
+	// If fault injection is enabled, occasionally produce a wrong result.
+	if p.InjectFault {
+		p.faultyCount++
+		// On every 3rd execution of this task, add extra to the output
+		// to force a mismatch with the other core.
+		if p.faultyCount > 2 && p.faultyCount%3 == 0 {
+			p.Output += 10 // This will cause a mismatch.
+			fmt.Printf("      ⚡️ Fault injected! Maliciously changed output to: %d\n", p.Output)
+		}
+	}
+}
+
+// Logic overrides the embedded Logic method to introduce faults.
+func (p *FaultyRedundantProgram) Logic(now time.Time) {
+	// Call the original, non-faulty logic first.
+	p.RedundantProgram.Logic(now)
+
+	// Now, add the fault injection logic.
+	p.faultyCount++
+	// On every 3rd execution, add to the output to cause a mismatch.
+	if p.faultyCount%3 == 0 {
+		p.Output += 10 // This will cause a mismatch.
+		fmt.Printf("      ⚡️ Fault injected! Maliciously changed output to: %d\n", p.Output)
+	}
 }
 
 func main() {
-	// --- 1. Instantiate two separate instances of the same program logic ---
-	// Each instance has its own memory (`Output` field).
+	// --- 1. Instantiate program instances ---
+	// One is the standard program, the other is our faulty version.
 	progInstance1 := &RedundantProgram{}
-	progInstance2 := &RedundantProgram{}
+	progInstance2 := &FaultyRedundantProgram{}
 
 	// This variable will hold the final, verified result.
 	var confirmedOutput LINT
+	var mu sync.RWMutex // Mutex to protect confirmedOutput
 
 	// --- 2. Create two "CPU Cores" (Resources) ---
-	// Assign each resource to a specific OS-level CPU core.
 	cpuCore1 := &Resource{Name: "CPUCore1", Cycle: 100 * time.Millisecond, Affinity: 1}
 	cpuCore2 := &Resource{Name: "CPUCore2", Cycle: 100 * time.Millisecond, Affinity: 2}
 
@@ -55,41 +91,36 @@ func main() {
 	cpuCore2.WithTask(task2)
 
 	// --- 4. Create a "Voter" program to compare results ---
-	// This program runs on one of the cores (or could be on a third, slower one).
-	// It runs at a slightly lower frequency to ensure the redundant tasks have run.
 	voterTask := NewTask("VoterTask", CyclicTask, 10, 1*time.Second)
 	voterTask.WithProgram(&Program{
 		Name: "ResultVoter",
 		Logic: func(now time.Time) {
+			mu.Lock()
+			defer mu.Unlock()
+
 			fmt.Printf("[%s] --- Voter Running ---\n", now.Format("15:04:05"))
 			fmt.Printf("      Core 1 Output: %d\n", progInstance1.Output)
 			fmt.Printf("      Core 2 Output: %d\n", progInstance2.Output)
 
-			// The core of the verification logic:
 			// Only update the confirmed output if both instances agree.
 			if progInstance1.Output == progInstance2.Output {
 				confirmedOutput = progInstance1.Output
 				fmt.Printf("      ✅ Results match. Confirmed output is now: %d\n", confirmedOutput)
 			} else {
 				// If they don't match, the `confirmedOutput` is left unchanged.
-				// You could also add error handling, logging, or fault logic here.
 				fmt.Printf("      ❌ Results DO NOT match. Confirmed output remains: %d\n", confirmedOutput)
 			}
 		},
 	})
-	cpuCore1.WithTask(voterTask) // Add the voter to one of the cores.
+	cpuCore1.WithTask(voterTask)
 
-	// --- 5. Add resources to the main configuration ---
-	config := &Configuration{Name: "RedundantConfig"}
-	config.WithResource(cpuCore1).WithResource(cpuCore2)
-
-	// --- 6. Start the PLC ---
-	fmt.Println("Starting redundant PLC simulation...")
+	// --- 5. Start the PLC ---
+	fmt.Println("Starting redundant PLC simulation with fault injection...")
 	cpuCore1.Start()
 	cpuCore2.Start()
 
-	// Let the simulation run for a few seconds.
-	time.Sleep(5 * time.Second)
+	// Let the simulation run long enough to see faults.
+	time.Sleep(8 * time.Second)
 
 	// Stop the resources
 	cpuCore1.Stop()
