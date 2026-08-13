@@ -28,14 +28,22 @@ type POU interface {
 // In a real-world scenario, the `Logic` function would contain the user's
 // control code written in Go, instantiating and calling Function Blocks.
 type Program struct {
-	Name  string
-	Logic func(now time.Time) // The user-defined logic for the program.
+	Name     string
+	Logic    func(now time.Time) // The user-defined logic for the program.
+	InitFunc func()              // Optional: Logic to reset the program's state.
 }
 
 // Execute runs the program's defined logic.
 func (p *Program) Execute(now time.Time) {
 	if p.Logic != nil {
 		p.Logic(now)
+	}
+}
+
+// Init runs the program's initialization logic, if defined.
+func (p *Program) Init() {
+	if p.InitFunc != nil {
+		p.InitFunc()
 	}
 }
 
@@ -105,6 +113,18 @@ func (t *Task) Disable() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.Enabled = false
+}
+
+// Reset calls the Init() function on all programs within the task.
+// This allows for re-initializing the state of the logic controlled by the task.
+func (t *Task) Reset() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	// Also reset the lastRun time to allow immediate execution if enabled.
+	t.lastRun = time.Time{}
+	for _, p := range t.Programs {
+		p.Init()
+	}
 }
 
 // Trigger executes an event-driven task.
@@ -358,6 +378,26 @@ func (r *Resource) Stop() {
 	r.mu.Unlock()
 
 	r.wg.Wait() // Wait for the scheduler goroutine to exit.
+}
+
+// Pause disables all tasks within the resource, effectively pausing its logical execution
+// without stopping the underlying scheduler goroutine. This is safe to call on a running resource.
+func (r *Resource) Pause() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, task := range r.Tasks {
+		task.Disable()
+	}
+}
+
+// Resume enables all tasks within the resource, resuming its logical execution.
+// This is safe to call on a running resource.
+func (r *Resource) Resume() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, task := range r.Tasks {
+		task.Enable()
+	}
 }
 
 // Configuration is the top-level element, representing the entire PLC system.

@@ -14,6 +14,7 @@
 package core
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 )
@@ -50,7 +51,9 @@ func (r *Resource) Start() {
 			// Now, use gopsutil to set the CPU affinity for the locked thread.
 			// The affinity value is 1-based, so we subtract 1 for the 0-based core index.
 			coreID := affinity - 1 // Convert 1-based affinity to 0-based core ID
-			setAffinity(coreID)
+			if err := setAffinity(coreID); err != nil {
+				panic(fmt.Sprintf("CRITICAL: Failed to set CPU affinity for resource '%s' to core %d: %v", r.Name, affinity, err))
+			}
 		}
 
 		// Use a ticker for the resource's main execution loop.

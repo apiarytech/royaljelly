@@ -1,0 +1,21 @@
+# Plain text configuration for the RoyalJelly application.
+# This format is designed to be parsed by the standard Go library,
+# making it compatible with TinyGo.
+
+name: MainConfig
+
+resource: MainCPU
+  cycle: 50ms
+  affinity: 1
+
+  task: HighFrequencyTask
+    type: Cyclic
+    priority: 1
+    interval: 250ms
+    program: HighFreqCounter
+
+  task: LowFrequencyTask
+    type: Cyclic
+    priority: 10
+    interval: 1s
+    program: LowFreqCounter

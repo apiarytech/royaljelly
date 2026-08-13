@@ -1,0 +1,19 @@
+# config.txt for encapsulated_logic example
+#
+# This demonstrates running two independent instances of the same program logic,
+# each with its own encapsulated state (local variables).
+
+name: EncapsulationExample
+
+resource: MainCPU
+  cycle: 50ms
+  task: TaskA
+    type: Cyclic
+    priority: 1
+    interval: 250ms
+    program: CounterA
+  task: TaskB
+    type: Cyclic
+    priority: 2
+    interval: 500ms
+    program: CounterB

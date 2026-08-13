@@ -22,7 +22,7 @@ A Go library for writing PLC (Programmable Logic Controller) programs using Go s
 - **IEC 61131-3 Software Model**: A hierarchical structure (`Configuration` -> `Resource` -> `Task` -> `Program`) for organizing and scheduling control logic, managed by a priority-based, TinyGo-compatible scheduler.
 - **IEC 61131-3 Data Types**: Go types representing standard IEC types like `BOOL`, `INT`, `REAL`, `TIME`, `DATE`, `TOD`, `DT`, etc.
    - **Multi-Core & CPU Affinity (Standard Go)**: For standard Go builds on Linux and Windows, the scheduler can pin `Resource` execution to specific CPU cores using the `Affinity` property. This enables advanced, real-time patterns like redundant execution, as shown in the examples.
-   - **TinyGo Compatibility**: The scheduler is fully compatible with TinyGo, running efficiently in a single-threaded, cooperative multitasking environment suitable for microcontrollers.
+   - **TinyGo Compatibility**: The core scheduler is fully compatible with TinyGo, running efficiently in a single-threaded, cooperative multitasking environment suitable for microcontrollers. Optional packages, like the `config` loader, are also designed to be TinyGo-compatible by using a custom text parser, avoiding complicated resource->task code.
 - **Standard Function Blocks**: Implementations of common FBs as Go structs with `INIT` and `Execute` methods, including:
     - **Timers**: `TP` (Pulse Timer), `TON` (On-Delay Timer), `TOF` (Off-Delay Timer) (IEC 61131-3, Table 35)
     - **Counters**: `CTU` (Count Up), `CTD` (Count Down), `CTUD` (Count Up/Down) (IEC 61131-3, Table 36)
@@ -47,40 +47,46 @@ go get github.com/apiarytech/royaljelly
 
 ### Structuring a PLC Application
 
-`royaljelly` provides a framework to structure your application according to the IEC 61131-3 software model. This creates a clear hierarchy for managing your control logic, orchestrated by a resource-level scheduler.
+`royaljelly` provides two primary ways to structure your application, allowing you to choose between minimum binary size and configuration flexibility.
 
+#### 1. Programmatic Setup (Minimal Binary Size)
 *   **Configuration**: The top-level object representing the entire PLC system.
 *   **Resource**: Represents a processing unit (like a CPU) and runs a priority-based task scheduler.
 *   **Task**: Controls the execution properties of programs (e.g., cyclic interval or event-driven).
 *   **Program**: Contains your control logic, written as a Go closure.
 
-The following snippet, taken from the `4-way traffic light` example, demonstrates how to assemble this structure:
+For the smallest possible footprint, especially in resource-constrained environments like microcontrollers running TinyGo, you can define the entire `Configuration` -> `Resource` -> `Task` -> `Program` hierarchy directly in your Go code. This method does not require the `config` package and results in a leaner final binary.
+
+The following snippet demonstrates how to assemble this structure programmatically:
 
 ```go
 package main
 
 import (
 	"time"
-	. "github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/core"
 )
 
 func main() {
 	// 1. Define the hierarchy
-	config := &Configuration{Name: "TrafficLightController"}
-	resource := &Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
-	task := NewTask("TrafficLightTask", CyclicTask, 1, 1*time.Second)
+	config := &core.Configuration{Name: "TrafficLightController"}
+	resource := &core.Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
+	task := core.NewTask("TrafficLightTask", core.CyclicTask, 1, 1*time.Second)
 
 	// 2. Define the program logic as a closure
-	trafficProgram := &plc.Program{
+	trafficProgram := &core.Program{
 		Name: "TrafficLightLogic",
 		Logic: func(now time.Time) {
 			// ... state machine logic for the traffic light ...
 		},
 	}
 
-	// 3. Assemble the structure and start the resource
+	// 3. Assemble the structure
 	task.AddProgram(trafficProgram)
 	resource.AddTask(task)
+	config.WithResource(resource)
+
+	// 4. Start the resource
 	resource.Start()
 
 	// Keep the simulation running

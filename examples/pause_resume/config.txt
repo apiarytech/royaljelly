@@ -1,0 +1,15 @@
+# config.txt for pause_resume example
+#
+# This file defines a simple configuration with one resource and one task
+# to demonstrate the Pause() and Resume() functionality.
+
+name: PauseResumeExample
+
+resource: MainCPU
+  cycle: 50ms
+  task: TickerTask
+    type: Cyclic
+    priority: 1
+    interval: 250ms
+    program: TickerProgram
+

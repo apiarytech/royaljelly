@@ -1,0 +1,23 @@
+# config.txt
+
+name: MultiCoreConfig
+
+# Resource for high-priority logic on Core 1
+resource: RealTimeCPU
+  cycle: 10ms
+  affinity: 1
+  task: MotorControl
+    type: Cyclic
+    priority: 1
+    interval: 100ms
+    program: ServoLoop
+
+# Resource for lower-priority logic on Core 2
+resource: HMI_CPU
+  cycle: 100ms
+  affinity: 2
+  task: UpdateDisplay
+    type: Cyclic
+    priority: 10
+    interval: 500ms
+    program: HMIScreenUpdate
