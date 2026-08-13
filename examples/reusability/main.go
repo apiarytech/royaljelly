@@ -17,29 +17,29 @@ import (
 	"time"
 
 	"github.com/apiarytech/royaljelly/config"
-	"github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // PIDController encapsulates the state and logic for a PID control loop.
 // This struct acts as a reusable Function Block type.
 type PIDController struct {
 	Name            string
-	Setpoint        core.REAL // Desired value
-	Kp              core.REAL // Proportional gain
-	Ki              core.REAL // Integral gain
-	Kd              core.REAL // Derivative gain
-	ProcessVariable core.REAL // Measured value from a sensor
-	Output          core.REAL // Calculated output to an actuator
+	Setpoint        REAL // Desired value
+	Kp              REAL // Proportional gain
+	Ki              REAL // Integral gain
+	Kd              REAL // Derivative gain
+	ProcessVariable REAL // Measured value from a sensor
+	Output          REAL // Calculated output to an actuator
 
 	// Internal state for PID calculation
-	integral  core.REAL
-	lastError core.REAL
+	integral  REAL
+	lastError REAL
 }
 
 // Logic simulates a full PID controller.
 func (p *PIDController) Logic(now time.Time) {
 	// Simulate reading a sensor value that fluctuates around the setpoint.
-	p.ProcessVariable = p.Setpoint + core.REAL(rand.Float32()*2-1) // Fluctuates by +/- 1.0
+	p.ProcessVariable = p.Setpoint + REAL(rand.Float32()*2-1) // Fluctuates by +/- 1.0
 
 	// Calculate error
 	err := p.Setpoint - p.ProcessVariable

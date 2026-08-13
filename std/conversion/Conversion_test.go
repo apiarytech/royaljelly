@@ -6,6 +6,7 @@ import (
 	"time"
 
 	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 	. "github.com/apiarytech/royaljelly/std/time"
 )
 

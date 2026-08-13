@@ -64,7 +64,7 @@ type Task struct {
 	Priority int           // Lower number means higher priority.
 	Interval time.Duration // For Cyclic tasks.
 	Programs []*Program
-	Enabled  BOOL // If false, the task will not be scheduled.
+	Enabled  bool // If false, the task will not be scheduled.
 
 	// --- Runtime Metrics ---
 	executionTime time.Duration // Last execution time of the task's programs.

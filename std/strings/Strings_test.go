@@ -3,7 +3,7 @@ package strings
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestLEN(t *testing.T) {

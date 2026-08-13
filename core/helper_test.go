@@ -17,6 +17,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestGetTypeName(t *testing.T) {

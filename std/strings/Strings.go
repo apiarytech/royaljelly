@@ -16,7 +16,7 @@ import (
 	"math"
 	"strings"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 /*********************************/

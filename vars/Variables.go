@@ -9,10 +9,12 @@
  * See the LICENSE files in the project root for full license text.
  */
 
-package core
+package vars
 
 import (
 	"time"
+
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 const (

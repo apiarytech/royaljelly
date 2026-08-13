@@ -13,7 +13,7 @@ func main() {
 	helloLogic.Init()
 
 	// A second, simple program to demonstrate adding multiple programs to one task.
-	var scanCount LINT
+	var scanCount int64
 	loggingLogic := func(now time.Time) {
 		scanCount++
 		fmt.Printf("... Scan cycle %d ...\n", scanCount)

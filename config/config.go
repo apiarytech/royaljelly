@@ -14,6 +14,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -46,7 +47,19 @@ func LoadConfigurationFromFile(path string) (*core.Configuration, error) {
 		return nil, fmt.Errorf("failed to read config file '%s': %w", path, err)
 	}
 	defer file.Close()
+	return parseConfigurationFromReader(file)
+}
 
+// LoadConfigurationFromString parses a plain text configuration string and builds the core.Configuration struct.
+// This is useful for embedding configurations directly into the binary.
+func LoadConfigurationFromString(configString string) (*core.Configuration, error) {
+	reader := strings.NewReader(configString)
+	return parseConfigurationFromReader(reader)
+}
+
+// LoadConfigurationFromFile parses a plain text file and builds the core.Configuration struct.
+// This parser is compatible with TinyGo.
+func parseConfigurationFromReader(reader io.Reader) (*core.Configuration, error) {
 	var config *core.Configuration
 	var currentResource *core.Resource
 	var currentTask *core.Task
@@ -55,7 +68,7 @@ func LoadConfigurationFromFile(path string) (*core.Configuration, error) {
 	var currentParams map[string]string
 	var prioritySet map[int]struct{}
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(reader)
 
 	// finalizeProgram is a helper to build the program from collected params.
 	finalizeProgram := func() error {

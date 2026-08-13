@@ -16,7 +16,7 @@ import (
 	"math/rand"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // globalRand is a package-level random number generator.

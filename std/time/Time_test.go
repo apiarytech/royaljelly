@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestTimePackageFunctions(t *testing.T) {

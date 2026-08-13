@@ -12,7 +12,7 @@
 package triggers
 
 import (
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // SR_FB is a Set-dominant bistable function block (Flip-Flop).

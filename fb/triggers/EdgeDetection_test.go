@@ -3,7 +3,7 @@ package triggers
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestR_TRIG(t *testing.T) {

@@ -14,8 +14,8 @@ package timers
 import (
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
 	. "github.com/apiarytech/royaljelly/fb/triggers"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 /********************************************************************************/

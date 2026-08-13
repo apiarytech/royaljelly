@@ -3,7 +3,7 @@ package bitwise
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestHasBit(t *testing.T) {

@@ -14,8 +14,8 @@ package calculus
 import (
 	"fmt"
 
-	. "github.com/apiarytech/royaljelly/core"
 	. "github.com/apiarytech/royaljelly/fb/triggers"
+	. "github.com/apiarytech/royaljelly/iec"
 	. "github.com/apiarytech/royaljelly/std/conversion"
 )
 

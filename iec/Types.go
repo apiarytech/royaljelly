@@ -9,7 +9,7 @@
  * See the LICENSE files in the project root for full license text.
  */
 
-package core
+package iec
 
 import (
 	"time"
@@ -127,6 +127,9 @@ type TM struct {
 	S  int
 	Ms int
 }
+
+// Generic ANY types for function overloading (conceptual)
+type ANY interface{}
 
 // ANY_BOOL
 type ANY_BOOL interface {

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 const float64EqualityThreshold = 1e-9

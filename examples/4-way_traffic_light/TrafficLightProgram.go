@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
 	. "github.com/apiarytech/royaljelly/fb/timers"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 const (

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // RedundantProgram holds the logic and its output.

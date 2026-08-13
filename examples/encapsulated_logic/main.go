@@ -16,12 +16,12 @@ import (
 	"time"
 
 	"github.com/apiarytech/royaljelly/config"
-	"github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 var (
 	// globalCycleCount acts as a VAR_GLOBAL, accessible by all programs in this package.
-	globalCycleCount core.LINT = 0
+	globalCycleCount LINT = 0
 )
 
 // CounterProgram encapsulates the state (local tags) and logic for a counter.
@@ -30,8 +30,8 @@ type CounterProgram struct {
 	// This field 'Name' helps identify the instance.
 	Name string
 	// This field 'Output' is a "local tag" or instance variable.
-	Output   core.LINT
-	StepSize core.LINT
+	Output   LINT
+	StepSize LINT
 }
 
 // Logic is the method that will be executed by the scheduler.

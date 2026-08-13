@@ -14,7 +14,7 @@ package numerical
 import (
 	"math"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 /*********************************/

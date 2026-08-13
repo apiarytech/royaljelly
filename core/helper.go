@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 const float64EqualityThreshold = 1e-9

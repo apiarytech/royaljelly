@@ -9,7 +9,7 @@
  * See the LICENSE files in the project root for full license text.
  */
 
-package core
+package iec
 
 import (
 	"math"

@@ -22,7 +22,7 @@ package bitwise
 import (
 	"unsafe"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // SetBit sets a bit at pos in the integer n. Returns the modified value.

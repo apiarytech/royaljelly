@@ -12,7 +12,7 @@
 package comparison
 
 import (
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // GT (Greater Than) checks if IN1 > IN2 > IN3 ...

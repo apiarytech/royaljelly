@@ -14,7 +14,7 @@ package selection
 import (
 	"fmt"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 // SEL selects one of two inputs based on a boolean selector.

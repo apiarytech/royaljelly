@@ -3,7 +3,7 @@ package selection
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 func TestSEL(t *testing.T) {

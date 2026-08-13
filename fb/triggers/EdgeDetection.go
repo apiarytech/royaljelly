@@ -12,7 +12,7 @@
 package triggers
 
 import (
-	. "github.com/apiarytech/royaljelly/core"
+	. "github.com/apiarytech/royaljelly/iec"
 )
 
 /********************************************************************************/
