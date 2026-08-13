@@ -12,10 +12,10 @@ resource: MainCPU
     type: Cyclic
     priority: 1
     interval: 250ms
-    program: HighFreqCounter
+    program: HighFreqInstance HighFreqProgram
 
   task: LowFrequencyTask
     type: Cyclic
     priority: 10
     interval: 1s
-    program: LowFreqCounter
+    program: LowFreqInstance LowFreqProgram

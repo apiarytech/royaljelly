@@ -19,20 +19,29 @@ import (
 )
 
 func main() {
-	// Register all program logic functions
-	config.RegisterProgram("HighFreqCounter", HighFreqLogicFunc)
-	config.RegisterProgram("LowFreqCounter", LowFreqLogicFunc)
+	// Create instances of our program logic structs, which are defined in other files.
+	hfc := &HighFreqCounter{}
+	lfc := &LowFreqCounter{}
 
-	fmt.Println("Loading configuration from 'examples/loader/config.txt'...")
-	// Load the entire structure from a file
-	// Note: The path is relative to the project root where you run `go run`.
+	// 1. Register factories for our program types.
+	// Since these simple programs don't have parameters, the factory can
+	// just return the Logic method from our instances.
+	config.RegisterProgramFactory("HighFreqProgram", func(params map[string]string) (func(time.Time), error) {
+		return hfc.Logic, nil
+	})
+	config.RegisterProgramFactory("LowFreqProgram", func(params map[string]string) (func(time.Time), error) {
+		return lfc.Logic, nil
+	})
+
+	fmt.Println("Loading configuration from 'config.txt'...")
+	// 2. Load the entire structure from the file.
 	cfg, err := config.LoadConfigurationFromFile("config.txt")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Configuration '%s' loaded successfully with %d resource(s).\n", cfg.Name, len(cfg.Resources))
 
-	// Find and start resources
+	// 3. Find and start resources
 	for _, res := range cfg.Resources {
 		fmt.Printf("Starting resource '%s'...\n", res.Name)
 		res.Start()

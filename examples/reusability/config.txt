@@ -1,0 +1,29 @@
+# config.txt for reusability example
+#
+# This demonstrates creating multiple, configured instances of a single program type,
+# which is analogous to using Function Block instances in a traditional PLC.
+
+name: ReusabilityExample
+
+resource: MainCPU
+  cycle: 100ms
+  affinity: 1
+  task: TemperatureControl
+    type: Cyclic
+    priority: 1
+    interval: 500ms
+    program: TempPID PID_Controller
+      param: setpoint 75.0
+      param: kp 1.2
+      param: ki 0.1
+      param: kd 0.05
+
+  task: PressureControl
+    type: Cyclic
+    priority: 2
+    interval: 500ms
+    program: PressurePID PID_Controller
+      param: setpoint 14.7
+      param: kp 2.5
+      param: ki 0.3
+      param: kd 0.1

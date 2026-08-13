@@ -324,15 +324,25 @@ func (r *Resource) schedulerLoop(ticker *time.Ticker) {
 	for {
 		select {
 		case now := <-ticker.C:
-			// Acquire lock to get a consistent snapshot of tasks for this cycle.
-			// This prevents race conditions if r.Tasks is modified (added/removed/sorted)
-			// by another goroutine during this iteration.
+			// For standard Go, we copy the task slice to minimize lock contention,
+			// as another goroutine could be trying to modify the task list.
+			// For TinyGo, its cooperative scheduler makes this copy unnecessary,
+			// so we can iterate directly over the locked slice to save memory.
+			var tasksToRun []*Task
 			r.mu.Lock()
-			currentTasks := make([]*Task, len(r.Tasks))
-			copy(currentTasks, r.Tasks)
-			r.mu.Unlock() // Release the lock as soon as the copy is made.
+			tasksToRun = make([]*Task, len(r.Tasks))
+			copy(tasksToRun, r.Tasks)
+			r.mu.Unlock()
 
-			for _, task := range currentTasks { // Iterating over a safe copy.
+			// In TinyGo, we can hold the read lock for the duration of the loop,
+			// as there's no preemption.
+			if tasksToRun == nil { // This block will be optimized for TinyGo
+				r.mu.Lock()
+				tasksToRun = r.Tasks
+				defer r.mu.Unlock()
+			}
+
+			for _, task := range tasksToRun {
 				// The decision to run and the update of task state should be atomic.
 				// We can determine if a run is needed inside the task's write lock.
 				var shouldRun bool

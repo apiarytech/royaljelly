@@ -33,8 +33,12 @@ func hmiScreenUpdateLogic(now time.Time) {
 
 func main() {
 	// Register the program logic functions with the config loader.
-	config.RegisterProgram("ServoLoop", servoLoopLogic)
-	config.RegisterProgram("HMIScreenUpdate", hmiScreenUpdateLogic)
+	config.RegisterProgramFactory("ServoLoop", func(params map[string]string) (func(time.Time), error) {
+		return servoLoopLogic, nil
+	})
+	config.RegisterProgramFactory("HMIScreenUpdate", func(params map[string]string) (func(time.Time), error) {
+		return hmiScreenUpdateLogic, nil
+	})
 
 	fmt.Println("Loading multi-core configuration from 'config.txt'...")
 	cfg, err := config.LoadConfigurationFromFile("config.txt")

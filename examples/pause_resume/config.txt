@@ -11,5 +11,4 @@ resource: MainCPU
     type: Cyclic
     priority: 1
     interval: 250ms
-    program: TickerProgram
-
+    program: TickerInstance TickerProgram

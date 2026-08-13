@@ -7,12 +7,13 @@ import (
 	"github.com/apiarytech/royaljelly/core"
 )
 
-var (
-	lowFreqCount core.LINT = 0
-)
+// LowFreqCounter encapsulates the state and logic for the low-frequency program.
+type LowFreqCounter struct {
+	count core.LINT
+}
 
-// lowFreqLogicFunc is the logic for the program that runs less frequently.
-func LowFreqLogicFunc(now time.Time) {
-	lowFreqCount++
-	fmt.Printf("[%s] Low Frequency Task running.  Count: %d\n", now.Format("15:04:05.000"), lowFreqCount)
+// Logic is the method that will be executed by the scheduler.
+func (p *LowFreqCounter) Logic(now time.Time) {
+	p.count++
+	fmt.Printf("[%s] Low Frequency Task running.  Count: %d\n", now.Format("15:04:05.000"), p.count)
 }

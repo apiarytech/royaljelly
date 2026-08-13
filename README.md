@@ -53,11 +53,83 @@ go get github.com/apiarytech/royaljelly
 *   **Configuration**: The top-level object representing the entire PLC system.
 *   **Resource**: Represents a processing unit (like a CPU) and runs a priority-based task scheduler.
 *   **Task**: Controls the execution properties of programs (e.g., cyclic interval or event-driven).
-*   **Program**: Contains your control logic, written as a Go closure.
+*   **Program**: Contains your control logic, written as a Go closure
 
 For the smallest possible footprint, especially in resource-constrained environments like microcontrollers running TinyGo, you can define the entire `Configuration` -> `Resource` -> `Task` -> `Program` hierarchy directly in your Go code. This method does not require the `config` package and results in a leaner final binary.
 
-The following snippet demonstrates how to assemble this structure programmatically:
+The best practice is to encapsulate your program's state and logic within a `struct`, which is analogous to a Function Block (FB) in IEC 61131-3. This creates reusable components with their own private data ("local tags").
+
+First, create a `config.txt` file to define the system structure:
+```text
+# config.txt
+name: EncapsulationExample
+
+resource: MainCPU
+  cycle: 50ms
+  task: TaskA
+    type: Cyclic
+    priority: 1
+    interval: 250ms
+    program: CounterA CounterProgram
+      param: initial_value 100
+  task: TaskB
+    type: Cyclic
+    priority: 2
+    interval: 500ms
+    program: CounterB CounterProgram
+      param: initial_value 500
+```
+
+Next, write your `main.go` to define the logic, create instances, and load the configuration:
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+	"github.com/apiarytech/royaljelly/config"
+	"github.com/apiarytech/royaljelly/core"
+)
+
+// CounterProgram encapsulates the state (local tags) and logic for a counter.
+type CounterProgram struct {
+	Output core.LINT // This is a "local tag" or instance variable.
+}
+
+// Logic is the method that will be executed by the scheduler.
+func (p *CounterProgram) Logic(now time.Time) {
+	p.Output++
+	fmt.Printf("[%s] Counter instance running. Current Output: %d\n", now.Format("15:04:05.000"), p.Output)
+}
+
+func main() {
+	// 1. Create two independent instances of our CounterProgram.
+	counterA := &CounterProgram{}
+	counterB := &CounterProgram{}
+
+	// 2. Register the 'Logic' method of each instance with the loader.
+	config.RegisterProgram("CounterA", counterA.Logic)
+	config.RegisterProgram("CounterB", counterB.Logic)
+
+	// 3. Load the entire structure from the file.
+	cfg, err := config.LoadConfigurationFromFile("config.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	// 4. Start all configured resources.
+	for _, res := range cfg.Resources {
+		res.Start()
+	}
+
+	// ... keep simulation running ...
+}
+```
+A complete, runnable version of this is available in the `examples/encapsulated_logic` directory.
+
+#### 2. Programmatic Setup (Minimal Binary Size)
+
+For the smallest possible footprint, especially on microcontrollers, you can define the entire hierarchy directly in your Go code. This method does not require the `config` package and results in a leaner final binary.
 
 ```go
 package main

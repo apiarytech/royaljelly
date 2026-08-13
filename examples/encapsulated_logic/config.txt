@@ -11,9 +11,14 @@ resource: MainCPU
     type: Cyclic
     priority: 1
     interval: 250ms
-    program: CounterA
+    program: CounterA CounterProgram
+      param: initial_value 10
+      param: step_size 1
+
   task: TaskB
     type: Cyclic
     priority: 2
     interval: 500ms
-    program: CounterB
+    program: CounterB CounterProgram
+      param: initial_value 50
+      param: step_size 5

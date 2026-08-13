@@ -25,7 +25,9 @@ func tickerLogic(now time.Time) {
 
 func main() {
 	// Register the program logic with the config loader.
-	config.RegisterProgram("TickerProgram", tickerLogic)
+	config.RegisterProgramFactory("TickerProgram", func(params map[string]string) (func(time.Time), error) {
+		return tickerLogic, nil
+	})
 
 	fmt.Println("Loading configuration from 'config.txt'...")
 	cfg, err := config.LoadConfigurationFromFile("config.txt")

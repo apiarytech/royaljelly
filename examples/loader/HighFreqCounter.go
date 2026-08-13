@@ -7,12 +7,13 @@ import (
 	"github.com/apiarytech/royaljelly/core"
 )
 
-var (
-	highFreqCount core.LINT = 0
-)
+// HighFreqCounter encapsulates the state and logic for the high-frequency program.
+type HighFreqCounter struct {
+	count core.LINT
+}
 
-// highFreqLogicFunc is the logic for the program that runs more frequently.
-func HighFreqLogicFunc(now time.Time) {
-	highFreqCount++
-	fmt.Printf("[%s] High Frequency Task running. Count: %d\n", now.Format("15:04:05.000"), highFreqCount)
+// Logic is the method that will be executed by the scheduler.
+func (p *HighFreqCounter) Logic(now time.Time) {
+	p.count++
+	fmt.Printf("[%s] High Frequency Task running. Count: %d\n", now.Format("15:04:05.000"), p.count)
 }
