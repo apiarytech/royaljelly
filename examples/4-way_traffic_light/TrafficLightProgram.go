@@ -4,27 +4,27 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/fb/timers"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/fb/timers"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 const (
-	stNSGreen  DINT = iota // North-South Green, East-West Red
-	stNSYellow             // North-South Yellow, East-West Red
-	stEWGreen              // North-South Red, East-West Green
-	stEWYellow             // North-South Red, East-West Yellow
+	stNSGreen  iec.DINT = iota // North-South Green, East-West Red
+	stNSYellow                 // North-South Yellow, East-West Red
+	stEWGreen                  // North-South Red, East-West Green
+	stEWYellow                 // North-South Red, East-West Yellow
 )
 
 type Lights struct {
-	Red, Yellow, Green BOOL
+	Red, Yellow, Green iec.BOOL
 }
 
 // TrafficLightProgram encapsulates the state and logic for the traffic light controller.
 type TrafficLightProgram struct {
 	// State variables
 	nsLights, ewLights Lights
-	state              DINT
-	sequenceTimer      TON
+	state              iec.DINT
+	sequenceTimer      timers.TON
 }
 
 // Init initializes the program's state.
@@ -43,7 +43,7 @@ func (p *TrafficLightProgram) Logic(now time.Time) {
 	case stNSGreen:
 		p.nsLights = Lights{Green: true}
 		p.ewLights = Lights{Red: true}
-		p.sequenceTimer.PT = TIME(10 * time.Second) // Green light for 10s
+		p.sequenceTimer.PT = iec.TIME(10 * time.Second) // Green light for 10s
 		if p.sequenceTimer.Q {
 			p.state = stNSYellow
 			p.sequenceTimer.IN = false // Reset timer by toggling IN
@@ -52,7 +52,7 @@ func (p *TrafficLightProgram) Logic(now time.Time) {
 	case stNSYellow:
 		p.nsLights = Lights{Yellow: true}
 		p.ewLights = Lights{Red: true}
-		p.sequenceTimer.PT = TIME(3 * time.Second) // Yellow for 3s
+		p.sequenceTimer.PT = iec.TIME(3 * time.Second) // Yellow for 3s
 		if p.sequenceTimer.Q {
 			p.state = stEWGreen
 			p.sequenceTimer.IN = false
@@ -61,7 +61,7 @@ func (p *TrafficLightProgram) Logic(now time.Time) {
 	case stEWGreen:
 		p.nsLights = Lights{Red: true}
 		p.ewLights = Lights{Green: true}
-		p.sequenceTimer.PT = TIME(10 * time.Second) // Green for 10s
+		p.sequenceTimer.PT = iec.TIME(10 * time.Second) // Green for 10s
 		if p.sequenceTimer.Q {
 			p.state = stEWYellow
 			p.sequenceTimer.IN = false
@@ -70,7 +70,7 @@ func (p *TrafficLightProgram) Logic(now time.Time) {
 	case stEWYellow:
 		p.nsLights = Lights{Red: true}
 		p.ewLights = Lights{Yellow: true}
-		p.sequenceTimer.PT = TIME(3 * time.Second) // Yellow for 3s
+		p.sequenceTimer.PT = iec.TIME(3 * time.Second) // Yellow for 3s
 		if p.sequenceTimer.Q {
 			p.state = stNSGreen // Cycle back
 			p.sequenceTimer.IN = false

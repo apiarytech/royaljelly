@@ -12,7 +12,7 @@
 package triggers
 
 import (
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 /********************************************************************************/
@@ -23,25 +23,25 @@ import (
 // R_TRIG is a rising edge detection function block.
 type R_TRIG struct {
 	// Input
-	CLK BOOL // Clock input
+	CLK iec.BOOL // Clock input
 
 	// Output
-	Q BOOL // Output pulse
+	Q iec.BOOL // Output pulse
 
 	// Internal memory
-	mem BOOL // Memory of the previous state of CLK
+	mem iec.BOOL // Memory of the previous state of CLK
 }
 
 // F_TRIG is a falling edge detection function block.
 type F_TRIG struct {
 	// Input
-	CLK BOOL // Clock input
+	CLK iec.BOOL // Clock input
 
 	// Output
-	Q BOOL // Output pulse
+	Q iec.BOOL // Output pulse
 
 	// Internal memory
-	mem BOOL // Memory of the previous state of CLK
+	mem iec.BOOL // Memory of the previous state of CLK
 }
 
 // INIT initializes the R_TRIG function block.

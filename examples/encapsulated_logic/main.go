@@ -12,16 +12,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/apiarytech/royaljelly/config"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 var (
 	// globalCycleCount acts as a VAR_GLOBAL, accessible by all programs in this package.
-	globalCycleCount LINT = 0
+	globalCycleCount iec.LINT = 0
 )
 
 // CounterProgram encapsulates the state (local tags) and logic for a counter.
@@ -30,8 +31,8 @@ type CounterProgram struct {
 	// This field 'Name' helps identify the instance.
 	Name string
 	// This field 'Output' is a "local tag" or instance variable.
-	Output   LINT
-	StepSize LINT
+	Output   iec.LINT
+	StepSize iec.LINT
 }
 
 // Logic is the method that will be executed by the scheduler.
@@ -77,14 +78,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Configuration %q loaded with %d resource(s).\n", cfg.Name, len(cfg.Resources()))
 
-	// 2. Start all configured resources.
-	for _, res := range cfg.Resources {
-		res.Start()
-	}
-
+	// Run validates and starts every resource, then stops them all when the
+	// context ends. Faults such as program panics are reported on standard error.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	fmt.Println("\nSimulation running for 2 seconds...")
-	time.Sleep(2 * time.Second)
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
+	}
 	fmt.Println("\nSimulation complete.")
 	fmt.Printf("Final Global Cycle Count: %d\n", globalCycleCount)
 }

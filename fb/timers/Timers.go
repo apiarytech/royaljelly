@@ -14,8 +14,8 @@ package timers
 import (
 	"time"
 
-	. "github.com/apiarytech/royaljelly/fb/triggers"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/fb/triggers"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 /********************************************************************************/
@@ -27,18 +27,18 @@ import (
 // It generates a pulse of a specified duration.
 type TP struct {
 	// Inputs
-	IN BOOL // Trigger
-	PT TIME // Preset Time (pulse duration)
+	IN iec.BOOL // Trigger
+	PT iec.TIME // Preset Time (pulse duration)
 
 	// Outputs
-	Q  BOOL // Output pulse
-	ET TIME // Elapsed Time
+	Q  iec.BOOL // Output pulse
+	ET iec.TIME // Elapsed Time
 
 	// Internal state
 	startTime   time.Time
-	timing      BOOL
-	re          R_TRIG // Rising-edge detector
-	initialized BOOL   // Internal flag to ensure INIT is called
+	timing      iec.BOOL
+	re          triggers.R_TRIG // Rising-edge detector
+	initialized iec.BOOL        // Internal flag to ensure INIT is called
 }
 
 // INIT initializes the TP function block to its default state.
@@ -79,7 +79,7 @@ func (t *TP) Execute(now time.Time) {
 		elapsed := now.Sub(t.startTime)
 		if elapsed < time.Duration(t.PT) {
 			t.Q = true
-			t.ET = TIME(elapsed)
+			t.ET = iec.TIME(elapsed)
 		} else {
 			// Pulse duration is over.
 			t.Q = false
@@ -98,16 +98,16 @@ func (t *TP) Execute(now time.Time) {
 // It delays the setting of its output Q after its input IN becomes true.
 type TON struct {
 	// Inputs
-	IN BOOL // Input
-	PT TIME // Preset Time (delay duration)
+	IN iec.BOOL // Input
+	PT iec.TIME // Preset Time (delay duration)
 
 	// Outputs
-	Q  BOOL // Output
-	ET TIME // Elapsed Time
+	Q  iec.BOOL // Output
+	ET iec.TIME // Elapsed Time
 
 	// Internal state
 	startTime   time.Time
-	initialized BOOL
+	initialized iec.BOOL
 }
 
 // INIT initializes the TON function block to its default state.
@@ -149,7 +149,7 @@ func (t *TON) Execute(now time.Time) {
 
 	elapsed := now.Sub(t.startTime)
 	if elapsed < time.Duration(t.PT) {
-		t.ET = TIME(elapsed)
+		t.ET = iec.TIME(elapsed)
 		t.Q = false
 	} else {
 		// Timer has reached its preset time.
@@ -162,17 +162,17 @@ func (t *TON) Execute(now time.Time) {
 // It delays the resetting of its output Q after its input IN becomes false.
 type TOF struct {
 	// Inputs
-	IN BOOL // Input
-	PT TIME // Preset Time (delay duration)
+	IN iec.BOOL // Input
+	PT iec.TIME // Preset Time (delay duration)
 
 	// Outputs
-	Q  BOOL // Output
-	ET TIME // Elapsed Time
+	Q  iec.BOOL // Output
+	ET iec.TIME // Elapsed Time
 
 	// Internal state
 	startTime   time.Time
-	mem         BOOL // Internal memory of the previous state of IN
-	initialized BOOL
+	mem         iec.BOOL // Internal memory of the previous state of IN
+	initialized iec.BOOL
 }
 
 // INIT initializes the TOF function block to its default state.
@@ -218,7 +218,7 @@ func (t *TOF) Execute(now time.Time) {
 		elapsed := now.Sub(t.startTime)
 		if elapsed < time.Duration(t.PT) {
 			t.Q = true
-			t.ET = TIME(elapsed)
+			t.ET = iec.TIME(elapsed)
 		} else {
 			t.Q = false
 			t.ET = t.PT // Clamp ET to PT

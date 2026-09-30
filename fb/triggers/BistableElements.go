@@ -12,33 +12,33 @@
 package triggers
 
 import (
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // SR_FB is a Set-dominant bistable function block (Flip-Flop).
 type SR_FB struct {
 	//INPUT
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 
-	S1 BOOL
-	R  BOOL
+	S1 iec.BOOL
+	R  iec.BOOL
 
 	//OUTPUT
-	Q1 BOOL
+	Q1 iec.BOOL
 }
 
 // RS_FB is a Reset-dominant bistable function block (Flip-Flop).
 type RS_FB struct {
 	//INPUT
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 
-	S  BOOL
-	R1 BOOL
+	S  iec.BOOL
+	R1 iec.BOOL
 
 	//OUTPUT
-	Q1 BOOL
+	Q1 iec.BOOL
 }
 
 // Init initializes the SR function block.

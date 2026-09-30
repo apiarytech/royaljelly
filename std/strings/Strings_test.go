@@ -3,7 +3,7 @@ package strings
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestLEN(t *testing.T) {
@@ -91,10 +91,10 @@ func TestCONCAT(t *testing.T) {
 func TestINSERT(t *testing.T) {
 	testCases := []struct {
 		name     string
-		in1      STRING
-		in2      STRING
-		p        LINT
-		expected STRING
+		in1      iec.STRING
+		in2      iec.STRING
+		p        iec.LINT
+		expected iec.STRING
 		hasError bool
 	}{
 		{"Insert in middle", "ABCD", "XYZ", 2, "ABXYZCD", false},
@@ -172,11 +172,11 @@ func TestREPEAT(t *testing.T) {
 func TestREPLACE(t *testing.T) {
 	testCases := []struct {
 		name     string
-		in1      STRING
-		in2      STRING
-		l        LINT
-		p        LINT
-		expected STRING
+		in1      iec.STRING
+		in2      iec.STRING
+		l        iec.LINT
+		p        iec.LINT
+		expected iec.STRING
 		hasError bool
 	}{
 		{"Standard replace in middle", "ABCDEFG", "XYZ", 3, 3, "ABXYZFG", false},

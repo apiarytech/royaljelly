@@ -3,16 +3,16 @@ package triggers
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestR_TRIG(t *testing.T) {
 	testCases := []struct {
 		name        string
-		initialMem  BOOL
-		clk         BOOL
-		expectedQ   BOOL
-		expectedMem BOOL
+		initialMem  iec.BOOL
+		clk         iec.BOOL
+		expectedQ   iec.BOOL
+		expectedMem iec.BOOL
 	}{
 		{"Rising edge", false, true, true, true},
 		{"No edge (high)", true, true, false, true},
@@ -47,10 +47,10 @@ func TestR_TRIG(t *testing.T) {
 func TestF_TRIG(t *testing.T) {
 	testCases := []struct {
 		name        string
-		initialMem  BOOL
-		clk         BOOL
-		expectedQ   BOOL
-		expectedMem BOOL
+		initialMem  iec.BOOL
+		clk         iec.BOOL
+		expectedQ   iec.BOOL
+		expectedMem iec.BOOL
 	}{
 		{"Falling edge", true, false, true, false},
 		{"No edge (low)", false, false, false, false},

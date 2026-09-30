@@ -79,7 +79,7 @@ type LCOMPLEX complex128
 // CHAR definition
 type CHAR byte
 
-// WCHAR definition
+// WCHAR is a single wide character (a Unicode code point).
 type WCHAR rune
 
 // STRING definition
@@ -88,11 +88,12 @@ type STRING string
 // STRINGS definition
 type STRINGS []string
 
-// WSTRING definition
-type WSTRING rune
+// WSTRING is a wide-character string (IEC 61131-3 WSTRING). Go strings are UTF-8,
+// so the value holds Unicode text; use WCHAR for a single wide character.
+type WSTRING string
 
-// WSTRINGS definition
-type WSTRINGS []rune
+// WSTRINGS is a slice of wide-character strings.
+type WSTRINGS []string
 
 // TIME represents a duration as defined by IEC 61131-3. It is based on Go's time.Duration for easier manipulation.
 type TIME time.Duration

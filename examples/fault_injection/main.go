@@ -11,120 +11,97 @@
  * See the LICENSE files in the project root for full license text.
  */
 
+// This example extends the redundancy example: one of the two redundant copies
+// periodically corrupts its result, and the voter detects the mismatch. It also
+// shows a program panic being reported through the fault handler while the
+// other programs keep running.
+//
+// CPU affinity is supported on Linux and Windows. On other platforms, set
+// Affinity to 0 on both resources.
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"sync"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/vars"
 )
 
-// RedundantProgram holds the logic and its output.
-// Each instance will have its own state.
+// RedundantProgram holds one copy of the logic. Output is shared with the voter,
+// which runs on another resource.
 type RedundantProgram struct {
-	Output      LINT
-	InjectFault BOOL // Flag to control fault injection
-	// internal state for intermittent faults
-	faultyCount LINT
+	count  iec.LINT
+	Output vars.Shared[iec.LINT]
+
+	// InjectFault makes every third run publish a corrupted value.
+	InjectFault bool
 }
 
-// FaultyRedundantProgram is a struct that embeds the original
-// RedundantProgram and adds fault injection capabilities for this example.
-type FaultyRedundantProgram struct {
-	RedundantProgram // Embed the original program
-	faultyCount      LINT
-}
-
-// Logic is the function that will be executed by the PLC task.
+// Logic is the function executed by the PLC task.
 func (p *RedundantProgram) Logic(now time.Time) {
-	p.Output++
-
-	// If fault injection is enabled, occasionally produce a wrong result.
-	if p.InjectFault {
-		p.faultyCount++
-		// On every 3rd execution of this task, add extra to the output
-		// to force a mismatch with the other core.
-		if p.faultyCount > 2 && p.faultyCount%3 == 0 {
-			p.Output += 10 // This will cause a mismatch.
-			fmt.Printf("      ⚡️ Fault injected! Maliciously changed output to: %d\n", p.Output)
-		}
+	p.count++
+	out := p.count
+	if p.InjectFault && p.count%3 == 0 {
+		out += 10 // Corrupt the published value to force a mismatch.
+		fmt.Printf("      ⚡️ Fault injected! Published output %d instead of %d\n", out, p.count)
 	}
-}
-
-// Logic overrides the embedded Logic method to introduce faults.
-func (p *FaultyRedundantProgram) Logic(now time.Time) {
-	// Call the original, non-faulty logic first.
-	p.RedundantProgram.Logic(now)
-
-	// Now, add the fault injection logic.
-	p.faultyCount++
-	// On every 3rd execution, add to the output to cause a mismatch.
-	if p.faultyCount%3 == 0 {
-		p.Output += 10 // This will cause a mismatch.
-		fmt.Printf("      ⚡️ Fault injected! Maliciously changed output to: %d\n", p.Output)
+	if p.InjectFault && p.count == 7 {
+		panic("simulated hardware exception")
 	}
+	p.Output.Store(out)
 }
 
 func main() {
-	// --- 1. Instantiate program instances ---
-	// One is the standard program, the other is our faulty version.
-	progInstance1 := &RedundantProgram{}
-	progInstance2 := &FaultyRedundantProgram{}
+	healthy := &RedundantProgram{}
+	faulty := &RedundantProgram{InjectFault: true}
+	var confirmedOutput iec.LINT // Only the voter's resource touches this.
 
-	// This variable will hold the final, verified result.
-	var confirmedOutput LINT
-	var mu sync.RWMutex // Mutex to protect confirmedOutput
+	cpuCore1 := &core.Resource{Name: "CPUCore1", Cycle: 100 * time.Millisecond, Affinity: 1}
+	cpuCore2 := &core.Resource{Name: "CPUCore2", Cycle: 100 * time.Millisecond, Affinity: 2}
 
-	// --- 2. Create two "CPU Cores" (Resources) ---
-	cpuCore1 := &Resource{Name: "CPUCore1", Cycle: 100 * time.Millisecond, Affinity: 1}
-	cpuCore2 := &Resource{Name: "CPUCore2", Cycle: 100 * time.Millisecond, Affinity: 2}
+	cpuCore1.WithTask(core.NewTask("RedundantTask1", core.CyclicTask, 1, 500*time.Millisecond).
+		WithProgram(&core.Program{Name: "Logic1", Logic: healthy.Logic}))
+	cpuCore2.WithTask(core.NewTask("RedundantTask2", core.CyclicTask, 1, 500*time.Millisecond).
+		WithProgram(&core.Program{Name: "Logic2", Logic: faulty.Logic}))
 
-	// --- 3. Create tasks and assign one program instance to each core ---
-	task1 := NewTask("RedundantTask1", CyclicTask, 1, 500*time.Millisecond)
-	task1.WithProgram(&Program{Name: "Logic1", Logic: progInstance1.Logic})
-	cpuCore1.WithTask(task1)
+	cpuCore1.WithTask(core.NewTask("VoterTask", core.CyclicTask, 10, 1*time.Second).
+		WithProgram(&core.Program{
+			Name: "ResultVoter",
+			Logic: func(now time.Time) {
+				out1, out2 := healthy.Output.Load(), faulty.Output.Load()
+				fmt.Printf("[%s] --- Voter: core 1 = %d, core 2 = %d\n", now.Format("15:04:05"), out1, out2)
+				if out1 == out2 {
+					confirmedOutput = out1
+					fmt.Printf("      ✅ Results match. Confirmed output is now: %d\n", confirmedOutput)
+				} else {
+					fmt.Printf("      ❌ Results DO NOT match. Confirmed output remains: %d\n", confirmedOutput)
+				}
+			},
+		}))
 
-	task2 := NewTask("RedundantTask2", CyclicTask, 1, 500*time.Millisecond)
-	task2.WithProgram(&Program{Name: "Logic2", Logic: progInstance2.Logic})
-	cpuCore2.WithTask(task2)
-
-	// --- 4. Create a "Voter" program to compare results ---
-	voterTask := NewTask("VoterTask", CyclicTask, 10, 1*time.Second)
-	voterTask.WithProgram(&Program{
-		Name: "ResultVoter",
-		Logic: func(now time.Time) {
-			mu.Lock()
-			defer mu.Unlock()
-
-			fmt.Printf("[%s] --- Voter Running ---\n", now.Format("15:04:05"))
-			fmt.Printf("      Core 1 Output: %d\n", progInstance1.Output)
-			fmt.Printf("      Core 2 Output: %d\n", progInstance2.Output)
-
-			// Only update the confirmed output if both instances agree.
-			if progInstance1.Output == progInstance2.Output {
-				confirmedOutput = progInstance1.Output
-				fmt.Printf("      ✅ Results match. Confirmed output is now: %d\n", confirmedOutput)
-			} else {
-				// If they don't match, the `confirmedOutput` is left unchanged.
-				fmt.Printf("      ❌ Results DO NOT match. Confirmed output remains: %d\n", confirmedOutput)
+	cfg := &core.Configuration{
+		Name: "FaultInjectionConfig",
+		// The fault handler receives recovered panics, overruns and watchdog trips
+		// from every resource that has no handler of its own.
+		OnFault: func(f core.Fault) {
+			if errors.Is(f, core.ErrProgramPanic) {
+				fmt.Printf("      🛑 %s program %q panicked: %v (other programs keep running)\n", f.Resource, f.Program, f.Value)
+				return
 			}
+			fmt.Println("      ⚠️ fault:", f)
 		},
-	})
-	cpuCore1.WithTask(voterTask)
+	}
+	cfg.WithResource(cpuCore1).WithResource(cpuCore2)
 
-	// --- 5. Start the PLC ---
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
 	fmt.Println("Starting redundant PLC simulation with fault injection...")
-	cpuCore1.Start()
-	cpuCore2.Start()
-
-	// Let the simulation run long enough to see faults.
-	time.Sleep(8 * time.Second)
-
-	// Stop the resources
-	cpuCore1.Stop()
-	cpuCore2.Stop()
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
+	}
 	fmt.Println("\nSimulation complete.")
 }

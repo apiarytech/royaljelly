@@ -14,13 +14,13 @@ package selection
 import (
 	"fmt"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // SEL selects one of two inputs based on a boolean selector.
 // If G is FALSE, it returns IN0. If G is TRUE, it returns IN1.
 // The types of IN0, IN1, and the output must be the same.
-func SEL[T any](G BOOL, IN0, IN1 T) T {
+func SEL[T any](G iec.BOOL, IN0, IN1 T) T {
 	if G {
 		return IN1
 	}
@@ -28,7 +28,7 @@ func SEL[T any](G BOOL, IN0, IN1 T) T {
 }
 
 // MAX returns the maximum value from a series of two or more inputs of an ordered type.
-func MAX[T ANY_MAGNITUDE](inputs ...T) (T, error) {
+func MAX[T iec.ANY_MAGNITUDE](inputs ...T) (T, error) {
 	if len(inputs) < 2 {
 		var zero T
 		return zero, fmt.Errorf("MAX: function requires 2 or more inputs")
@@ -44,7 +44,7 @@ func MAX[T ANY_MAGNITUDE](inputs ...T) (T, error) {
 }
 
 // MIN returns the minimum value from a series of two or more inputs of an ordered type.
-func MIN[T ANY_MAGNITUDE](inputs ...T) (T, error) {
+func MIN[T iec.ANY_MAGNITUDE](inputs ...T) (T, error) {
 	if len(inputs) < 2 {
 		var zero T
 		return zero, fmt.Errorf("MIN: function requires 2 or more inputs")
@@ -61,7 +61,7 @@ func MIN[T ANY_MAGNITUDE](inputs ...T) (T, error) {
 
 // LIMIT constrains a value to be within a specified minimum (MN) and maximum (MX) range.
 // The output is: MN if IN < MN; MX if IN > MX; otherwise IN. All inputs must be of the same ordered type.
-func LIMIT[T ANY_MAGNITUDE](MN, IN, MX T) T {
+func LIMIT[T iec.ANY_MAGNITUDE](MN, IN, MX T) T {
 	if IN < MN {
 		return MN
 	}
@@ -73,7 +73,7 @@ func LIMIT[T ANY_MAGNITUDE](MN, IN, MX T) T {
 
 // MUX selects one input from a list based on an integer selector K.
 // The function returns one of the `options` based on the index `K`.
-func MUX[K ANY_INT, T any](selector K, options ...T) (T, error) {
+func MUX[K iec.ANY_INT, T any](selector K, options ...T) (T, error) {
 	if len(options) == 0 {
 		var zero T
 		return zero, fmt.Errorf("MUX: function requires at least one option to select from")

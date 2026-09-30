@@ -92,5 +92,6 @@ var (
 	INITTOD     = TOD(time.Time{})
 	INITDT      = DT(time.Time{})
 	INITSTRING  = STRING("")
-	INITWSTRING = WSTRING(' ')
+	INITWSTRING = WSTRING("")
+	INITWCHAR   = WCHAR(0)
 )

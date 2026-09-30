@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
-	. "github.com/apiarytech/royaljelly/iec"
-	. "github.com/apiarytech/royaljelly/std/time"
+	"github.com/apiarytech/royaljelly/convert"
+	"github.com/apiarytech/royaljelly/iec"
+	plctime "github.com/apiarytech/royaljelly/std/time"
 )
 
 func TestBoolConversions(t *testing.T) {
@@ -67,33 +67,33 @@ func TestRealConversions(t *testing.T) {
 func TestStringConversions(t *testing.T) {
 	// Note: String to numeric is handled by AnyToLINT/AnyToLREAL, not direct conversion functions
 	// in the same way as other types.
-	val, err := AnyToLINT(STRING("123"))
+	val, err := convert.AnyToLINT(iec.STRING("123"))
 	if err != nil || val != 123 {
 		t.Error("AnyToLINT from STRING failed")
 	}
 
-	fVal, err := AnyToLREAL(STRING("-123.45"))
+	fVal, err := convert.AnyToLREAL(iec.STRING("-123.45"))
 	if err != nil || fVal != -123.45 {
 		t.Error("AnyToLREAL from STRING failed")
 	}
 }
 
 func TestTimeConversions(t *testing.T) {
-	d := DATE(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	dt := DT(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC))
-	tod := TOD(time.Date(0, 0, 0, 1, 2, 3, 0, time.UTC))
-	tm := TIME(10 * time.Second)
+	d := iec.DATE(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+	dt := iec.DT(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC))
+	tod := iec.TOD(time.Date(0, 0, 0, 1, 2, 3, 0, time.UTC))
+	tm := iec.TIME(10 * time.Second)
 
 	if DATE_TO_STRING(d) != "D#2024-01-01" {
 		t.Errorf("DATE_TO_STRING failed, got %s", DATE_TO_STRING(d))
 	}
 
-	if DT_TO_DATE(dt) != DATE(time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)) {
+	if DT_TO_DATE(dt) != iec.DATE(time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)) {
 		t.Error("DT_TO_DATE failed")
 	}
 
 	// TOD has date components from its creation, but they should be ignored in conversion to LINT
-	expectedTodMs := LINT((1*time.Hour + 2*time.Minute + 3*time.Second).Milliseconds())
+	expectedTodMs := iec.LINT((1*time.Hour + 2*time.Minute + 3*time.Second).Milliseconds())
 	if TOD_TO_LINT(tod) != expectedTodMs {
 		t.Errorf("TOD_TO_LINT failed, got %d, want %d", TOD_TO_LINT(tod), expectedTodMs)
 	}
@@ -104,14 +104,14 @@ func TestTimeConversions(t *testing.T) {
 }
 
 func TestBitFloatConversions(t *testing.T) {
-	var r REAL = -123.45
+	var r iec.REAL = -123.45
 	bits := REAL_TO_BITS(r)
 	r2 := BITS_TO_REAL(bits)
 	if r != r2 {
 		t.Errorf("REAL <-> BITS conversion failed. In: %f, Out: %f", r, r2)
 	}
 
-	var lr LREAL = 9876.54321
+	var lr iec.LREAL = 9876.54321
 	lbits := LREAL_TO_BITS(lr)
 	lr2 := BITS_TO_LREAL(lbits)
 	if lr != lr2 {
@@ -143,7 +143,7 @@ func TestBCDConversions(t *testing.T) {
 			t.Error("BYTE_BCD_TO_USINT with invalid nibble should have returned an error")
 		}
 
-		var convErr *ConversionError
+		var convErr *convert.ConversionError
 		if !errors.As(err, &convErr) {
 			t.Errorf("Expected a ConversionError, but got %T", err)
 		}
@@ -155,7 +155,7 @@ func TestBCDConversions(t *testing.T) {
 			t.Error("USINT_TO_BCD_BYTE with value > 99 should have returned an error")
 		}
 
-		var convErr *ConversionError
+		var convErr *convert.ConversionError
 		if !errors.As(err, &convErr) {
 			t.Errorf("Expected a ConversionError, but got %T", err)
 		} else if convErr.Reason != "value out of range" {
@@ -165,8 +165,8 @@ func TestBCDConversions(t *testing.T) {
 }
 
 func TestBytesToString(t *testing.T) {
-	input := []BYTE{0x48, 0x65, 0x6C, 0x6C, 0x6F} // "Hello"
-	expected := STRING("Hello")
+	input := []iec.BYTE{0x48, 0x65, 0x6C, 0x6C, 0x6F} // "Hello"
+	expected := iec.STRING("Hello")
 	result := BYTES_TO_STRING(input)
 	if result != expected {
 		t.Errorf("BYTES_TO_STRING() = %q; want %q", result, expected)
@@ -175,22 +175,22 @@ func TestBytesToString(t *testing.T) {
 
 func TestValueMethods(t *testing.T) {
 	t.Run("BOOL.Value()", func(t *testing.T) {
-		bTrue := BOOL(true)
+		bTrue := iec.BOOL(true)
 		if bTrue.Value() != true {
 			t.Errorf("BOOL(true).Value() = %v; want true", bTrue.Value())
 		}
-		bFalse := BOOL(false)
+		bFalse := iec.BOOL(false)
 		if bFalse.Value() != false {
 			t.Errorf("BOOL(false).Value() = %v; want false", bFalse.Value())
 		}
 	})
 
 	t.Run("BYTE.Value()", func(t *testing.T) {
-		b := BYTE(0xAB)
+		b := iec.BYTE(0xAB)
 		if b.Value() != 0xAB {
 			t.Errorf("BYTE(0xAB).Value() = 0x%X; want 0xAB", b.Value())
 		}
-		bZero := BYTE(0)
+		bZero := iec.BYTE(0)
 		if bZero.Value() != 0 {
 			t.Errorf("BYTE(0).Value() = 0x%X; want 0x0", bZero.Value())
 		}
@@ -204,33 +204,33 @@ func TestValueMethods(t *testing.T) {
 	})
 
 	t.Run("WORD.Value()", func(t *testing.T) {
-		w := WORD(0xABCD)
+		w := iec.WORD(0xABCD)
 		if w.Value() != 0xABCD {
 			t.Errorf("WORD(0xABCD).Value() = 0x%X; want 0xABCD", w.Value())
 		}
 	})
 
 	t.Run("DWORD.Value()", func(t *testing.T) {
-		d := DWORD(0x12345678)
+		d := iec.DWORD(0x12345678)
 		if d.Value() != 0x12345678 {
 			t.Errorf("DWORD(0x12345678).Value() = 0x%X; want 0x12345678", d.Value())
 		}
 	})
 
 	t.Run("LWORD.Value()", func(t *testing.T) {
-		l := LWORD(0x1234567890ABCDEF)
+		l := iec.LWORD(0x1234567890ABCDEF)
 		if l.Value() != 0x1234567890ABCDEF {
 			t.Errorf("LWORD(0x1234567890ABCDEF).Value() = 0x%X; want 0x1234567890ABCDEF", l.Value())
 		}
 	})
 
 	t.Run("REAL.Value()", func(t *testing.T) {
-		r := REAL(123.45)
+		r := iec.REAL(123.45)
 		// Using a pointer to REAL for the Value() method
 		if (&r).Value() != float32(123.45) {
 			t.Errorf("REAL(123.45).Value() = %f; want %f", (&r).Value(), float32(123.45))
 		}
-		rZero := REAL(0.0)
+		rZero := iec.REAL(0.0)
 		if (&rZero).Value() != float32(0.0) {
 			t.Errorf("REAL(0.0).Value() = %f; want %f", (&rZero).Value(), float32(0.0))
 		}
@@ -240,8 +240,8 @@ func TestValueMethods(t *testing.T) {
 func TestConvertMethods(t *testing.T) {
 	t.Run("DATE.CONVERT()", func(t *testing.T) {
 		// DATE is a point in time, CONVERT should return milliseconds since Unix epoch.
-		d := DATE(time.Unix(1000, 0).UTC()) // 1000 seconds since epoch
-		expected := LINT(1000 * 1000)       // 1000 seconds in milliseconds
+		d := iec.DATE(time.Unix(1000, 0).UTC()) // 1000 seconds since epoch
+		expected := iec.LINT(1000 * 1000)       // 1000 seconds in milliseconds
 
 		resultVal := d.CONVERT()
 
@@ -252,8 +252,8 @@ func TestConvertMethods(t *testing.T) {
 
 	t.Run("DT.CONVERT()", func(t *testing.T) {
 		// DT is a point in time, CONVERT should return milliseconds since Unix epoch.
-		dt := DT(time.Unix(2000, 500*1e6).UTC()) // 2000 seconds and 500 ms since epoch
-		expected := LINT(2000*1000 + 500)        // in milliseconds
+		dt := iec.DT(time.Unix(2000, 500*1e6).UTC()) // 2000 seconds and 500 ms since epoch
+		expected := iec.LINT(2000*1000 + 500)        // in milliseconds
 
 		resultVal := dt.CONVERT()
 
@@ -264,8 +264,8 @@ func TestConvertMethods(t *testing.T) {
 
 	t.Run("TOD.CONVERT()", func(t *testing.T) {
 		// TOD is time since midnight.
-		tod := TOD(time.Date(0, 0, 0, 1, 2, 3, 456*1e6, time.UTC))
-		expected := LINT((1*time.Hour + 2*time.Minute + 3*time.Second + 456*time.Millisecond).Milliseconds())
+		tod := iec.TOD(time.Date(0, 0, 0, 1, 2, 3, 456*1e6, time.UTC))
+		expected := iec.LINT((1*time.Hour + 2*time.Minute + 3*time.Second + 456*time.Millisecond).Milliseconds())
 
 		resultVal := tod.CONVERT()
 
@@ -279,37 +279,37 @@ func TestSubConversionErrors(t *testing.T) {
 	invalidInput := "not a number"
 
 	t.Run("SubByte Error", func(t *testing.T) {
-		_, err := SubByte(invalidInput)
+		_, err := convert.SubByte(invalidInput)
 		if err == nil {
 			t.Error("SubByte with invalid input should have returned an error")
 		}
 	})
 	t.Run("SubWord Error", func(t *testing.T) {
-		_, err := SubWord(invalidInput)
+		_, err := convert.SubWord(invalidInput)
 		if err == nil {
 			t.Error("SubWord with invalid input should have returned an error")
 		}
 	})
 	t.Run("SubDword Error", func(t *testing.T) {
-		_, err := SubDword(invalidInput)
+		_, err := convert.SubDword(invalidInput)
 		if err == nil {
 			t.Error("SubDword with invalid input should have returned an error")
 		}
 	})
 	t.Run("SubLword Error", func(t *testing.T) {
-		_, err := SubLword(invalidInput)
+		_, err := convert.SubLword(invalidInput)
 		if err == nil {
 			t.Error("SubLword with invalid input should have returned an error")
 		}
 	})
 	t.Run("SubDt Error", func(t *testing.T) {
-		_, err := SubDt(invalidInput)
+		_, err := convert.SubDt(invalidInput)
 		if err == nil {
 			t.Error("SubDt with invalid input should have returned an error")
 		}
 	})
 	t.Run("SubDate Error", func(t *testing.T) {
-		_, err := SubDate(invalidInput)
+		_, err := convert.SubDate(invalidInput)
 		if err == nil {
 			t.Error("SubDate with invalid input should have returned an error")
 		}
@@ -370,16 +370,16 @@ func TestAllConversions(t *testing.T) {
 		if BOOL_TO_LREAL(true) != 1.0 || BOOL_TO_LREAL(false) != 0.0 {
 			t.Error("BOOL_TO_LREAL failed")
 		}
-		if BOOL_TO_TIME(true) != TIME(1*time.Millisecond) {
+		if BOOL_TO_TIME(true) != iec.TIME(1*time.Millisecond) {
 			t.Error("BOOL_TO_TIME failed")
 		}
-		if BOOL_TO_DATE(true) != DATE(time.UnixMilli(1)) {
+		if BOOL_TO_DATE(true) != iec.DATE(time.UnixMilli(1)) {
 			t.Error("BOOL_TO_DATE failed")
 		}
-		if BOOL_TO_TOD(true) != TOD(time.Time{}.Add(1*time.Millisecond)) {
+		if BOOL_TO_TOD(true) != iec.TOD(time.Time{}.Add(1*time.Millisecond)) {
 			t.Error("BOOL_TO_TOD failed")
 		}
-		if BOOL_TO_DT(true) != DT(time.UnixMilli(1)) {
+		if BOOL_TO_DT(true) != iec.DT(time.UnixMilli(1)) {
 			t.Error("BOOL_TO_DT failed")
 		}
 	})
@@ -406,16 +406,16 @@ func TestAllConversions(t *testing.T) {
 		if BYTE_TO_LWORD(10) != 10 {
 			t.Error("BYTE_TO_LWORD failed")
 		}
-		if BYTE_TO_TIME(100) != TIME(100*time.Millisecond) {
+		if BYTE_TO_TIME(100) != iec.TIME(100*time.Millisecond) {
 			t.Error("BYTE_TO_TIME failed")
 		}
-		if BYTE_TO_DATE(100) != DATE(time.UnixMilli(100)) {
+		if BYTE_TO_DATE(100) != iec.DATE(time.UnixMilli(100)) {
 			t.Error("BYTE_TO_DATE failed")
 		}
-		if BYTE_TO_DT(100) != DT(time.UnixMilli(100)) {
+		if BYTE_TO_DT(100) != iec.DT(time.UnixMilli(100)) {
 			t.Error("BYTE_TO_DT failed")
 		}
-		if BYTE_TO_TOD(100) != TOD(time.Time{}.Add(100*time.Millisecond)) {
+		if BYTE_TO_TOD(100) != iec.TOD(time.Time{}.Add(100*time.Millisecond)) {
 			t.Error("BYTE_TO_TOD failed")
 		}
 	})
@@ -442,16 +442,16 @@ func TestAllConversions(t *testing.T) {
 		if WORD_TO_LWORD(10) != 10 {
 			t.Error("WORD_TO_LWORD failed")
 		}
-		if WORD_TO_TIME(5000) != TIME(5*time.Second) {
+		if WORD_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("WORD_TO_TIME failed")
 		}
-		if WORD_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if WORD_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("WORD_TO_DATE failed")
 		}
-		if WORD_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if WORD_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("WORD_TO_DT failed")
 		}
-		if WORD_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if WORD_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("WORD_TO_TOD failed")
 		}
 	})
@@ -478,16 +478,16 @@ func TestAllConversions(t *testing.T) {
 		if DWORD_TO_LWORD(10) != 10 {
 			t.Error("DWORD_TO_LWORD failed")
 		}
-		if DWORD_TO_TIME(5000) != TIME(5*time.Second) {
+		if DWORD_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("DWORD_TO_TIME failed")
 		}
-		if DWORD_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if DWORD_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("DWORD_TO_DATE failed")
 		}
-		if DWORD_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if DWORD_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("DWORD_TO_DT failed")
 		}
-		if DWORD_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if DWORD_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("DWORD_TO_TOD failed")
 		}
 	})
@@ -514,16 +514,16 @@ func TestAllConversions(t *testing.T) {
 		if LWORD_TO_DWORD(0x1FFFFFFFF) != 0xFFFFFFFF {
 			t.Error("LWORD_TO_DWORD failed")
 		}
-		if LWORD_TO_TIME(5000) != TIME(5*time.Second) {
+		if LWORD_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("LWORD_TO_TIME failed")
 		}
-		if LWORD_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if LWORD_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("LWORD_TO_DATE failed")
 		}
-		if LWORD_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if LWORD_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("LWORD_TO_DT failed")
 		}
-		if LWORD_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if LWORD_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("LWORD_TO_TOD failed")
 		}
 	})
@@ -553,16 +553,16 @@ func TestAllConversions(t *testing.T) {
 		if REAL_TO_LWORD(0) != 0 {
 			t.Error("REAL_TO_LWORD failed")
 		}
-		if REAL_TO_TIME(5000.5) != TIME(5*time.Second) {
+		if REAL_TO_TIME(5000.5) != iec.TIME(5*time.Second) {
 			t.Error("REAL_TO_TIME failed")
 		}
-		if REAL_TO_DATE(5000.5) != DATE(time.UnixMilli(5000)) {
+		if REAL_TO_DATE(5000.5) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("REAL_TO_DATE failed")
 		}
-		if REAL_TO_DT(5000.5) != DT(time.UnixMilli(5000)) {
+		if REAL_TO_DT(5000.5) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("REAL_TO_DT failed")
 		}
-		if REAL_TO_TOD(5000.5) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if REAL_TO_TOD(5000.5) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("REAL_TO_TOD failed")
 		}
 	})
@@ -589,16 +589,16 @@ func TestAllConversions(t *testing.T) {
 		if LREAL_TO_LWORD(0) != 0 {
 			t.Error("LREAL_TO_LWORD failed")
 		}
-		if LREAL_TO_TIME(5000.5) != TIME(5*time.Second) {
+		if LREAL_TO_TIME(5000.5) != iec.TIME(5*time.Second) {
 			t.Error("LREAL_TO_TIME failed")
 		}
-		if LREAL_TO_DATE(5000.5) != DATE(time.UnixMilli(5000)) {
+		if LREAL_TO_DATE(5000.5) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("LREAL_TO_DATE failed")
 		}
-		if LREAL_TO_DT(5000.5) != DT(time.UnixMilli(5000)) {
+		if LREAL_TO_DT(5000.5) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("LREAL_TO_DT failed")
 		}
-		if LREAL_TO_TOD(5000.5) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if LREAL_TO_TOD(5000.5) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("LREAL_TO_TOD failed")
 		}
 		if LREAL_TO_ULINT(100.5) != 100 {
@@ -643,16 +643,16 @@ func TestAllConversions(t *testing.T) {
 		if SINT_TO_LWORD(10) != 10 {
 			t.Error("SINT_TO_LWORD failed")
 		}
-		if SINT_TO_TIME(100) != TIME(100*time.Millisecond) {
+		if SINT_TO_TIME(100) != iec.TIME(100*time.Millisecond) {
 			t.Error("SINT_TO_TIME failed")
 		}
-		if SINT_TO_DATE(100) != DATE(time.UnixMilli(100)) {
+		if SINT_TO_DATE(100) != iec.DATE(time.UnixMilli(100)) {
 			t.Error("SINT_TO_DATE failed")
 		}
-		if SINT_TO_DT(100) != DT(time.UnixMilli(100)) {
+		if SINT_TO_DT(100) != iec.DT(time.UnixMilli(100)) {
 			t.Error("SINT_TO_DT failed")
 		}
-		if SINT_TO_TOD(100) != TOD(time.Time{}.Add(100*time.Millisecond)) {
+		if SINT_TO_TOD(100) != iec.TOD(time.Time{}.Add(100*time.Millisecond)) {
 			t.Error("SINT_TO_TOD failed")
 		}
 		if SINT_TO_UINT(-1) != 0 {
@@ -709,16 +709,16 @@ func TestAllConversions(t *testing.T) {
 		if INT_TO_LWORD(10) != 10 {
 			t.Error("INT_TO_LWORD failed")
 		}
-		if INT_TO_TIME(5000) != TIME(5*time.Second) {
+		if INT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("INT_TO_TIME failed")
 		}
-		if INT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if INT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("INT_TO_DATE failed")
 		}
-		if INT_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if INT_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("INT_TO_DT failed")
 		}
-		if INT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if INT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("INT_TO_TOD failed")
 		}
 		if INT_TO_DWORD(10) != 10 {
@@ -781,13 +781,13 @@ func TestAllConversions(t *testing.T) {
 		if LINT_TO_WORD(70000) != 65535 {
 			t.Error("LINT_TO_WORD failed")
 		}
-		if LINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if LINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("LINT_TO_TIME failed")
 		}
-		if LINT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if LINT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("LINT_TO_DATE failed")
 		}
-		if LINT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if LINT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("LINT_TO_TOD failed")
 		}
 		if LINT_TO_ULINT(100) != 100 {
@@ -826,16 +826,16 @@ func TestAllConversions(t *testing.T) {
 		if DINT_TO_DWORD(0) != 0 {
 			t.Error("DINT_TO_DWORD failed")
 		}
-		if DINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if DINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("DINT_TO_TIME failed")
 		}
-		if DINT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if DINT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("DINT_TO_DATE failed")
 		}
-		if DINT_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if DINT_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("DINT_TO_DT failed")
 		}
-		if DINT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if DINT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("DINT_TO_TOD failed")
 		}
 		if DINT_TO_ULINT(100) != 100 {
@@ -868,10 +868,10 @@ func TestAllConversions(t *testing.T) {
 		if UINT_TO_USINT(300) != 255 {
 			t.Errorf("UINT_TO_USINT(300) should be clamped to 255, got %d", UINT_TO_USINT(300))
 		}
-		if UINT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if UINT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("UINT_TO_DATE failed")
 		}
-		if UINT_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if UINT_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("UINT_TO_DT failed")
 		}
 		if UINT_TO_ULINT(100) != 100 {
@@ -916,7 +916,7 @@ func TestAllConversions(t *testing.T) {
 		if UINT_TO_REAL(100) != 100.0 {
 			t.Error("UINT_TO_REAL failed")
 		}
-		if UINT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if UINT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("UINT_TO_TOD failed")
 		}
 		if UINT_TO_UDINT(100) != 100 {
@@ -931,7 +931,7 @@ func TestAllConversions(t *testing.T) {
 		if UINT_TO_BYTE(300) != 255 {
 			t.Error("UINT_TO_BYTE failed")
 		}
-		if UINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if UINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("UINT_TO_TIME failed")
 		}
 		if UINT_TO_STRING(12345) != "12345" {
@@ -955,16 +955,16 @@ func TestAllConversions(t *testing.T) {
 		if USINT_TO_BYTE(10) != 10 {
 			t.Error("USINT_TO_BYTE failed")
 		}
-		if USINT_TO_TIME(100) != TIME(100*time.Millisecond) {
+		if USINT_TO_TIME(100) != iec.TIME(100*time.Millisecond) {
 			t.Error("USINT_TO_TIME failed")
 		}
-		if USINT_TO_DATE(100) != DATE(time.UnixMilli(100)) {
+		if USINT_TO_DATE(100) != iec.DATE(time.UnixMilli(100)) {
 			t.Error("USINT_TO_DATE failed")
 		}
-		if USINT_TO_DT(100) != DT(time.UnixMilli(100)) {
+		if USINT_TO_DT(100) != iec.DT(time.UnixMilli(100)) {
 			t.Error("USINT_TO_DT failed")
 		}
-		if USINT_TO_TOD(100) != TOD(time.Time{}.Add(100*time.Millisecond)) {
+		if USINT_TO_TOD(100) != iec.TOD(time.Time{}.Add(100*time.Millisecond)) {
 			t.Error("USINT_TO_TOD failed")
 		}
 		if USINT_TO_UDINT(100) != 100 {
@@ -1054,16 +1054,16 @@ func TestAllConversions(t *testing.T) {
 		if UDINT_TO_WORD(70000) != 65535 {
 			t.Error("UDINT_TO_WORD failed")
 		}
-		if UDINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if UDINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("UDINT_TO_TIME failed")
 		}
-		if UDINT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if UDINT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("UDINT_TO_DATE failed")
 		}
-		if UDINT_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if UDINT_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("UDINT_TO_DT failed")
 		}
-		if UDINT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if UDINT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("UDINT_TO_TOD failed")
 		}
 		if UDINT_TO_ULINT(100) != 100 {
@@ -1102,13 +1102,13 @@ func TestAllConversions(t *testing.T) {
 	})
 
 	t.Run("ULINT Conversions", func(t *testing.T) {
-		if ULINT_TO_DATE(5000) != DATE(time.UnixMilli(5000)) {
+		if ULINT_TO_DATE(5000) != iec.DATE(time.UnixMilli(5000)) {
 			t.Error("ULINT_TO_DATE failed")
 		}
-		if ULINT_TO_DT(5000) != DT(time.UnixMilli(5000)) {
+		if ULINT_TO_DT(5000) != iec.DT(time.UnixMilli(5000)) {
 			t.Error("ULINT_TO_DT failed")
 		}
-		if ULINT_TO_TOD(5000) != TOD(time.Time{}.Add(5000*time.Millisecond)) {
+		if ULINT_TO_TOD(5000) != iec.TOD(time.Time{}.Add(5000*time.Millisecond)) {
 			t.Error("ULINT_TO_TOD failed")
 		}
 		if ULINT_TO_SINT(100) != 100 {
@@ -1135,7 +1135,7 @@ func TestAllConversions(t *testing.T) {
 		if ULINT_TO_LREAL(100) != 100.0 {
 			t.Error("ULINT_TO_LREAL failed")
 		}
-		if ULINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if ULINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("ULINT_TO_TIME failed")
 		}
 		if ULINT_TO_SINT(100) != 100 {
@@ -1162,7 +1162,7 @@ func TestAllConversions(t *testing.T) {
 		if ULINT_TO_LREAL(100) != 100.0 {
 			t.Error("ULINT_TO_LREAL failed")
 		}
-		if ULINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if ULINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("ULINT_TO_TIME failed")
 		}
 		if ULINT_TO_SINT(100) != 100 {
@@ -1189,7 +1189,7 @@ func TestAllConversions(t *testing.T) {
 		if ULINT_TO_LREAL(100) != 100.0 {
 			t.Error("ULINT_TO_LREAL failed")
 		}
-		if ULINT_TO_TIME(5000) != TIME(5*time.Second) {
+		if ULINT_TO_TIME(5000) != iec.TIME(5*time.Second) {
 			t.Error("ULINT_TO_TIME failed")
 		}
 		if ULINT_TO_STRING(1234567890) != "1234567890" {
@@ -1213,7 +1213,7 @@ func TestAllConversions(t *testing.T) {
 	})
 
 	t.Run("TIME Conversions", func(t *testing.T) {
-		tm := TIME(5 * time.Second)
+		tm := iec.TIME(5 * time.Second)
 		if TIME_TO_LINT(tm) != 5000 {
 			t.Error("TIME_TO_LINT conversion failed")
 		}
@@ -1260,13 +1260,13 @@ func TestAllConversions(t *testing.T) {
 	})
 
 	t.Run("DATE Conversions", func(t *testing.T) {
-		d := DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
-		expectedMillis := LINT(time.Time(d).UnixMilli())
+		d := iec.DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		expectedMillis := iec.LINT(time.Time(d).UnixMilli())
 
 		if DATE_TO_LINT(d) != expectedMillis {
 			t.Error("DATE_TO_LINT conversion failed")
 		}
-		if DATE_TO_DT(d) != DT(time.Time(d)) {
+		if plctime.DATE_TO_DT(d) != iec.DT(time.Time(d)) {
 			t.Error("DATE_TO_DT conversion failed")
 		}
 		if DATE_TO_SINT(d) != 127 {
@@ -1284,38 +1284,38 @@ func TestAllConversions(t *testing.T) {
 		if DATE_TO_LWORD(d) != 18446744073709551615 {
 			t.Error("DATE_TO_LWORD failed")
 		}
-		if DATE_TO_TIME(d) != TIME(expectedMillis*1000000) {
+		if DATE_TO_TIME(d) != iec.TIME(expectedMillis*1000000) {
 			t.Error("DATE_TO_TIME failed")
 		}
-		if DATE_TO_REAL(d) != REAL(expectedMillis) {
+		if DATE_TO_REAL(d) != iec.REAL(expectedMillis) {
 			t.Error("DATE_TO_REAL failed")
 		}
-		if DATE_TO_DINT(d) != MAXDINT {
+		if DATE_TO_DINT(d) != iec.MAXDINT {
 			t.Error("DATE_TO_DINT failed")
 		}
-		if DATE_TO_UDINT(d) != MAXUDINT {
+		if DATE_TO_UDINT(d) != iec.MAXUDINT {
 			t.Error("DATE_TO_UDINT failed")
 		}
-		if DATE_TO_UINT(d) != MAXUINT {
+		if DATE_TO_UINT(d) != iec.MAXUINT {
 			t.Error("DATE_TO_UINT failed")
 		}
-		if DATE_TO_LREAL(d) != LREAL(expectedMillis) {
+		if DATE_TO_LREAL(d) != iec.LREAL(expectedMillis) {
 			t.Error("DATE_TO_LREAL failed")
 		}
-		if DATE_TO_USINT(d) != MAXUSINT {
+		if DATE_TO_USINT(d) != iec.MAXUSINT {
 			t.Error("DATE_TO_USINT failed")
 		}
-		if DATE_TO_INT(d) != MAXINT {
+		if DATE_TO_INT(d) != iec.MAXINT {
 			t.Error("DATE_TO_INT failed")
 		}
-		if DATE_TO_ULINT(d) != ULINT(expectedMillis) {
+		if DATE_TO_ULINT(d) != iec.ULINT(expectedMillis) {
 			t.Error("DATE_TO_ULINT failed")
 		}
 	})
 
 	t.Run("TOD Conversions", func(t *testing.T) {
-		tod := TOD(time.Date(0, 0, 0, 10, 20, 30, 0, time.UTC))
-		expectedMillis := LINT((10*time.Hour + 20*time.Minute + 30*time.Second).Milliseconds())
+		tod := iec.TOD(time.Date(0, 0, 0, 10, 20, 30, 0, time.UTC))
+		expectedMillis := iec.LINT((10*time.Hour + 20*time.Minute + 30*time.Second).Milliseconds())
 
 		if TOD_TO_LINT(tod) != expectedMillis {
 			t.Errorf("TOD_TO_LINT conversion failed, got %d, want %d", TOD_TO_LINT(tod), expectedMillis)
@@ -1338,41 +1338,41 @@ func TestAllConversions(t *testing.T) {
 		if TOD_TO_LWORD(tod) != 37230000 {
 			t.Error("TOD_TO_LWORD failed")
 		}
-		if TOD_TO_REAL(tod) != REAL(expectedMillis) {
+		if TOD_TO_REAL(tod) != iec.REAL(expectedMillis) {
 			t.Error("TOD_TO_REAL failed")
 		}
-		if TOD_TO_UDINT(tod) != UDINT(expectedMillis) {
+		if TOD_TO_UDINT(tod) != iec.UDINT(expectedMillis) {
 			t.Error("TOD_TO_UDINT failed")
 		}
-		if TOD_TO_UINT(tod) != UINT(expectedMillis) {
+		if TOD_TO_UINT(tod) != iec.UINT(expectedMillis) {
 			t.Error("TOD_TO_UINT failed")
 		}
-		if TOD_TO_LREAL(tod) != LREAL(expectedMillis) {
+		if TOD_TO_LREAL(tod) != iec.LREAL(expectedMillis) {
 			t.Error("TOD_TO_LREAL failed")
 		}
-		if TOD_TO_INT(tod) != INT(expectedMillis) {
+		if TOD_TO_INT(tod) != iec.INT(expectedMillis) {
 			t.Error("TOD_TO_INT failed")
 		}
-		if TOD_TO_ULINT(tod) != ULINT(expectedMillis) {
+		if TOD_TO_ULINT(tod) != iec.ULINT(expectedMillis) {
 			t.Error("TOD_TO_ULINT failed")
 		}
-		if TOD_TO_DINT(tod) != DINT(expectedMillis) {
+		if TOD_TO_DINT(tod) != iec.DINT(expectedMillis) {
 			t.Error("TOD_TO_DINT failed")
 		}
-		if TOD_TO_USINT(tod) != USINT(expectedMillis) {
+		if TOD_TO_USINT(tod) != iec.USINT(expectedMillis) {
 			t.Error("TOD_TO_USINT failed")
 		}
 	})
 
 	t.Run("DT Conversions", func(t *testing.T) {
-		dt := DT(time.Date(2025, 1, 1, 10, 20, 30, 0, time.UTC))
-		expectedMillis := LINT(time.Time(dt).UnixMilli())
-		expectedDate := DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		dt := iec.DT(time.Date(2025, 1, 1, 10, 20, 30, 0, time.UTC))
+		expectedMillis := iec.LINT(time.Time(dt).UnixMilli())
+		expectedDate := iec.DATE(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
 
 		if DT_TO_DATE(dt) != expectedDate {
 			t.Error("DT_TO_DATE conversion failed")
 		}
-		if DT_TO_TOD(dt) != TOD(time.Time(dt)) {
+		if DT_TO_TOD(dt) != iec.TOD(time.Time(dt)) {
 			t.Error("DT_TO_TOD conversion failed")
 		}
 		if DT_TO_SINT(dt) != 127 {
@@ -1390,31 +1390,31 @@ func TestAllConversions(t *testing.T) {
 		if DT_TO_LWORD(dt) != 18446744073709551615 {
 			t.Error("DT_TO_LWORD failed")
 		}
-		if DT_TO_REAL(dt) != REAL(expectedMillis) {
+		if DT_TO_REAL(dt) != iec.REAL(expectedMillis) {
 			t.Error("DT_TO_REAL failed")
 		}
-		if DT_TO_LINT(dt) != LINT(expectedMillis) {
+		if DT_TO_LINT(dt) != iec.LINT(expectedMillis) {
 			t.Error("DT_TO_LINT failed")
 		}
-		if DT_TO_DINT(dt) != MAXDINT {
+		if DT_TO_DINT(dt) != iec.MAXDINT {
 			t.Error("DT_TO_DINT failed")
 		}
-		if DT_TO_UDINT(dt) != MAXUDINT {
+		if DT_TO_UDINT(dt) != iec.MAXUDINT {
 			t.Error("DT_TO_UDINT failed")
 		}
-		if DT_TO_UINT(dt) != MAXUINT {
+		if DT_TO_UINT(dt) != iec.MAXUINT {
 			t.Error("DT_TO_UINT failed")
 		}
-		if DT_TO_LREAL(dt) != LREAL(expectedMillis) {
+		if DT_TO_LREAL(dt) != iec.LREAL(expectedMillis) {
 			t.Error("DT_TO_LREAL failed")
 		}
-		if DT_TO_INT(dt) != MAXINT {
+		if DT_TO_INT(dt) != iec.MAXINT {
 			t.Error("DT_TO_INT failed")
 		}
-		if DT_TO_ULINT(dt) != ULINT(expectedMillis) {
+		if DT_TO_ULINT(dt) != iec.ULINT(expectedMillis) {
 			t.Error("DT_TO_ULINT failed")
 		}
-		if DT_TO_USINT(DT(time.UnixMilli(100))) != 100 {
+		if DT_TO_USINT(iec.DT(time.UnixMilli(100))) != 100 {
 			t.Error("DT_TO_USINT failed")
 		}
 		if DT_TO_STRING(dt) != "DT#2025-01-01-10:20:30" {

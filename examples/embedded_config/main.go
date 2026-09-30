@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -68,15 +69,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Configuration '%s' loaded successfully with %d resource(s).\n", cfg.Name, len(cfg.Resources))
+	fmt.Printf("Configuration %q loaded with %d resource(s).\n", cfg.Name, len(cfg.Resources()))
 
-	for _, res := range cfg.Resources {
-		res.Start()
-	}
+	// Run validates and starts every resource, then stops them all when the
+	// context ends. Faults such as program panics are reported on standard error.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	fmt.Println("\nSimulation running for 5 seconds...")
-	time.Sleep(5 * time.Second)
-	for _, res := range cfg.Resources {
-		res.Stop()
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
 	}
 	fmt.Println("\nSimulation complete.")
 }

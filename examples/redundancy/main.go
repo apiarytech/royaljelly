@@ -11,89 +11,87 @@
  * See the LICENSE files in the project root for full license text.
  */
 
+// This example runs the same logic on two resources pinned to different CPU
+// cores and uses a voter to accept a result only when both copies agree.
+//
+// The two resources run concurrently, so their results are exchanged through
+// vars.Shared values instead of plain fields; reading another resource's plain
+// variables would be a data race.
+//
+// CPU affinity is supported on Linux and Windows. On other platforms, set
+// Affinity to 0 on both resources.
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/vars"
 )
 
-// RedundantProgram holds the logic and its output.
-// Each instance will have its own state.
+// RedundantProgram holds one copy of the logic. Its internal state is private to
+// the resource that runs it; only Output is shared.
 type RedundantProgram struct {
-	Output LINT
+	count  iec.LINT
+	Output vars.Shared[iec.LINT]
 }
 
-// Logic is the function that will be executed by the PLC task.
+// Logic is executed by the PLC task on its own resource.
 func (p *RedundantProgram) Logic(now time.Time) {
-	p.Output++
+	p.count++
+	p.Output.Store(p.count)
 }
 
 func main() {
-	// --- 1. Instantiate two separate instances of the same program logic ---
-	// Each instance has its own memory (`Output` field).
+	// --- 1. Two independent instances of the same program logic ---
 	progInstance1 := &RedundantProgram{}
 	progInstance2 := &RedundantProgram{}
 
-	// This variable will hold the final, verified result.
-	var confirmedOutput LINT
+	// The verified result, readable from any goroutine.
+	var confirmedOutput vars.Shared[iec.LINT]
 
-	// --- 2. Create two "CPU Cores" (Resources) ---
-	// Assign each resource to a specific OS-level CPU core.
-	cpuCore1 := &Resource{Name: "CPUCore1", Cycle: 100 * time.Millisecond, Affinity: 1}
-	cpuCore2 := &Resource{Name: "CPUCore2", Cycle: 100 * time.Millisecond, Affinity: 2}
+	// --- 2. Two "CPU cores" (resources), each pinned to its own OS core ---
+	cpuCore1 := &core.Resource{Name: "CPUCore1", Cycle: 100 * time.Millisecond, Affinity: 1}
+	cpuCore2 := &core.Resource{Name: "CPUCore2", Cycle: 100 * time.Millisecond, Affinity: 2}
 
-	// --- 3. Create tasks and assign one program instance to each core ---
-	task1 := NewTask("RedundantTask1", CyclicTask, 1, 500*time.Millisecond)
-	task1.WithProgram(&Program{Name: "Logic1", Logic: progInstance1.Logic})
-	cpuCore1.WithTask(task1)
+	// --- 3. One program instance per core ---
+	cpuCore1.WithTask(core.NewTask("RedundantTask1", core.CyclicTask, 1, 500*time.Millisecond).
+		WithProgram(&core.Program{Name: "Logic1", Logic: progInstance1.Logic}))
+	cpuCore2.WithTask(core.NewTask("RedundantTask2", core.CyclicTask, 1, 500*time.Millisecond).
+		WithProgram(&core.Program{Name: "Logic2", Logic: progInstance2.Logic}))
 
-	task2 := NewTask("RedundantTask2", CyclicTask, 1, 500*time.Millisecond)
-	task2.WithProgram(&Program{Name: "Logic2", Logic: progInstance2.Logic})
-	cpuCore2.WithTask(task2)
+	// --- 4. A voter that compares the two results ---
+	// It runs at a lower frequency on core 1 so both copies have produced output.
+	cpuCore1.WithTask(core.NewTask("VoterTask", core.CyclicTask, 10, 1*time.Second).
+		WithProgram(&core.Program{
+			Name: "ResultVoter",
+			Logic: func(now time.Time) {
+				out1, out2 := progInstance1.Output.Load(), progInstance2.Output.Load()
+				fmt.Printf("[%s] --- Voter Running ---\n", now.Format("15:04:05"))
+				fmt.Printf("      Core 1 Output: %d\n", out1)
+				fmt.Printf("      Core 2 Output: %d\n", out2)
+				if out1 == out2 {
+					confirmedOutput.Store(out1)
+					fmt.Printf("      ✅ Results match. Confirmed output is now: %d\n", out1)
+				} else {
+					// The copies can differ by one for a moment because the cores are not
+					// synchronized; a real voter would compare values from the same cycle.
+					fmt.Printf("      ❌ Results DO NOT match. Confirmed output remains: %d\n", confirmedOutput.Load())
+				}
+			},
+		}))
 
-	// --- 4. Create a "Voter" program to compare results ---
-	// This program runs on one of the cores (or could be on a third, slower one).
-	// It runs at a slightly lower frequency to ensure the redundant tasks have run.
-	voterTask := NewTask("VoterTask", CyclicTask, 10, 1*time.Second)
-	voterTask.WithProgram(&Program{
-		Name: "ResultVoter",
-		Logic: func(now time.Time) {
-			fmt.Printf("[%s] --- Voter Running ---\n", now.Format("15:04:05"))
-			fmt.Printf("      Core 1 Output: %d\n", progInstance1.Output)
-			fmt.Printf("      Core 2 Output: %d\n", progInstance2.Output)
+	// --- 5. Run the configuration for five seconds ---
+	cfg := (&core.Configuration{Name: "RedundantConfig"}).WithResource(cpuCore1).WithResource(cpuCore2)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-			// The core of the verification logic:
-			// Only update the confirmed output if both instances agree.
-			if progInstance1.Output == progInstance2.Output {
-				confirmedOutput = progInstance1.Output
-				fmt.Printf("      ✅ Results match. Confirmed output is now: %d\n", confirmedOutput)
-			} else {
-				// If they don't match, the `confirmedOutput` is left unchanged.
-				// You could also add error handling, logging, or fault logic here.
-				fmt.Printf("      ❌ Results DO NOT match. Confirmed output remains: %d\n", confirmedOutput)
-			}
-		},
-	})
-	cpuCore1.WithTask(voterTask) // Add the voter to one of the cores.
-
-	// --- 5. Add resources to the main configuration ---
-	config := &Configuration{Name: "RedundantConfig"}
-	config.WithResource(cpuCore1).WithResource(cpuCore2)
-
-	// --- 6. Start the PLC ---
 	fmt.Println("Starting redundant PLC simulation...")
-	cpuCore1.Start()
-	cpuCore2.Start()
-
-	// Let the simulation run for a few seconds.
-	time.Sleep(5 * time.Second)
-
-	// Stop the resources
-	cpuCore1.Stop()
-	cpuCore2.Stop()
-	fmt.Println("\nSimulation complete.")
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
+	}
+	fmt.Printf("\nSimulation complete. Final confirmed output: %d\n", confirmedOutput.Load())
 }

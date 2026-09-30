@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/iec"
-	. "github.com/apiarytech/royaljelly/std/conversion"
+	"github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/std/conversion"
 )
 
 func TestDERIVATIVE(t *testing.T) {
 	fb := DERIVATIVE{}
 	fb.INIT()
-	fb.CYCLE = TIME(1 * time.Second)
+	fb.CYCLE = iec.TIME(1 * time.Second)
 	fb.RUN = true
 
 	// Initial state
@@ -41,7 +41,7 @@ func TestDERIVATIVE(t *testing.T) {
 	// XOUT = (3.0*(XIN-X3) + X1 - X2) / (10.0 * CYCLE_s)
 	// XOUT = (3.0*(40.0-10.0) + 30.0 - 20.0) / (10.0 * 1.0)
 	// XOUT = (3.0*30.0 + 10.0) / 10.0 = (90.0 + 10.0) / 10.0 = 100.0 / 10.0 = 10.0
-	expected := REAL(10.0)
+	expected := iec.REAL(10.0)
 	if fb.XOUT != expected {
 		t.Errorf("DERIVATIVE XOUT = %f; want %f", fb.XOUT, expected)
 	}
@@ -64,7 +64,7 @@ func TestDERIVATIVE(t *testing.T) {
 func TestINTEGRAL(t *testing.T) {
 	fb := INTEGRAL{}
 	fb.INIT()
-	fb.CYCLE = TIME(1 * time.Second)
+	fb.CYCLE = iec.TIME(1 * time.Second)
 	fb.RUN = true
 
 	// Step 1
@@ -142,7 +142,7 @@ func TestHYSTERESIS(t *testing.T) {
 }
 
 // Helper function to check if a value is within a certain tolerance.
-func withinTolerance(a, b, tolerance REAL) bool {
+func withinTolerance(a, b, tolerance iec.REAL) bool {
 	if a > b {
 		return (a - b) <= tolerance
 	}
@@ -151,18 +151,18 @@ func withinTolerance(a, b, tolerance REAL) bool {
 
 // simpleProcess simulates a first-order process for PID testing.
 type simpleProcess struct {
-	pv           REAL
-	gain         REAL
-	timeConstant REAL
+	pv           iec.REAL
+	gain         iec.REAL
+	timeConstant iec.REAL
 }
 
 // update simulates the process response to the controller output over one cycle.
-func (p *simpleProcess) update(controllerOutput REAL, cycleTime TIME) {
+func (p *simpleProcess) update(controllerOutput iec.REAL, cycleTime iec.TIME) {
 	// Simplified first-order process model: T * dy/dt + y = K * u
 	// Discrete approximation: y(n) = y(n-1) + (K * u(n-1) - y(n-1)) * (CYCLE / T)
 	if p.timeConstant > 0 {
-		cycleSec := TIME_TO_LREAL(cycleTime) / 1000.0
-		p.pv += (p.gain*controllerOutput - p.pv) * REAL(cycleSec) / p.timeConstant
+		cycleSec := conversion.TIME_TO_LREAL(cycleTime) / 1000.0
+		p.pv += (p.gain*controllerOutput - p.pv) * iec.REAL(cycleSec) / p.timeConstant
 	}
 }
 
@@ -174,10 +174,10 @@ func TestPID(t *testing.T) {
 		pid.SP = 100
 		pid.PV = 90
 		pid.KP = 2.0
-		pid.TR = 10.0                     // Integral time in seconds
-		pid.TD = 1.0                      // Derivative time in seconds
-		pid.DIRECT_ACTION = true          // Direct action (heating): error = SP - PV
-		pid.CYCLE = TIME(1 * time.Second) // 1000
+		pid.TR = 10.0                         // Integral time in seconds
+		pid.TD = 1.0                          // Derivative time in seconds
+		pid.DIRECT_ACTION = true              // Direct action (heating): error = SP - PV
+		pid.CYCLE = iec.TIME(1 * time.Second) // 1000
 
 		if err := pid.PID(); err != nil {
 			t.Fatalf("PID execution failed: %v", err)
@@ -196,7 +196,7 @@ func TestPID(t *testing.T) {
 		// D Term = KP * TD * DTERM.XOUT = 2 * 1 * 3 = 6
 		// D Term = KP * TD * DTERM.XOUT = 2 * 1 * 3.0 = 6.0 (DTERM calculates 3.0 on first step)
 		// Expected XOUT = P + I + D = 20.0 + 2.0 + 6.0 = 28.0
-		expectedXOUT0 := REAL(28.0)
+		expectedXOUT0 := iec.REAL(28.0)
 		if !withinTolerance(pid.XOUT, expectedXOUT0, 1e-6) {
 			t.Errorf("PID output on first cycle is incorrect. Got %f, expected %f", pid.XOUT, expectedXOUT0)
 		}
@@ -212,7 +212,7 @@ func TestPID(t *testing.T) {
 		pid.TR = 15.0 // Integral time in seconds
 		pid.TD = 1.0  // Derivative time in seconds
 		pid.DIRECT_ACTION = true
-		pid.CYCLE = TIME(1 * time.Second)
+		pid.CYCLE = iec.TIME(1 * time.Second)
 
 		process := simpleProcess{pv: 0.0, gain: 1.0, timeConstant: 20.0}
 
@@ -241,7 +241,7 @@ func TestPID(t *testing.T) {
 		pid.TR = 10.0 // Integral time in seconds
 		pid.TD = 1.0  // Derivative time in seconds
 		pid.X0 = 25.0 // Manual output value
-		pid.CYCLE = TIME(1 * time.Second)
+		pid.CYCLE = iec.TIME(1 * time.Second)
 
 		if err := pid.PID(); err != nil {
 			t.Fatalf("PID execution in manual mode failed: %v", err)
@@ -267,7 +267,7 @@ func TestPID(t *testing.T) {
 		pid.KP = 2.0
 		pid.TR = 10.0 // Integral time in seconds
 		pid.TD = 1.0  // Derivative time in seconds
-		pid.CYCLE = TIME(1 * time.Second)
+		pid.CYCLE = iec.TIME(1 * time.Second)
 
 		// Run one cycle in auto to establish an output
 		if err := pid.PID(); err != nil {
@@ -297,7 +297,7 @@ func TestPID(t *testing.T) {
 		pid.TR = 10.0             // Integral time in seconds
 		pid.TD = 1.0              // Derivative time in seconds
 		pid.DIRECT_ACTION = false // Reverse action (cooling): error = PV - SP
-		pid.CYCLE = TIME(1 * time.Second)
+		pid.CYCLE = iec.TIME(1 * time.Second)
 
 		if err := pid.PID(); err != nil {
 			t.Fatalf("PID reverse action cycle failed: %v", err)

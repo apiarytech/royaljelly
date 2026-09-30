@@ -14,72 +14,72 @@ package calculus
 import (
 	"fmt"
 
-	. "github.com/apiarytech/royaljelly/fb/triggers"
-	. "github.com/apiarytech/royaljelly/iec"
-	. "github.com/apiarytech/royaljelly/std/conversion"
+	"github.com/apiarytech/royaljelly/fb/triggers"
+	"github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/std/conversion"
 )
 
 type DERIVATIVE struct {
 	//Input Variables
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 
-	RUN   BOOL
-	XIN   REAL
-	CYCLE TIME
+	RUN   iec.BOOL
+	XIN   iec.REAL
+	CYCLE iec.TIME
 	//Output Variables
-	XOUT REAL
+	XOUT iec.REAL
 	//Internal Variables
-	X1, X2, X3 REAL
+	X1, X2, X3 iec.REAL
 }
 
 type INTEGRAL struct {
 	//Input Variables
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 
-	RUN   BOOL
-	R1    BOOL
-	XIN   REAL
-	X0    REAL
-	CYCLE TIME
+	RUN   iec.BOOL
+	R1    iec.BOOL
+	XIN   iec.REAL
+	X0    iec.REAL
+	CYCLE iec.TIME
 	//Output Variables
-	XOUT REAL
-	Q    BOOL
-	re   R_TRIG // Added for edge detection on R1
+	XOUT iec.REAL
+	Q    iec.BOOL
+	re   triggers.R_TRIG // Added for edge detection on R1
 }
 
 type HYSTERESIS struct {
 	//Input Variables
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 
 	//Internal Variables
-	XIN1, XIN2, EPS REAL
-	Q               BOOL
+	XIN1, XIN2, EPS iec.REAL
+	Q               iec.BOOL
 }
 
 type PID struct {
 	//Input Variables
-	EN   BOOL //enable
-	ENO  BOOL //enable output
-	AUTO BOOL
+	EN   iec.BOOL //enable
+	ENO  iec.BOOL //enable output
+	AUTO iec.BOOL
 
 	//Setpoints
-	PV, SP, X0 REAL
+	PV, SP, X0 iec.REAL
 
 	//Parameters
-	KP, TR, TD    REAL
-	CYCLE         TIME
-	DIRECT_ACTION BOOL // true: SP-PV (heating), false: PV-SP (cooling)
+	KP, TR, TD    iec.REAL
+	CYCLE         iec.TIME
+	DIRECT_ACTION iec.BOOL // true: SP-PV (heating), false: PV-SP (cooling)
 
 	//Internal Variables
-	XOUT   REAL // Simplified to a single output
-	ERROR  REAL
+	XOUT   iec.REAL // Simplified to a single output
+	ERROR  iec.REAL
 	ITERM  INTEGRAL
 	DTERM  DERIVATIVE
-	autoRE R_TRIG // Rising edge trigger for AUTO
-	autoFE F_TRIG // Falling edge trigger for AUTO
+	autoRE triggers.R_TRIG // Rising edge trigger for AUTO
+	autoFE triggers.F_TRIG // Falling edge trigger for AUTO
 }
 
 // INIT initializes the INTEGRAL function block to its default state.
@@ -89,7 +89,7 @@ func (Int *INTEGRAL) INIT() {
 	Int.RUN = false
 	Int.R1 = false
 	Int.XIN = 0
-	Int.CYCLE = INITTIME
+	Int.CYCLE = iec.INITTIME
 	Int.XOUT = 0
 	Int.X0 = 0
 	Int.Q = false
@@ -102,7 +102,7 @@ func (Dev *DERIVATIVE) INIT() {
 	Dev.ENO = true
 	Dev.RUN = false
 	Dev.XIN = 0
-	Dev.CYCLE = INITTIME
+	Dev.CYCLE = iec.INITTIME
 	Dev.XOUT = 0
 	Dev.X1 = 0
 	Dev.X2 = 0
@@ -120,7 +120,7 @@ func (Pid *PID) INIT() {
 	Pid.KP = 0
 	Pid.TR = 0
 	Pid.TD = 0
-	Pid.CYCLE = INITTIME
+	Pid.CYCLE = iec.INITTIME
 	Pid.XOUT = 0 // Initialize the single output
 	Pid.ERROR = 0
 	Pid.ITERM.INIT()
@@ -140,7 +140,7 @@ func (Dt *DERIVATIVE) DERIVATIVE() error {
 	}
 
 	if Dt.RUN {
-		cycleInSeconds := TIME_TO_REAL(Dt.CYCLE) / 1000
+		cycleInSeconds := conversion.TIME_TO_REAL(Dt.CYCLE) / 1000
 		if cycleInSeconds == 0 {
 			return fmt.Errorf("DERIVATIVE error: CYCLE time cannot be zero")
 		}
@@ -178,7 +178,7 @@ func (Intg *INTEGRAL) INTEGRAL() error {
 		// This is key for bumpless transfer.
 		Intg.XOUT = Intg.X0 // Set the integral output directly to the manual value.
 	} else if Intg.RUN {
-		cycleInSeconds := TIME_TO_REAL(Intg.CYCLE) / 1000
+		cycleInSeconds := conversion.TIME_TO_REAL(Intg.CYCLE) / 1000
 		if cycleInSeconds <= 0 {
 			return fmt.Errorf("INTEGRAL error: CYCLE time must be positive")
 		}
