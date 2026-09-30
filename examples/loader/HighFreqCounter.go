@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // HighFreqCounter encapsulates the state and logic for the high-frequency program.
 type HighFreqCounter struct {
-	count LINT
+	count iec.LINT
 }
 
 // Logic is the method that will be executed by the scheduler.

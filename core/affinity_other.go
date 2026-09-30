@@ -1,4 +1,4 @@
-//go:build !linux && !windows
+//go:build tinygo || (!linux && !windows)
 
 /*
  * Copyright (C) 2026 Franklin D. Amador
@@ -13,8 +13,7 @@
 
 package core
 
-// setAffinity is a no-op on unsupported operating systems.
+// setAffinity reports that CPU affinity is unavailable on this platform.
 func setAffinity(coreID int) error {
-	// CPU affinity is not implemented for this OS.
-	return nil
+	return ErrAffinityUnsupported
 }

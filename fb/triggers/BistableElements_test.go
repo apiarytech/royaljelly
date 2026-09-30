@@ -3,16 +3,16 @@ package triggers
 import (
 	"testing"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestSR_FB(t *testing.T) {
 	testCases := []struct {
 		name       string
-		s1         BOOL
-		r          BOOL
-		initialQ1  BOOL
-		expectedQ1 BOOL
+		s1         iec.BOOL
+		r          iec.BOOL
+		initialQ1  iec.BOOL
+		expectedQ1 iec.BOOL
 	}{
 		{"Set", true, false, false, true},
 		{"Hold after Set", false, false, true, true},
@@ -60,10 +60,10 @@ func TestSR_FB(t *testing.T) {
 func TestRS_FB(t *testing.T) {
 	testCases := []struct {
 		name       string
-		s          BOOL
-		r1         BOOL
-		initialQ1  BOOL
-		expectedQ1 BOOL
+		s          iec.BOOL
+		r1         iec.BOOL
+		initialQ1  iec.BOOL
+		expectedQ1 iec.BOOL
 	}{
 		{"Set", true, false, false, true},
 		{"Hold after Set", false, false, true, true},

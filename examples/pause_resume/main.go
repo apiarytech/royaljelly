@@ -43,7 +43,9 @@ func main() {
 
 	// Start the resource.
 	fmt.Printf("Starting resource '%s'...\n", mainCPU.Name)
-	mainCPU.Start()
+	if err := mainCPU.Start(); err != nil {
+		panic(err)
+	}
 
 	fmt.Println("\n[1] Running normally for ~1 second...")
 	time.Sleep(1 * time.Second)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/core"
 )
 
 // This example simulates a 4-way traffic light controller using a state machine.
@@ -22,10 +22,10 @@ func main() {
 	trafficLogic.Init()
 
 	// --- Configure and Assemble the PLC using a fluent API ---
-	resource := (&Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}).
+	resource := (&core.Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}).
 		WithTask(
-			NewTask("TrafficLightTask", CyclicTask, 1, 1*time.Second).
-				WithProgram(&Program{
+			core.NewTask("TrafficLightTask", core.CyclicTask, 1, 1*time.Second).
+				WithProgram(&core.Program{
 					Name:  "TrafficLightLogic",
 					Logic: trafficLogic.Logic,
 				}),
@@ -33,7 +33,9 @@ func main() {
 
 	// --- Start the PLC ---
 	fmt.Println("--- Traffic Light Simulation ---")
-	resource.Start()
+	if err := resource.Start(); err != nil {
+		panic(err)
+	}
 
 	// Keep the simulation running for a while.
 	time.Sleep(40 * time.Second)

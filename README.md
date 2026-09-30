@@ -1,307 +1,252 @@
 # royaljelly
 
-A Go library for writing PLC (Programmable Logic Controller) programs using Go syntax, designed with adherence to the IEC 61131-3 standard.
+A Go library for writing PLC (Programmable Logic Controller) programs in Go, following the IEC 61131-3 standard.
 
-`royaljelly` provides data types, function blocks (FBs), and functions commonly found in IEC 61131-3 compliant PLC programming environments, enabling Go developers to implement control logic familiar to industrial automation engineers.
+`royaljelly` provides the IEC 61131-3 software model (configurations, resources, tasks and programs), the standard data types, function blocks and functions. Industrial automation engineers get familiar building blocks, and Go developers get ordinary, testable Go code.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Installation](#installation)
+- [Packages](#packages)
 - [Usage](#usage)
-  - [Data Types](#data-types)
-  - [Function Blocks](#function-blocks)
-  - [Standard Functions](#standard-functions)
-- [TinyGo Support](#tinygo-support)
+  - [Quick start: build a configuration in code](#quick-start-build-a-configuration-in-code)
+  - [Load the structure from a config file](#load-the-structure-from-a-config-file)
+  - [Share data between resources](#share-data-between-resources)
+  - [Faults, watchdog and metrics](#faults-watchdog-and-metrics)
+  - [Data types](#data-types)
+  - [Function blocks](#function-blocks)
+  - [Standard functions](#standard-functions)
+- [Timing model](#timing-model)
+- [TinyGo support](#tinygo-support)
+- [Upgrading from v0.0.5-beta1](#upgrading-from-v005-beta1)
+- [Development](#development)
 - [Licensing](#licensing)
 - [Contributing](#contributing)
 
 ## Features
 
-`royaljelly` aims to translate the core concepts of IEC 61131-3 into idiomatic Go, offering:
-- **IEC 61131-3 Software Model**: A hierarchical structure (`Configuration` -> `Resource` -> `Task` -> `Program`) for organizing and scheduling control logic, managed by a priority-based, TinyGo-compatible scheduler.
-- **IEC 61131-3 Data Types**: Go types representing standard IEC types like `BOOL`, `INT`, `REAL`, `TIME`, `DATE`, `TOD`, `DT`, etc.
-   - **Multi-Core & CPU Affinity (Standard Go)**: For standard Go builds on Linux and Windows, the scheduler can pin `Resource` execution to specific CPU cores using the `Affinity` property. This enables advanced, real-time patterns like redundant execution, as shown in the examples.
-   - **TinyGo Compatibility**: The core scheduler is fully compatible with TinyGo, running efficiently in a single-threaded, cooperative multitasking environment suitable for microcontrollers. Optional packages, like the `config` loader, are also designed to be TinyGo-compatible by using a custom text parser, avoiding complicated resource->task code.
-- **Standard Function Blocks**: Implementations of common FBs as Go structs with `INIT` and `Execute` methods, including:
-    - **Timers**: `TP` (Pulse Timer), `TON` (On-Delay Timer), `TOF` (Off-Delay Timer) (IEC 61131-3, Table 35)
-    - **Counters**: `CTU` (Count Up), `CTD` (Count Down), `CTUD` (Count Up/Down) (IEC 61131-3, Table 36)
-    - **Edge Detection**: `R_TRIG` (Rising Edge Trigger), `F_TRIG` (Falling Edge Trigger) (IEC 61131-3, Table 35)
-- **Standard Functions**: Implementations of common mathematical, comparison, string, and bitwise functions (IEC 61131-3, Tables 28-32).
-    - **Numerical**: `ABS`, `SQRT`, `LN`, `LOG`, `EXP`, `SIN`, `COS`, `TAN`, `ASIN`, `ACOS`, `ATAN`, `EXPT`, `TRUNC`.
-    - **Arithmetic**: `ADD`, `SUB`, `MUL`, `DIV`, `MOD`, `MOVE`, and specific time arithmetic functions like `ADD_TIME`, `SUB_TOD`, `MUL_TIME`, etc.
-    - **Selection**: `SEL`, `MAX`, `MIN`, `LIMIT`, `MUX`.
-    - **String Manipulation**: `LEN`, `LEFT`, `RIGHT`, `MID`, `CONCAT`, `INSERT`, `DELETE`, `FIND`, `REPLACE`.
-    - **Bitwise Operators**: `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR`, `ROL`, `ROR`.
-- **Type Conversion**: Functions to convert between IEC 61131-3 data types, handling explicit and implicit conversions.
+- **IEC 61131-3 software model.** A `Configuration` holds `Resource`s. Each resource runs a scheduler over prioritized `Task`s, and each task runs `Program`s.
+- **Predictable scheduling.** Cyclic tasks run on a fixed grid with no accumulated drift. Missed runs are counted as overruns, and a per-task watchdog reports long runs.
+- **Fault handling.** A panic in one program is recovered and reported, and the other programs keep running. Panics, overruns and watchdog trips reach a fault handler you provide.
+- **Safe live changes.** Tasks and programs can be added or removed while a resource runs. The scheduler does not allocate memory per scan.
+- **Multi-core and CPU affinity.** On Linux and Windows a resource can be pinned to a CPU core, which enables patterns such as redundant execution with a voter.
+- **Thread-safe data exchange.** `vars.Shared` and `vars.ProcessImage` share values between resources and with the outside world.
+- **IEC 61131-3 data types.** `BOOL`, `INT`, `REAL`, `TIME`, `DATE`, `TOD`, `DT`, `STRING`, `WSTRING` and the rest.
+- **Standard function blocks.** Timers (`TP`, `TON`, `TOF`), counters (`CTU`, `CTD`, `CTUD`), edge detection (`R_TRIG`, `F_TRIG`), bistables (`SR`, `RS`), and `INTEGRAL`, `DERIVATIVE`, `HYSTERESIS` and `PID`.
+- **Standard functions.** Numerical, arithmetic (including time arithmetic), selection, comparison, string, bitwise and type conversion functions.
+- **TinyGo compatible.** The scheduler and the config loader work on microcontrollers.
 
 ## Installation
-
-To use `royaljelly` in your Go project, simply run:
 
 ```bash
 go get github.com/apiarytech/royaljelly
 ```
 
+`royaljelly` requires Go 1.26 or later.
+
+## Packages
+
+| Package | Contents |
+| --- | --- |
+| `core` | Configuration, Resource, Task, Program, scheduler, faults |
+| `config` | Text configuration loader and program factory registry |
+| `vars` | `Shared[T]` values and the `%I`/`%Q`/`%M` process image |
+| `iec` | IEC 61131-3 data types and constants |
+| `convert` | Reflection-free conversions between IEC types |
+| `fb/timers`, `fb/counters`, `fb/triggers`, `fb/calculus` | Standard function blocks |
+| `std/...` | Standard functions: arithmetic, bitwise, comparison, conversion, math, numerical, selection, strings, time |
+
 ## Usage
 
-### Structuring a PLC Application
+Each snippet below has a runnable counterpart in [examples/readme/readme_test.go](examples/readme/readme_test.go), so API drift breaks the build. The [examples](examples) directory holds complete programs.
 
-`royaljelly` provides two primary ways to structure your application, allowing you to choose between minimum binary size and configuration flexibility.
+### Quick start: build a configuration in code
 
-#### 1. Programmatic Setup (Minimal Binary Size)
-*   **Configuration**: The top-level object representing the entire PLC system.
-*   **Resource**: Represents a processing unit (like a CPU) and runs a priority-based task scheduler.
-*   **Task**: Controls the execution properties of programs (e.g., cyclic interval or event-driven).
-*   **Program**: Contains your control logic, written as a Go closure
+Building the hierarchy in code needs no config package and gives the smallest binary. Keep each program's state in a struct, which plays the role of an IEC program's local variables.
 
-For the smallest possible footprint, especially in resource-constrained environments like microcontrollers running TinyGo, you can define the entire `Configuration` -> `Resource` -> `Task` -> `Program` hierarchy directly in your Go code. This method does not require the `config` package and results in a leaner final binary.
+```go
+type Blinker struct {
+	Lamp iec.BOOL
+	Runs int
+}
+blinker := &Blinker{}
 
-The best practice is to encapsulate your program's state and logic within a `struct`, which is analogous to a Function Block (FB) in IEC 61131-3. This creates reusable components with their own private data ("local tags").
+task := core.NewTask("BlinkTask", core.CyclicTask, 1, 20*time.Millisecond).
+	WithProgram(&core.Program{
+		Name: "Blink",
+		Logic: func(now time.Time) {
+			blinker.Lamp = !blinker.Lamp
+			blinker.Runs++
+		},
+	})
+resource := (&core.Resource{Name: "MainCPU", Cycle: 5 * time.Millisecond}).WithTask(task)
+cfg := (&core.Configuration{Name: "Demo"}).WithResource(resource)
 
-First, create a `config.txt` file to define the system structure:
+// Run validates the configuration, starts every resource, and stops them
+// all when the context ends.
+ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+defer cancel()
+if err := cfg.Run(ctx); err != nil {
+	fmt.Println("start failed:", err)
+	return
+}
+```
+
+You can also control each resource yourself. `Resource.Start` returns an error if validation fails or the CPU affinity cannot be applied. `Configuration.Start(ctx)` starts everything without blocking, and `Stop` shuts it down.
+
+Validation rejects these mistakes before anything runs:
+
+- A cyclic task with no interval, or with an interval not longer than the resource cycle.
+- Two tasks with the same name or priority on one resource.
+- Two programs with the same name in one task.
+- Two resources with the same name in one configuration.
+
+### Load the structure from a config file
+
+The `config` package builds the same hierarchy from a small text format. Register a factory for each program type, and the loader calls it for each instance.
+
 ```text
-# config.txt
 name: EncapsulationExample
-
 resource: MainCPU
   cycle: 50ms
   task: TaskA
-    type: Cyclic
+    type: Cyclic          # or EventDriven
     priority: 1
     interval: 250ms
+    watchdog: 100ms       # optional
     program: CounterA CounterProgram
       param: initial_value 100
-  task: TaskB
-    type: Cyclic
-    priority: 2
-    interval: 500ms
-    program: CounterB CounterProgram
-      param: initial_value 500
 ```
 
-Next, write your `main.go` to define the logic, create instances, and load the configuration:
 ```go
-package main
-
-import (
-	"fmt"
-	"time"
-	"github.com/apiarytech/royaljelly/config"
-	"github.com/apiarytech/royaljelly/core"
-)
-
-// CounterProgram encapsulates the state (local tags) and logic for a counter.
-type CounterProgram struct {
-	Output core.LINT // This is a "local tag" or instance variable.
-}
-
-// Logic is the method that will be executed by the scheduler.
-func (p *CounterProgram) Logic(now time.Time) {
-	p.Output++
-	fmt.Printf("[%s] Counter instance running. Current Output: %d\n", now.Format("15:04:05.000"), p.Output)
-}
-
-func main() {
-	// 1. Create two independent instances of our CounterProgram.
-	counterA := &CounterProgram{}
-	counterB := &CounterProgram{}
-
-	// 2. Register the 'Logic' method of each instance with the loader.
-	config.RegisterProgram("CounterA", counterA.Logic)
-	config.RegisterProgram("CounterB", counterB.Logic)
-
-	// 3. Load the entire structure from the file.
-	cfg, err := config.LoadConfigurationFromFile("config.txt")
-	if err != nil {
-		panic(err)
+config.RegisterProgramFactory("CounterProgram", func(params map[string]string) (func(time.Time), error) {
+	var count iec.LINT
+	if err := config.ParseLINT(params, "initial_value", &count); err != nil {
+		return nil, err
 	}
+	return func(now time.Time) { count++ }, nil
+})
 
-	// 4. Start all configured resources.
-	for _, res := range cfg.Resources {
-		res.Start()
-	}
-
-	// ... keep simulation running ...
-}
-```
-A complete, runnable version of this is available in the `examples/encapsulated_logic` directory.
-
-#### 2. Programmatic Setup (Minimal Binary Size)
-
-For the smallest possible footprint, especially on microcontrollers, you can define the entire hierarchy directly in your Go code. This method does not require the `config` package and results in a leaner final binary.
-
-```go
-package main
-
-import (
-	"time"
-	"github.com/apiarytech/royaljelly/core"
-)
-
-func main() {
-	// 1. Define the hierarchy
-	config := &core.Configuration{Name: "TrafficLightController"}
-	resource := &core.Resource{Name: "MainCPU", Cycle: 100 * time.Millisecond}
-	task := core.NewTask("TrafficLightTask", core.CyclicTask, 1, 1*time.Second)
-
-	// 2. Define the program logic as a closure
-	trafficProgram := &core.Program{
-		Name: "TrafficLightLogic",
-		Logic: func(now time.Time) {
-			// ... state machine logic for the traffic light ...
-		},
-	}
-
-	// 3. Assemble the structure
-	task.AddProgram(trafficProgram)
-	resource.AddTask(task)
-	config.WithResource(resource)
-
-	// 4. Start the resource
-	resource.Start()
-
-	// Keep the simulation running
-	time.Sleep(40 * time.Second)
-	resource.Stop()
+cfg, err := config.LoadConfigurationFromFile("config.txt")
+if err != nil {
+	panic(err) // Errors name the line, e.g. "config.txt: line 7: unknown task type 'Sometimes'".
 }
 ```
 
-A complete, runnable version of this is available in the `examples/4-way_traffic_light` directory.
+Indent each level with a tab or a fixed number of spaces, and stay consistent within a file. Text after a `#` that follows whitespace is a comment. `LoadConfigurationFromString` parses an embedded configuration. To keep separate sets of program types, create a `config.Loader` with its own `config.Registry`.
 
-### Data Types
+### Share data between resources
 
-`royaljelly` defines Go types that map directly to IEC 61131-3 data types.
+Programs on one resource run one after another, so they can share plain Go variables. Programs on different resources, and code outside the scheduler such as an HMI or I/O driver, run at the same time. They must exchange data through a synchronized container.
 
 ```go
-package main
+var setpoint vars.Shared[iec.REAL]
+setpoint.Store(21.5) // e.g. written by an HMI goroutine
 
-import (
-	"fmt"
-	"time"
-	. "github.com/apiarytech/royaljelly/core"
-)
+var pi vars.ProcessImage
+pi.Write(func(img *vars.Image) { img.I.B[0] = true }) // e.g. an input driver sets %IX0
 
-func main() {
-	var myBool BOOL = true
-	var myInt INT = 123
-	var myReal REAL = 45.67
-	var myTime TIME = TIME(10 * time.Second)
+var start iec.BOOL
+pi.Read(func(img *vars.Image) { start = img.I.B[0] })
+```
 
-	fmt.Printf("BOOL: %v\n", myBool)
-	fmt.Printf("INT: %v\n", myInt)
-	fmt.Printf("REAL: %v\n", myReal)
-	fmt.Printf("TIME: %v\n", myTime)
+See [examples/redundancy](examples/redundancy) for two cores running the same logic with a voter.
+
+### Faults, watchdog and metrics
+
+```go
+task := core.NewTask("Control", core.CyclicTask, 1, 10*time.Millisecond)
+task.Watchdog = 5 * time.Millisecond // Report runs longer than 5ms.
+
+resource := &core.Resource{
+	Name: "MainCPU",
+	OnFault: func(f core.Fault) {
+		// f.Kind is FaultPanic, FaultOverrun or FaultWatchdog.
+		log.Println(f)
+	},
 }
 ```
 
-### Function Blocks
+The fault handler can also be set once on the `Configuration`. Without a handler, panics and watchdog trips are written to standard error, and overruns are only counted. `Task.Stats()` returns run count, overruns, watchdog trips, execution time, cycle time and drift.
 
-Function blocks are implemented as Go structs with an `INIT()` method for initialization and an `Execute()` (or similar named) method for their logic.
+### Data types
+
+The `iec` package defines Go types that map to IEC 61131-3 types.
 
 ```go
-package main
-
-import (
-	"fmt"
-	"time"
-	. "github.com/apiarytech/royaljelly/core"
-	"github.com/apiarytech/royaljelly/fb/timers"
-)
-
-func main() {
-	// Example: TON (On-Delay Timer)
-	ton1 := timers.TON{}
-	ton1.INIT()
-	ton1.PT = TIME(5 * time.Second) // Preset Time: 5 seconds
-
-	now := time.Now()
-
-	// Simulate PLC scan cycles
-	fmt.Println("TON Simulation Start")
-	for i := 0; i < 10; i++ {
-		now = now.Add(1 * time.Second) // Advance time by 1 second per scan
-		if i == 1 {
-			ton1.IN = true // Set input IN to true after 1 second
-		}
-
-		ton1.Execute(now)
-
-		fmt.Printf("Scan %d: IN=%v, Q=%v, ET=%v\n", i, ton1.IN, ton1.Q, ton1.ET)
-	}
-	fmt.Println("TON Simulation End")
-}
+var myBool iec.BOOL = true
+var myInt iec.INT = 123
+var myReal iec.REAL = 45.67
+var myTime iec.TIME = iec.TIME(10 * time.Second)
+var myText iec.WSTRING = "Grüße"
 ```
 
-Here is another example using the `TP` (Pulse Timer) function block.
+### Function blocks
+
+Function blocks are structs with input and output fields and an execute method. Timers take the scan time, so they are deterministic in tests.
 
 ```go
-package main
-
-import (
-	"fmt"
-	"time"
-	. "github.com/apiarytech/royaljelly/core"
-	"github.com/apiarytech/royaljelly/fb/timers"
-)
-
-func main() {
-	// Example: TP (Pulse Timer)
-	tp1 := timers.TP{}
-	tp1.INIT()
-	tp1.PT = TIME(3 * time.Second) // Preset Time: 3-second pulse
-
-	now := time.Now()
-	fmt.Println("TP Simulation Start")
-
-	// Trigger the pulse
-	tp1.IN = true
-	tp1.Execute(now)
-	fmt.Printf("Time=0s: IN=%v, Q=%v, ET=%v\n", tp1.IN, tp1.Q, tp1.ET)
-
-	// After 2 seconds, the pulse is still active
-	now = now.Add(2 * time.Second)
-	tp1.Execute(now)
-	fmt.Printf("Time=2s: IN=%v, Q=%v, ET=%v\n", tp1.IN, tp1.Q, tp1.ET)
-
-	// After 4 seconds, the pulse has finished, even if IN is still true
-	now = now.Add(2 * time.Second)
-	tp1.Execute(now)
-	fmt.Printf("Time=4s: IN=%v, Q=%v, ET=%v\n", tp1.IN, tp1.Q, tp1.ET)
-	fmt.Println("TP Simulation End")
+ton := timers.TON{PT: iec.TIME(5 * time.Second)}
+now := time.Date(2026, 1, 1, 8, 0, 0, 0, time.UTC)
+for scan := 0; scan <= 6; scan++ {
+	ton.IN = scan >= 1 // Input switches on at scan 1.
+	ton.Execute(now)
+	fmt.Printf("scan %d: Q=%v ET=%v\n", scan, ton.Q, time.Duration(ton.ET))
+	now = now.Add(time.Second)
 }
+// Q turns on at scan 6, five seconds after IN.
 ```
 
-### Standard Functions
+Every function block has a runnable example in its package documentation, for instance `go doc github.com/apiarytech/royaljelly/fb/counters`.
 
-Standard functions like `ADD`, `MUL`, `SQRT`, `LEN`, `AND`, etc., are provided to operate on `royaljelly` types.
+### Standard functions
 
 ```go
-package main
+sum := arithmetic.ADD(iec.REAL(10), iec.REAL(5.5))                     // 15.5
+length := strings.LEN("Hello, RoyalJelly!")                             // 18
+largest, err := selection.MAX(iec.LINT(100), iec.LINT(50), iec.LINT(120)) // 120
+```
 
-import (
-	"fmt"
-	. "github.com/apiarytech/royaljelly/core"
-	. "github.com/apiarytech/royaljelly/std/arithmetic"
-	. "github.com/apiarytech/royaljelly/std/selection"
-	. "github.com/apiarytech/royaljelly/std/strings"
-)
+Generic functions take arguments of one type. Convert mixed types first with the `std/conversion` functions or with `convert.ConvertTo`.
 
-func main() {
-	result := ADD(INT(10), REAL(5.5))
-	fmt.Printf("ADD(10, 5.5) = %v (Type: %T)\n", result, result) // Output: 15.5 (Type: core.REAL)
+## Timing model
 
-	strLen := LEN("Hello, RoyalJelly!")
-	fmt.Printf("LEN(\"Hello, RoyalJelly!\") = %v\n", strLen) // Output: 18
+Each resource runs one scheduler goroutine that wakes every `Cycle`. On each wake-up it runs the due tasks in priority order, lowest number first. Priority sets the order within a scan. It never interrupts a running task, so a slow program delays everything else on its resource. Put timing-critical logic on its own resource.
 
-	maxVal := MAX(LINT(100), DINT(50), LINT(120))
-	fmt.Printf("MAX(100, 50, 120) = %v\n", maxVal) // Output: 120
-}
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the scheduler, overruns, the watchdog and the concurrency rules in detail.
+
+## TinyGo support
+
+The scheduler runs under TinyGo's cooperative, single-threaded runtime, and the config loader uses a hand-written parser with no reflection. CPU affinity is not available under TinyGo, and `Start` returns `core.ErrAffinityUnsupported` if a resource requests it. CI builds and tests the library with TinyGo.
+
+## Upgrading from v0.0.5-beta1
+
+This release changes some APIs to fix data races and make configuration safer.
+
+- **Collections are methods now.** Replace `cfg.Resources`, `resource.Tasks` and `task.Programs` with `cfg.Resources()`, `resource.Tasks()` and `task.Programs()`.
+- **Task enabling.** Replace reads of `task.Enabled` with `task.IsEnabled()`. Tasks remain enabled by default.
+- **Start returns an error.** `Resource.Start()` now reports validation and affinity errors instead of panicking.
+- **Stricter checks for code-built setups.** Setups built in code now get the same validation as the config loader, including unique task priorities per resource.
+- **Conversions moved.** The conversion helpers moved from `core` to `convert`. The old names still work but are deprecated.
+- **Private config registry.** `config.ProgramFactoryRegistry` was removed. Use `config.RegisterProgramFactory` or a `config.Registry`.
+- **Wide strings.** `iec.WSTRING` is now a string type. Use `iec.WCHAR` for a single character.
+- **WORD area in the address tables.** `vars.Addresses.W` now holds WORD values, so `%IW`, `%QW` and `%MW` have their own area. The wide-string array moved from `W` to `WS`.
+- **Deprecated globals.** The package-level `vars.I`, `vars.Q` and `vars.M` tables are deprecated. Use a `vars.ProcessImage`.
+- **Dropped side effects.** The package no longer changes `GOMAXPROCS` on import. The no-op `Resource.WithResource` method was removed.
+
+## Development
+
+```bash
+go test ./...                       # unit tests and README examples
+go test -race ./...                 # data race detection (needs cgo)
+go test -run XXX -bench . ./core    # scheduler overhead and jitter benchmarks
+tinygo test ./...                   # TinyGo build and tests
 ```
 
 ## Licensing
 
-This project is offered under a dual-license model. You have the choice of using it under either the GNU General Public License version 2 (GPLv2) or a commercial license.
+This project is offered under a dual-license model. You may use it under either the GNU General Public License version 2 (GPLv2) or a commercial license.
 
 *   **GPLv2:** If you are developing open-source software, you can use this library under the terms of the GPLv2. The full license text is available in the `gpl-2.0.md` file.
 *   **Commercial License:** If you intend to use this library in a proprietary, closed-source application or product, a commercial license is required.
@@ -315,6 +260,6 @@ Contributions to `royaljelly` are welcome! Please feel free to:
 - Submit issues for bugs or feature requests.
 - Submit pull requests with improvements, bug fixes, or new IEC 61131-3 compliant implementations.
 
-Please ensure that your contributions adhere to the existing code style and include appropriate tests.
+Please ensure that your contributions follow the existing code style, include tests, and pass `go test -race ./...`.
 
 Thank you for your interest in `royaljelly`!

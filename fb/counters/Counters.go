@@ -12,25 +12,25 @@
 package counters
 
 import (
-	. "github.com/apiarytech/royaljelly/fb/triggers"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/fb/triggers"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // CTU Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
 type CTU struct {
 	//ENABLES
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 	//INPUTS
-	CU BOOL
-	R  BOOL
-	PV INT
+	CU iec.BOOL
+	R  iec.BOOL
+	PV iec.INT
 	//OUTPUTS
-	Q  BOOL
-	CV INT
+	Q  iec.BOOL
+	CV iec.INT
 	//INTERNAL
-	re          R_TRIG
-	initialized BOOL
+	re          triggers.R_TRIG
+	initialized iec.BOOL
 }
 
 // INIT CTU Initialization of Counters
@@ -71,18 +71,18 @@ func (CTU *CTU) Execute() {
 // CT Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
 type CTD struct {
 	//ENABLES
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 	//INPUTS
-	CD BOOL
-	LD BOOL
-	PV INT
+	CD iec.BOOL
+	LD iec.BOOL
+	PV iec.INT
 	//OUTPUTS
-	Q  BOOL
-	CV INT
+	Q  iec.BOOL
+	CV iec.INT
 	//INTERNAL
-	re          R_TRIG
-	initialized BOOL
+	re          triggers.R_TRIG
+	initialized iec.BOOL
 }
 
 // INIT CTD Countdown Timer Initialization of Counters
@@ -122,22 +122,22 @@ func (CTD *CTD) Execute() {
 // CTUD Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
 type CTUD struct {
 	//ENABLES
-	EN  BOOL //enable
-	ENO BOOL //enable output
+	EN  iec.BOOL //enable
+	ENO iec.BOOL //enable output
 	//INPUTS
-	CU BOOL
-	CD BOOL
-	R  BOOL
-	LD BOOL
-	PV INT
+	CU iec.BOOL
+	CD iec.BOOL
+	R  iec.BOOL
+	LD iec.BOOL
+	PV iec.INT
 	//OUTPUS
-	QU BOOL
-	QD BOOL
-	CV INT
+	QU iec.BOOL
+	QD iec.BOOL
+	CV iec.INT
 	//INTERNAL
-	reUP        R_TRIG
-	reDOWN      R_TRIG
-	initialized BOOL
+	reUP        triggers.R_TRIG
+	reDOWN      triggers.R_TRIG
+	initialized iec.BOOL
 }
 
 // INIT CTD Countdown Timer Initialization of Counters

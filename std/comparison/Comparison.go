@@ -12,11 +12,11 @@
 package comparison
 
 import (
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // GT (Greater Than) checks if IN1 > IN2 > IN3 ...
-func GT[T ANY_MAGNITUDE](inputs ...T) BOOL {
+func GT[T iec.ANY_MAGNITUDE](inputs ...T) iec.BOOL {
 	if len(inputs) < 2 {
 		return false
 	}
@@ -29,7 +29,7 @@ func GT[T ANY_MAGNITUDE](inputs ...T) BOOL {
 }
 
 // GE (Greater than or Equal) checks if IN1 >= IN2 >= IN3 ...
-func GE[T ANY_MAGNITUDE](inputs ...T) BOOL {
+func GE[T iec.ANY_MAGNITUDE](inputs ...T) iec.BOOL {
 	if len(inputs) < 2 {
 		return false
 	}
@@ -42,7 +42,7 @@ func GE[T ANY_MAGNITUDE](inputs ...T) BOOL {
 }
 
 // EQ (Equal) checks if IN1 == IN2 == IN3 ... It can be used with any comparable type.
-func EQ[T ANY_ELEMENTARY](inputs ...T) BOOL {
+func EQ[T iec.ANY_ELEMENTARY](inputs ...T) iec.BOOL {
 	if len(inputs) < 2 {
 		return false
 	}
@@ -55,7 +55,7 @@ func EQ[T ANY_ELEMENTARY](inputs ...T) BOOL {
 }
 
 // LE (Less than or Equal) checks if IN1 <= IN2 <= IN3 ...
-func LE[T ANY_MAGNITUDE](inputs ...T) BOOL {
+func LE[T iec.ANY_MAGNITUDE](inputs ...T) iec.BOOL {
 	if len(inputs) < 2 {
 		return false
 	}
@@ -68,7 +68,7 @@ func LE[T ANY_MAGNITUDE](inputs ...T) BOOL {
 }
 
 // LT (Less Than) checks if IN1 < IN2 < IN3 ...
-func LT[T ANY_MAGNITUDE](inputs ...T) BOOL {
+func LT[T iec.ANY_MAGNITUDE](inputs ...T) iec.BOOL {
 	if len(inputs) < 2 {
 		return false
 	}
@@ -81,6 +81,6 @@ func LT[T ANY_MAGNITUDE](inputs ...T) BOOL {
 }
 
 // NE (Not Equal) checks if IN1 != IN2. This function is not extensible and can be used with any comparable type.
-func NE[T ANY_ELEMENTARY](in1, in2 T) BOOL {
+func NE[T iec.ANY_ELEMENTARY](in1, in2 T) iec.BOOL {
 	return in1 != in2
 }

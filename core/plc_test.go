@@ -210,8 +210,8 @@ func TestRemoveFunctions(t *testing.T) {
 		task.AddProgram(prog1)
 		task.AddProgram(prog2)
 
-		if len(task.Programs) != 2 {
-			t.Fatalf("Expected 2 programs initially, got %d", len(task.Programs))
+		if len(task.Programs()) != 2 {
+			t.Fatalf("Expected 2 programs initially, got %d", len(task.Programs()))
 		}
 
 		// Test removing an existing program
@@ -219,11 +219,11 @@ func TestRemoveFunctions(t *testing.T) {
 		if !removed {
 			t.Error("Expected RemoveProgram to return true for an existing program")
 		}
-		if len(task.Programs) != 1 {
-			t.Errorf("Expected 1 program after removal, got %d", len(task.Programs))
+		if len(task.Programs()) != 1 {
+			t.Errorf("Expected 1 program after removal, got %d", len(task.Programs()))
 		}
-		if task.Programs[0].Name != "Prog2" {
-			t.Errorf("Incorrect program remained. Expected 'Prog2', got '%s'", task.Programs[0].Name)
+		if task.Programs()[0].Name != "Prog2" {
+			t.Errorf("Incorrect program remained. Expected 'Prog2', got '%s'", task.Programs()[0].Name)
 		}
 
 		// Test removing a non-existent program
@@ -231,8 +231,8 @@ func TestRemoveFunctions(t *testing.T) {
 		if removed {
 			t.Error("Expected RemoveProgram to return false for a non-existent program")
 		}
-		if len(task.Programs) != 1 {
-			t.Errorf("Program count should not change when removing a non-existent program. Got %d", len(task.Programs))
+		if len(task.Programs()) != 1 {
+			t.Errorf("Program count should not change when removing a non-existent program. Got %d", len(task.Programs()))
 		}
 	})
 
@@ -243,8 +243,8 @@ func TestRemoveFunctions(t *testing.T) {
 		resource.AddTask(task1)
 		resource.AddTask(task2)
 
-		if len(resource.Tasks) != 2 {
-			t.Fatalf("Expected 2 tasks initially, got %d", len(resource.Tasks))
+		if len(resource.Tasks()) != 2 {
+			t.Fatalf("Expected 2 tasks initially, got %d", len(resource.Tasks()))
 		}
 
 		// Test removing an existing task
@@ -252,11 +252,11 @@ func TestRemoveFunctions(t *testing.T) {
 		if !removed {
 			t.Error("Expected RemoveTask to return true for an existing task")
 		}
-		if len(resource.Tasks) != 1 {
-			t.Errorf("Expected 1 task after removal, got %d", len(resource.Tasks))
+		if len(resource.Tasks()) != 1 {
+			t.Errorf("Expected 1 task after removal, got %d", len(resource.Tasks()))
 		}
-		if resource.Tasks[0].Name != "Task2" {
-			t.Errorf("Incorrect task remained. Expected 'Task2', got '%s'", resource.Tasks[0].Name)
+		if resource.Tasks()[0].Name != "Task2" {
+			t.Errorf("Incorrect task remained. Expected 'Task2', got '%s'", resource.Tasks()[0].Name)
 		}
 
 		// Test removing a non-existent task
@@ -264,8 +264,8 @@ func TestRemoveFunctions(t *testing.T) {
 		if removed {
 			t.Error("Expected RemoveTask to return false for a non-existent task")
 		}
-		if len(resource.Tasks) != 1 {
-			t.Errorf("Task count should not change when removing a non-existent task. Got %d", len(resource.Tasks))
+		if len(resource.Tasks()) != 1 {
+			t.Errorf("Task count should not change when removing a non-existent task. Got %d", len(resource.Tasks()))
 		}
 	})
 
@@ -279,8 +279,8 @@ func TestRemoveFunctions(t *testing.T) {
 		res1.Start()
 		time.Sleep(20 * time.Millisecond) // Let it run for a moment
 
-		if len(config.Resources) != 2 {
-			t.Fatalf("Expected 2 resources initially, got %d", len(config.Resources))
+		if len(config.Resources()) != 2 {
+			t.Fatalf("Expected 2 resources initially, got %d", len(config.Resources()))
 		}
 
 		// Test removing an existing (and running) resource
@@ -288,15 +288,15 @@ func TestRemoveFunctions(t *testing.T) {
 		if !removed {
 			t.Error("Expected RemoveResource to return true for an existing resource")
 		}
-		if len(config.Resources) != 1 {
-			t.Errorf("Expected 1 resource after removal, got %d", len(config.Resources))
+		if len(config.Resources()) != 1 {
+			t.Errorf("Expected 1 resource after removal, got %d", len(config.Resources()))
 		}
-		if config.Resources[0].Name != "Resource2" {
-			t.Errorf("Incorrect resource remained. Expected 'Resource2', got '%s'", config.Resources[0].Name)
+		if config.Resources()[0].Name != "Resource2" {
+			t.Errorf("Incorrect resource remained. Expected 'Resource2', got '%s'", config.Resources()[0].Name)
 		}
 
 		// Verify the removed resource is no longer running
-		if res1.running {
+		if res1.IsRunning() {
 			t.Error("Removed resource should have been stopped, but its 'running' flag is still true")
 		} else {
 			// As an extra check, try to stop it again to ensure it doesn't panic or deadlock.
@@ -394,10 +394,10 @@ func TestBuilderMethods(t *testing.T) {
 		// Chain the calls
 		config.WithResource(res1).WithResource(res2)
 
-		if len(config.Resources) != 2 {
-			t.Fatalf("Expected 2 resources after chaining WithResource, got %d", len(config.Resources))
+		if len(config.Resources()) != 2 {
+			t.Fatalf("Expected 2 resources after chaining WithResource, got %d", len(config.Resources()))
 		}
-		if config.Resources[0] != res1 || config.Resources[1] != res2 {
+		if config.Resources()[0] != res1 || config.Resources()[1] != res2 {
 			t.Error("WithResource did not add resources in the correct order")
 		}
 	})
@@ -409,10 +409,10 @@ func TestBuilderMethods(t *testing.T) {
 
 		resource.WithTask(task1).WithTask(task2)
 
-		if len(resource.Tasks) != 2 {
-			t.Fatalf("Expected 2 tasks after chaining WithTask, got %d", len(resource.Tasks))
+		if len(resource.Tasks()) != 2 {
+			t.Fatalf("Expected 2 tasks after chaining WithTask, got %d", len(resource.Tasks()))
 		}
-		if resource.Tasks[0] != task1 || resource.Tasks[1] != task2 {
+		if resource.Tasks()[0] != task1 || resource.Tasks()[1] != task2 {
 			t.Error("WithTask did not add tasks in the correct order")
 		}
 	})

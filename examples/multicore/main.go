@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -45,16 +46,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Configuration '%s' loaded successfully with %d resource(s).\n", cfg.Name, len(cfg.Resources))
+	fmt.Printf("Configuration %q loaded with %d resource(s).\n", cfg.Name, len(cfg.Resources()))
 
-	// Start all configured resources. The OS will handle pinning them to the specified cores.
-	for _, res := range cfg.Resources {
-		fmt.Printf("Starting resource '%s' with affinity for core %d...\n", res.Name, res.Affinity)
-		res.Start()
+	// Run validates and starts every resource, then stops them all when the
+	// context ends. Faults such as program panics are reported on standard error.
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	fmt.Println("\nSimulation running for 4 seconds...")
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
 	}
-
-	fmt.Println("\nMulti-core simulation running for 4 seconds...")
-	time.Sleep(4 * time.Second)
-
 	fmt.Println("\nSimulation complete.")
 }

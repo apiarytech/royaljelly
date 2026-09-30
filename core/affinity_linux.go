@@ -1,4 +1,4 @@
-//go:build linux && !tinygo && !windows
+//go:build linux && !tinygo
 
 /*
  * Copyright (C) 2026 Franklin D. Amador

@@ -4,26 +4,26 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestGT(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", GT(LINT(100), LINT(50), LINT(10)), true},
-		{"LINTs false", GT(LINT(100), LINT(100), LINT(10)), false},
-		{"REALs true", GT(REAL(10.5), REAL(5.5)), true},
-		{"REALs false", GT(REAL(10.5), REAL(10.6)), false},
-		{"LREALs true", GT(LREAL(100.0), LREAL(50), LREAL(10.5)), true},
-		{"LREALs false", GT(LREAL(100.0), LREAL(100), LREAL(10.5)), false},
-		{"Strings true", GT(STRING("z"), STRING("m"), STRING("a")), true},
-		{"Strings false", GT(STRING("a"), STRING("z")), false},
-		{"TIME true", GT(TIME(time.Hour), TIME(time.Minute)), true},
-		{"TIME false", GT(TIME(time.Minute), TIME(time.Hour)), false},
-		{"Less than 2 inputs", GT(LINT(10)), false},
+		{"LINTs true", GT(iec.LINT(100), iec.LINT(50), iec.LINT(10)), true},
+		{"LINTs false", GT(iec.LINT(100), iec.LINT(100), iec.LINT(10)), false},
+		{"REALs true", GT(iec.REAL(10.5), iec.REAL(5.5)), true},
+		{"REALs false", GT(iec.REAL(10.5), iec.REAL(10.6)), false},
+		{"LREALs true", GT(iec.LREAL(100.0), iec.LREAL(50), iec.LREAL(10.5)), true},
+		{"LREALs false", GT(iec.LREAL(100.0), iec.LREAL(100), iec.LREAL(10.5)), false},
+		{"Strings true", GT(iec.STRING("z"), iec.STRING("m"), iec.STRING("a")), true},
+		{"Strings false", GT(iec.STRING("a"), iec.STRING("z")), false},
+		{"TIME true", GT(iec.TIME(time.Hour), iec.TIME(time.Minute)), true},
+		{"TIME false", GT(iec.TIME(time.Minute), iec.TIME(time.Hour)), false},
+		{"Less than 2 inputs", GT(iec.LINT(10)), false},
 	}
 
 	for _, tc := range testCases {
@@ -38,19 +38,19 @@ func TestGT(t *testing.T) {
 func TestGE(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", GE(LINT(100), LINT(50), LINT(10)), true},
-		{"LINTs with equal true", GE(LINT(100), LINT(100), LINT(10)), true},
-		{"LINTs false", GE(LINT(100), LINT(99), LINT(100)), false},
-		{"REALs true", GE(REAL(10.5), REAL(5.5)), true},
-		{"REALs with equal true", GE(REAL(10.5), REAL(10.5)), true},
-		{"LREALs true", GE(LREAL(100.0), LREAL(100), LREAL(10.5)), true},
-		{"Strings true", GE(STRING("z"), STRING("m"), STRING("a")), true},
-		{"Strings with equal true", GE(STRING("z"), STRING("z"), STRING("a")), true},
-		{"TIME true", GE(TIME(time.Hour), TIME(time.Hour)), true},
-		{"Less than 2 inputs", GE(LINT(10)), false},
+		{"LINTs true", GE(iec.LINT(100), iec.LINT(50), iec.LINT(10)), true},
+		{"LINTs with equal true", GE(iec.LINT(100), iec.LINT(100), iec.LINT(10)), true},
+		{"LINTs false", GE(iec.LINT(100), iec.LINT(99), iec.LINT(100)), false},
+		{"REALs true", GE(iec.REAL(10.5), iec.REAL(5.5)), true},
+		{"REALs with equal true", GE(iec.REAL(10.5), iec.REAL(10.5)), true},
+		{"LREALs true", GE(iec.LREAL(100.0), iec.LREAL(100), iec.LREAL(10.5)), true},
+		{"Strings true", GE(iec.STRING("z"), iec.STRING("m"), iec.STRING("a")), true},
+		{"Strings with equal true", GE(iec.STRING("z"), iec.STRING("z"), iec.STRING("a")), true},
+		{"TIME true", GE(iec.TIME(time.Hour), iec.TIME(time.Hour)), true},
+		{"Less than 2 inputs", GE(iec.LINT(10)), false},
 	}
 
 	for _, tc := range testCases {
@@ -65,20 +65,20 @@ func TestGE(t *testing.T) {
 func TestEQ(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", EQ(LINT(50), LINT(50), LINT(50)), true},
-		{"LINTs false", EQ(LINT(50), LINT(50), LINT(51)), false},
-		{"REALs true", EQ(REAL(5.5), REAL(5.5)), true},
-		{"REALs false", EQ(REAL(5.5), REAL(5.6)), false},
-		{"LREALs true", EQ(LREAL(50.0), LREAL(50.0)), true},
-		{"Strings true", EQ(STRING("hello"), STRING("hello")), true},
-		{"Strings false", EQ(STRING("hello"), STRING("world")), false},
-		{"TIME true", EQ(TIME(time.Hour), TIME(60*time.Minute)), true},
-		{"BOOLs true", EQ(BOOL(true), BOOL(true)), true},
-		{"BOOLs false", EQ(BOOL(true), BOOL(false)), false},
-		{"Less than 2 inputs", EQ(LINT(10)), false},
+		{"LINTs true", EQ(iec.LINT(50), iec.LINT(50), iec.LINT(50)), true},
+		{"LINTs false", EQ(iec.LINT(50), iec.LINT(50), iec.LINT(51)), false},
+		{"REALs true", EQ(iec.REAL(5.5), iec.REAL(5.5)), true},
+		{"REALs false", EQ(iec.REAL(5.5), iec.REAL(5.6)), false},
+		{"LREALs true", EQ(iec.LREAL(50.0), iec.LREAL(50.0)), true},
+		{"Strings true", EQ(iec.STRING("hello"), iec.STRING("hello")), true},
+		{"Strings false", EQ(iec.STRING("hello"), iec.STRING("world")), false},
+		{"TIME true", EQ(iec.TIME(time.Hour), iec.TIME(60*time.Minute)), true},
+		{"BOOLs true", EQ(iec.BOOL(true), iec.BOOL(true)), true},
+		{"BOOLs false", EQ(iec.BOOL(true), iec.BOOL(false)), false},
+		{"Less than 2 inputs", EQ(iec.LINT(10)), false},
 	}
 
 	for _, tc := range testCases {
@@ -93,19 +93,19 @@ func TestEQ(t *testing.T) {
 func TestLE(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", LE(LINT(10), LINT(50), LINT(100)), true},
-		{"LINTs with equal true", LE(LINT(10), LINT(50), LINT(50)), true},
-		{"LINTs false", LE(LINT(10), LINT(50), LINT(49)), false},
-		{"REALs true", LE(REAL(5.5), REAL(10.5)), true},
-		{"REALs with equal true", LE(REAL(5.5), REAL(5.5)), true},
-		{"LREALs true", LE(LREAL(10), LREAL(50.0), LREAL(100.0)), true},
-		{"Strings true", LE(STRING("a"), STRING("m"), STRING("z")), true},
-		{"Strings with equal true", LE(STRING("a"), STRING("m"), STRING("m")), true},
-		{"TIME true", LE(TIME(time.Minute), TIME(time.Hour)), true},
-		{"Less than 2 inputs", LE(LINT(10)), false},
+		{"LINTs true", LE(iec.LINT(10), iec.LINT(50), iec.LINT(100)), true},
+		{"LINTs with equal true", LE(iec.LINT(10), iec.LINT(50), iec.LINT(50)), true},
+		{"LINTs false", LE(iec.LINT(10), iec.LINT(50), iec.LINT(49)), false},
+		{"REALs true", LE(iec.REAL(5.5), iec.REAL(10.5)), true},
+		{"REALs with equal true", LE(iec.REAL(5.5), iec.REAL(5.5)), true},
+		{"LREALs true", LE(iec.LREAL(10), iec.LREAL(50.0), iec.LREAL(100.0)), true},
+		{"Strings true", LE(iec.STRING("a"), iec.STRING("m"), iec.STRING("z")), true},
+		{"Strings with equal true", LE(iec.STRING("a"), iec.STRING("m"), iec.STRING("m")), true},
+		{"TIME true", LE(iec.TIME(time.Minute), iec.TIME(time.Hour)), true},
+		{"Less than 2 inputs", LE(iec.LINT(10)), false},
 	}
 
 	for _, tc := range testCases {
@@ -120,20 +120,20 @@ func TestLE(t *testing.T) {
 func TestLT(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", LT(LINT(10), LINT(50), LINT(100)), true},
-		{"LINTs false", LT(LINT(10), LINT(50), LINT(50)), false},
-		{"REALs true", LT(REAL(5.5), REAL(10.5)), true},
-		{"REALs false", LT(REAL(10.5), REAL(10.5)), false},
-		{"LREALs true", LT(LREAL(10), LREAL(50.0), LREAL(100.0)), true},
-		{"LREALs false", LT(LREAL(10), LREAL(100.0), LREAL(50.0)), false},
-		{"Strings true", LT(STRING("a"), STRING("m"), STRING("z")), true},
-		{"Strings false", LT(STRING("z"), STRING("a")), false},
-		{"TIME true", LT(TIME(time.Minute), TIME(time.Hour)), true},
-		{"TIME false", LT(TIME(time.Hour), TIME(time.Minute)), false},
-		{"Less than 2 inputs", LT(LINT(10)), false},
+		{"LINTs true", LT(iec.LINT(10), iec.LINT(50), iec.LINT(100)), true},
+		{"LINTs false", LT(iec.LINT(10), iec.LINT(50), iec.LINT(50)), false},
+		{"REALs true", LT(iec.REAL(5.5), iec.REAL(10.5)), true},
+		{"REALs false", LT(iec.REAL(10.5), iec.REAL(10.5)), false},
+		{"LREALs true", LT(iec.LREAL(10), iec.LREAL(50.0), iec.LREAL(100.0)), true},
+		{"LREALs false", LT(iec.LREAL(10), iec.LREAL(100.0), iec.LREAL(50.0)), false},
+		{"Strings true", LT(iec.STRING("a"), iec.STRING("m"), iec.STRING("z")), true},
+		{"Strings false", LT(iec.STRING("z"), iec.STRING("a")), false},
+		{"TIME true", LT(iec.TIME(time.Minute), iec.TIME(time.Hour)), true},
+		{"TIME false", LT(iec.TIME(time.Hour), iec.TIME(time.Minute)), false},
+		{"Less than 2 inputs", LT(iec.LINT(10)), false},
 	}
 
 	for _, tc := range testCases {
@@ -148,20 +148,20 @@ func TestLT(t *testing.T) {
 func TestNE(t *testing.T) {
 	testCases := []struct {
 		name     string
-		result   BOOL
-		expected BOOL
+		result   iec.BOOL
+		expected iec.BOOL
 	}{
-		{"LINTs true", NE(LINT(10), LINT(50)), true},
-		{"LINTs false", NE(LINT(50), LINT(50)), false},
-		{"REALs true", NE(REAL(5.5), REAL(10.5)), true},
-		{"REALs false", NE(REAL(5.5), REAL(5.5)), false},
-		{"LREALs false", NE(LREAL(50.0), LREAL(50.0)), false},
-		{"Strings true", NE(STRING("a"), STRING("z")), true},
-		{"Strings false", NE(STRING("a"), STRING("a")), false},
-		{"TIME true", NE(TIME(time.Minute), TIME(time.Hour)), true},
-		{"TIME false", NE(TIME(time.Minute), TIME(60*time.Second)), false},
-		{"BOOLs true", NE(BOOL(false), BOOL(true)), true},
-		{"BOOLs false", NE(BOOL(true), BOOL(true)), false},
+		{"LINTs true", NE(iec.LINT(10), iec.LINT(50)), true},
+		{"LINTs false", NE(iec.LINT(50), iec.LINT(50)), false},
+		{"REALs true", NE(iec.REAL(5.5), iec.REAL(10.5)), true},
+		{"REALs false", NE(iec.REAL(5.5), iec.REAL(5.5)), false},
+		{"LREALs false", NE(iec.LREAL(50.0), iec.LREAL(50.0)), false},
+		{"Strings true", NE(iec.STRING("a"), iec.STRING("z")), true},
+		{"Strings false", NE(iec.STRING("a"), iec.STRING("a")), false},
+		{"TIME true", NE(iec.TIME(time.Minute), iec.TIME(time.Hour)), true},
+		{"TIME false", NE(iec.TIME(time.Minute), iec.TIME(60*time.Second)), false},
+		{"BOOLs true", NE(iec.BOOL(false), iec.BOOL(true)), true},
+		{"BOOLs false", NE(iec.BOOL(true), iec.BOOL(true)), false},
 	}
 
 	for _, tc := range testCases {

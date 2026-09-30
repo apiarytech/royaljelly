@@ -13,33 +13,8 @@
 
 package core
 
-import (
-	"time"
-)
-
-// Start begins the resource's priority-based task scheduler.
-// This version is for TinyGo and runs on a single thread without affinity.
-func (r *Resource) Start() {
-	r.mu.Lock()
-	if r.running {
-		r.mu.Unlock()
-		return
-	}
-
-	SortTasks(r.Tasks)
-	r.running = true
-	r.stopChan = make(chan struct{})
-	r.wg.Add(1)
-	r.mu.Unlock()
-
-	go func() {
-		if r.Cycle == 0 {
-			r.Cycle = time.Millisecond
-		}
-		ticker := time.NewTicker(r.Cycle)
-		defer ticker.Stop()
-		defer r.wg.Done()
-
-		r.schedulerLoop(ticker)
-	}()
+// pinThread is unsupported under TinyGo, which runs goroutines cooperatively on
+// a single thread.
+func pinThread(coreID int) error {
+	return ErrAffinityUnsupported
 }

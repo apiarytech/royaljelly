@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestTimePackageFunctions(t *testing.T) {
 	now := time.Now()
-	ts1 := TIMESPEC(now)
+	ts1 := iec.TIMESPEC(now)
 
 	t.Run("Global Functions", func(t *testing.T) {
 		// NOW()
@@ -39,7 +39,7 @@ func TestTimePackageFunctions(t *testing.T) {
 	})
 
 	t.Run("DT_TO_TM", func(t *testing.T) {
-		dt := DT(time.Date(2024, 3, 15, 10, 30, 45, 123456789, time.UTC))
+		dt := iec.DT(time.Date(2024, 3, 15, 10, 30, 45, 123456789, time.UTC))
 		tm := DT_TO_TM(dt)
 		if tm.D != 15 || tm.H != 10 || tm.M != 30 || tm.S != 45 || tm.Ms != 123 {
 			t.Errorf("DT_TO_TM(%v) = %+v; want {d:15, h:10, m:30, s:45, ms:123}", dt, tm)
@@ -48,7 +48,7 @@ func TestTimePackageFunctions(t *testing.T) {
 
 	t.Run("TM_TO_DT", func(t *testing.T) {
 		// TM_TO_DT uses current year/month, so we need to account for that.
-		tm := TM{D: 1, H: 11, M: 22, S: 33, Ms: 444}
+		tm := iec.TM{D: 1, H: 11, M: 22, S: 33, Ms: 444}
 		resultTime := time.Time(TM_TO_DT(tm))
 		// Build the expected time using the year and month from the *actual* result
 		// to avoid race conditions if the test runs across a date boundary (e.g., midnight).
@@ -60,7 +60,7 @@ func TestTimePackageFunctions(t *testing.T) {
 
 	t.Run("TOD_TO_DT", func(t *testing.T) {
 		todTime := time.Date(1970, 1, 1, 14, 0, 0, 0, time.UTC)
-		tod := TOD(todTime)
+		tod := iec.TOD(todTime)
 		dt := TOD_TO_DT(tod)
 		// TOD_TO_DT simply casts TOD to DT, preserving all underlying time.Time fields.
 		if !time.Time(dt).Equal(time.Time(tod)) {
@@ -70,7 +70,7 @@ func TestTimePackageFunctions(t *testing.T) {
 
 	t.Run("DATE_TO_DT", func(t *testing.T) {
 		dateTime := time.Date(2024, 7, 20, 0, 0, 0, 0, time.UTC)
-		date := DATE(dateTime)
+		date := iec.DATE(dateTime)
 		dt := DATE_TO_DT(date)
 		// DATE_TO_DT simply casts DATE to DT, preserving all underlying time.Time fields.
 		if !time.Time(dt).Equal(time.Time(date)) {
@@ -86,7 +86,7 @@ func TestStringConversionFunctions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("STRING_TO_TIME valid case failed with error: %v", err)
 		}
-		expected := TIME(90 * time.Second)
+		expected := iec.TIME(90 * time.Second)
 		if result != expected {
 			t.Errorf("STRING_TO_TIME(%q) = %v; want %v", "1m30s", result, expected)
 		}
@@ -104,7 +104,7 @@ func TestStringConversionFunctions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("STRING_TO_DATE valid case failed with error: %v", err)
 		}
-		expected := DATE(time.Date(2025, 7, 14, 0, 0, 0, 0, time.UTC))
+		expected := iec.DATE(time.Date(2025, 7, 14, 0, 0, 0, 0, time.UTC))
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("STRING_TO_DATE(%q) = %v; want %v", "2025-07-14", result, expected)
 		}
@@ -123,7 +123,7 @@ func TestStringConversionFunctions(t *testing.T) {
 			t.Fatalf("STRING_TO_TOD valid case failed with error: %v", err)
 		}
 		// The function parses relative to 1970-01-01
-		expected := TOD(time.Date(1970, 1, 1, 18, 45, 10, 0, time.UTC))
+		expected := iec.TOD(time.Date(1970, 1, 1, 18, 45, 10, 0, time.UTC))
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("STRING_TO_TOD(%q) = %v; want %v", "18:45:10", result, expected)
 		}
@@ -141,7 +141,7 @@ func TestStringConversionFunctions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("STRING_TO_DT valid case failed with error: %v", err)
 		}
-		expected := DT(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
+		expected := iec.DT(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("STRING_TO_DT(%q) = %v; want %v", "2026-01-02-03:04:05", result, expected)
 		}

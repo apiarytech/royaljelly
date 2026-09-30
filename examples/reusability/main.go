@@ -12,34 +12,35 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/apiarytech/royaljelly/config"
-	. "github.com/apiarytech/royaljelly/iec"
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 // PIDController encapsulates the state and logic for a PID control loop.
 // This struct acts as a reusable Function Block type.
 type PIDController struct {
 	Name            string
-	Setpoint        REAL // Desired value
-	Kp              REAL // Proportional gain
-	Ki              REAL // Integral gain
-	Kd              REAL // Derivative gain
-	ProcessVariable REAL // Measured value from a sensor
-	Output          REAL // Calculated output to an actuator
+	Setpoint        iec.REAL // Desired value
+	Kp              iec.REAL // Proportional gain
+	Ki              iec.REAL // Integral gain
+	Kd              iec.REAL // Derivative gain
+	ProcessVariable iec.REAL // Measured value from a sensor
+	Output          iec.REAL // Calculated output to an actuator
 
 	// Internal state for PID calculation
-	integral  REAL
-	lastError REAL
+	integral  iec.REAL
+	lastError iec.REAL
 }
 
 // Logic simulates a full PID controller.
 func (p *PIDController) Logic(now time.Time) {
 	// Simulate reading a sensor value that fluctuates around the setpoint.
-	p.ProcessVariable = p.Setpoint + REAL(rand.Float32()*2-1) // Fluctuates by +/- 1.0
+	p.ProcessVariable = p.Setpoint + iec.REAL(rand.Float32()*2-1) // Fluctuates by +/- 1.0
 
 	// Calculate error
 	err := p.Setpoint - p.ProcessVariable
@@ -96,13 +97,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Configuration %q loaded with %d resource(s).\n", cfg.Name, len(cfg.Resources()))
 
-	// 2. Start all configured resources.
-	for _, res := range cfg.Resources {
-		res.Start()
-	}
-
+	// Run validates and starts every resource, then stops them all when the
+	// context ends. Faults such as program panics are reported on standard error.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 	fmt.Println("\nSimulation running for 3 seconds...")
-	time.Sleep(3 * time.Second)
+	if err := cfg.Run(ctx); err != nil {
+		panic(err)
+	}
 	fmt.Println("\nSimulation complete.")
 }

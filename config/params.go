@@ -14,7 +14,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/apiarytech/royaljelly/core"
+	"github.com/apiarytech/royaljelly/convert"
 	"github.com/apiarytech/royaljelly/iec"
 )
 
@@ -23,7 +23,7 @@ import (
 // it does nothing. It returns an error if the value cannot be parsed.
 func ParseLINT(params map[string]string, key string, dest *iec.LINT) error {
 	if valStr, ok := params[key]; ok {
-		val, err := core.AnyToLINT(iec.STRING(valStr))
+		val, err := convert.AnyToLINT(iec.STRING(valStr))
 		if err != nil {
 			return fmt.Errorf("invalid integer value for parameter '%s' ('%s'): %w", key, valStr, err)
 		}
@@ -37,7 +37,7 @@ func ParseLINT(params map[string]string, key string, dest *iec.LINT) error {
 // it does nothing. It returns an error if the value cannot be parsed.
 func ParseREAL(params map[string]string, key string, dest *iec.REAL) error {
 	if valStr, ok := params[key]; ok {
-		val, err := core.AnyToREAL(iec.STRING(valStr))
+		val, err := convert.AnyToREAL(iec.STRING(valStr))
 		if err != nil {
 			return fmt.Errorf("invalid float value for parameter '%s' ('%s'): %w", key, valStr, err)
 		}
