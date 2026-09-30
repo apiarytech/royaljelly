@@ -21,7 +21,7 @@ jobs:
           - macos-latest
           - windows-latest
         go:
-          - '1.26' # Minimum version. Keep in sync with the go directive in go.mod.
+          - '1.27' # Minimum version. Keep in sync with the go directive in go.mod.
           - 'stable'
     runs-on: ${{ matrix.os }}
 
@@ -85,7 +85,7 @@ jobs:
       - name: Set up TinyGo
         uses: acifani/setup-tinygo@v3
         with:
-          tinygo-version: '0.41.1' # Specify the TinyGo version you want to use
+          tinygo-version: '0.42.0' # Specify the TinyGo version you want to use
 
       - name: Test with TinyGo
         run: tinygo test -v ./...
