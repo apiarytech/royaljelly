@@ -91,12 +91,17 @@ type Task struct {
 	owner    *Resource  // Resource the task was added to, for fault reporting.
 
 	// Runtime metrics, protected by mu.
-	executionTime time.Duration
-	cycleTime     time.Duration
-	drift         time.Duration
-	runs          uint64
-	overruns      uint64
-	watchdogTrips uint64
+	executionTime  time.Duration
+	cycleTime      time.Duration
+	drift          time.Duration
+	runs           uint64
+	overruns       uint64
+	watchdogTrips  uint64
+	minExecution   time.Duration
+	maxExecution   time.Duration
+	totalExecution time.Duration
+	faults         uint64
+	lastFault      *Fault
 
 	// Watchdog timer; only touched by the scheduler goroutine.
 	wdTimer *time.Timer
@@ -110,6 +115,20 @@ type TaskStats struct {
 	ExecutionTime time.Duration // Duration of the last run.
 	CycleTime     time.Duration // Time between the start of the last two runs.
 	Drift         time.Duration // How late the last run started relative to its schedule.
+
+	// Execution times since the task was added or its stats were reset
+	// (ResetStats): the shortest, the longest (the worst-case scan) and the
+	// mean of the completed runs. Zero before the first run.
+	MinExecutionTime time.Duration
+	MaxExecutionTime time.Duration
+	AvgExecutionTime time.Duration
+
+	// Faults counts the faults of the task: panics, overruns and watchdog
+	// expirations. LastFault is the most recent, nil if none, and
+	// LastFaultTime its time (zero if none).
+	Faults        uint64
+	LastFault     *Fault
+	LastFaultTime time.Time
 }
 
 // NewTask creates an enabled task.
@@ -255,14 +274,44 @@ func (t *Task) Overruns() uint64 {
 func (t *Task) Stats() TaskStats {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return TaskStats{
-		Runs:          t.runs,
-		Overruns:      t.overruns,
-		WatchdogTrips: t.watchdogTrips,
-		ExecutionTime: t.executionTime,
-		CycleTime:     t.cycleTime,
-		Drift:         t.drift,
+	s := TaskStats{
+		Runs:             t.runs,
+		Overruns:         t.overruns,
+		WatchdogTrips:    t.watchdogTrips,
+		ExecutionTime:    t.executionTime,
+		CycleTime:        t.cycleTime,
+		Drift:            t.drift,
+		MinExecutionTime: t.minExecution,
+		MaxExecutionTime: t.maxExecution,
+		Faults:           t.faults,
 	}
+	if t.runs > 0 {
+		s.AvgExecutionTime = t.totalExecution / time.Duration(t.runs)
+	}
+	if t.lastFault != nil {
+		f := *t.lastFault
+		s.LastFault, s.LastFaultTime = &f, f.Time
+	}
+	return s
+}
+
+// ResetStats clears the task's counters, execution-time statistics and last
+// fault, e.g. after a fault has been dealt with. The schedule is unchanged.
+func (t *Task) ResetStats() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.runs, t.overruns, t.watchdogTrips, t.faults = 0, 0, 0, 0
+	t.minExecution, t.maxExecution, t.totalExecution = 0, 0, 0
+	t.executionTime, t.cycleTime, t.drift = 0, 0, 0
+	t.lastFault = nil
+}
+
+// recordFault counts a fault of the task and keeps it as the last one.
+func (t *Task) recordFault(f Fault) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.faults++
+	t.lastFault = &f
 }
 
 // due decides whether the task runs in the scan at time now and advances its
@@ -311,7 +360,13 @@ func (t *Task) finish(scan, start, end time.Time) {
 		t.cycleTime = scan.Sub(t.lastRun)
 	}
 	t.lastRun = scan
-	t.executionTime = end.Sub(start)
+	d := end.Sub(start)
+	t.executionTime = d
+	if t.runs == 0 || d < t.minExecution {
+		t.minExecution = d
+	}
+	t.maxExecution = max(t.maxExecution, d)
+	t.totalExecution += d
 	t.runs++
 }
 
@@ -341,7 +396,7 @@ func (t *Task) watchdogExpired() {
 	owner := t.owner
 	t.mu.Unlock()
 	if owner != nil {
-		owner.fault(Fault{
+		owner.taskFault(t, Fault{
 			Kind: FaultWatchdog,
 			Task: t.Name,
 			Time: time.Now(),
