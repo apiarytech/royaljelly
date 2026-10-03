@@ -241,7 +241,7 @@ func (r *Resource) scan(now time.Time) {
 		t.mu.Unlock()
 
 		if missed > 0 {
-			r.fault(Fault{
+			r.taskFault(t, Fault{
 				Kind: FaultOverrun,
 				Task: t.Name,
 				Time: now,
@@ -270,7 +270,7 @@ func (r *Resource) scan(now time.Time) {
 func (r *Resource) execute(t *Task, p *Program, now time.Time) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			r.fault(Fault{
+			r.taskFault(t, Fault{
 				Kind:    FaultPanic,
 				Task:    t.Name,
 				Program: p.Name,
@@ -281,6 +281,13 @@ func (r *Resource) execute(t *Task, p *Program, now time.Time) {
 		}
 	}()
 	p.Execute(now)
+}
+
+// taskFault records a fault of task t in its stats and delivers it.
+func (r *Resource) taskFault(t *Task, f Fault) {
+	f.Resource = r.Name
+	t.recordFault(f)
+	r.fault(f)
 }
 
 // fault delivers a fault to the configured handler.
