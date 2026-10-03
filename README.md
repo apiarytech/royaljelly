@@ -182,6 +182,17 @@ var myTime iec.TIME = iec.TIME(10 * time.Second)
 var myText iec.WSTRING = "Grüße"
 ```
 
+The date and time types encode to JSON as ISO 8601 text, so they work inside structs sent over the network:
+
+| Type | JSON |
+| --- | --- |
+| `DT`, `TIMESPEC` | `"2026-10-01T14:30:05Z"` |
+| `DATE` | `"2026-10-01"` |
+| `TOD` | `"14:30:05"` |
+| `TIME` | `1500000000`, a number of nanoseconds |
+
+Decoding also accepts IEC literals such as `"DT#2026-10-01-14:30:05"`, `"D#2026-10-01"` and `"TOD#14:30:05"`. The types also support `encoding/gob`, which preserves the exact value and time zone.
+
 ### Function blocks
 
 Function blocks are structs with input and output fields and an execute method. Timers take the scan time, so they are deterministic in tests.
