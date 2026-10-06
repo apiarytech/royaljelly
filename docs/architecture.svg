@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="730" viewBox="0 0 1200 730" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>royaljelly architecture</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <style>
+      .t  { font-size: 12.5px; font-weight: 600; fill: #1f1f1f; text-anchor: middle; }
+      .s  { font-size: 11px; fill: #444; text-anchor: middle; }
+      .h  { font-size: 14px; font-weight: 700; fill: #1f1f1f; }
+      .hs { font-size: 12px; font-weight: 400; fill: #555; }
+      .n  { font-size: 12px; font-weight: 600; fill: #1f1f1f; }
+      .ns { font-size: 11px; fill: #444; }
+      .l  { font-size: 10.5px; fill: #333; }
+      .bh { fill: #eaf1fb; stroke: #3d6fb3; stroke-width: 1.5; }
+      .bi { fill: #ffffff; stroke: #3d6fb3; stroke-width: 1.2; }
+      .dh { fill: #fff3e0; stroke: #c47a14; stroke-width: 1.5; }
+      .ex { fill: #ffffff; stroke: #555; stroke-width: 1.3; }
+      .ln { stroke: #333; stroke-width: 1.4; fill: none; }
+      .dep { stroke: #555; stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="730" fill="#ffffff"/>
+
+  <text x="20" y="32" style="font-size:20px;font-weight:700;fill:#1f1f1f">royaljelly · architecture</text>
+  <text x="20" y="52" style="font-size:12.5px;fill:#555">PLC programs in Go on the IEC 61131-3 software model: configurations, resources, tasks and programs, with the standard data types, functions and function blocks.</text>
+
+  <!-- Module -->
+  <rect x="240" y="64" width="700" height="590" rx="10" fill="#fbfbfb" stroke="#333" stroke-width="1.6"/>
+  <text x="256" y="84" class="h">github.com/apiarytech/royaljelly <tspan class="hs">(standard library only · TinyGo)</tspan></text>
+
+  <!-- config -->
+  <rect x="260" y="100" width="200" height="70" rx="5" class="bi"/>
+  <text x="360" y="121" class="t">config</text>
+  <text x="360" y="139" class="s">text format → Configuration</text>
+  <text x="360" y="155" class="s">program factories · TinyGo-safe</text>
+
+  <!-- core with the software model -->
+  <rect x="480" y="100" width="440" height="262" rx="8" class="bh"/>
+  <text x="496" y="120" class="n">core <tspan class="ns">the runtime</tspan></text>
+
+  <rect x="495" y="130" width="410" height="220" rx="6" class="bi"/>
+  <text x="508" y="148" class="n">Configuration <tspan class="ns">starts and stops its resources together</tspan></text>
+
+  <rect x="508" y="158" width="384" height="182" rx="6" fill="#f6f9fe" stroke="#3d6fb3" stroke-width="1.1"/>
+  <text x="520" y="175" class="n">Resource <tspan class="ns">one scheduler goroutine · Cycle · CPU affinity</tspan></text>
+
+  <rect x="520" y="185" width="176" height="122" rx="5" class="bi"/>
+  <text x="608" y="203" class="t">Task: cyclic</text>
+  <text x="608" y="219" class="s">fixed grid, no drift</text>
+  <text x="608" y="233" class="s">overruns counted · watchdog</text>
+  <rect x="534" y="244" width="148" height="52" rx="4" fill="#eaf1fb" stroke="#3d6fb3" stroke-width="1"/>
+  <text x="608" y="264" class="t">Program</text>
+  <text x="608" y="281" class="s">Logic(now) · its state struct</text>
+
+  <rect x="704" y="185" width="176" height="122" rx="5" class="bi"/>
+  <text x="792" y="203" class="t">Task: event-driven</text>
+  <text x="792" y="219" class="s">Trigger: up to 10 queued</text>
+  <text x="792" y="233" class="s">priority orders, never preempts</text>
+  <rect x="718" y="244" width="148" height="52" rx="4" fill="#eaf1fb" stroke="#3d6fb3" stroke-width="1"/>
+  <text x="792" y="264" class="t">Program</text>
+  <text x="792" y="281" class="s">Logic(now) · its state struct</text>
+
+  <text x="700" y="327" class="s">faults: panic · overrun · watchdog → OnFault · a scan allocates nothing</text>
+
+  <!-- std, fb -->
+  <rect x="260" y="390" width="320" height="76" rx="5" class="bi"/>
+  <text x="420" y="411" class="t">std/*: standard functions</text>
+  <text x="420" y="429" class="s">arithmetic · bitwise · comparison · conversion</text>
+  <text x="420" y="445" class="s">math · numerical · selection · strings · time</text>
+
+  <rect x="600" y="390" width="320" height="76" rx="5" class="bi"/>
+  <text x="760" y="411" class="t">fb/*: standard function blocks</text>
+  <text x="760" y="429" class="s">timers TP TON TOF · counters CTU CTD CTUD</text>
+  <text x="760" y="445" class="s">triggers R_TRIG F_TRIG · SR RS · calculus, PID</text>
+
+  <!-- convert, vars -->
+  <rect x="260" y="494" width="320" height="56" rx="5" class="bi"/>
+  <text x="420" y="515" class="t">convert</text>
+  <text x="420" y="533" class="s">reflection-free conversions between IEC types</text>
+
+  <rect x="600" y="494" width="320" height="56" rx="5" class="bi"/>
+  <text x="760" y="515" class="t">vars</text>
+  <text x="760" y="533" class="s">Shared[T] · ProcessImage %I %Q %M, thread-safe</text>
+
+  <!-- iec -->
+  <rect x="260" y="578" width="660" height="56" rx="5" class="bh"/>
+  <text x="590" y="599" class="t">iec</text>
+  <text x="590" y="617" class="s">IEC 61131-3 types and constants: BOOL · INT · DINT · REAL · TIME · DATE · TOD · DT · STRING · WSTRING · ... (JSON as ISO 8601)</text>
+
+  <!-- dependencies, downward only -->
+  <path d="M460,135 H478" class="dep" marker-end="url(#a)"/>
+  <path d="M420,466 V492" class="dep" marker-end="url(#a)"/>
+  <path d="M760,466 V478 H440 V492" class="dep" marker-end="url(#a)"/>
+  <path d="M420,550 V576" class="dep" marker-end="url(#a)"/>
+  <path d="M760,550 V576" class="dep" marker-end="url(#a)"/>
+
+  <!-- External, left -->
+  <rect x="20" y="100" width="200" height="70" rx="6" class="ex"/>
+  <text x="120" y="122" class="t">Configuration file</text>
+  <text x="120" y="140" class="s">resource · task · program</text>
+  <text x="120" y="156" class="s">indented text, with params</text>
+  <path d="M222,135 H258" class="ln" marker-end="url(#a)"/>
+
+  <rect x="20" y="210" width="200" height="70" rx="6" class="ex"/>
+  <text x="120" y="232" class="t">Your Go programs</text>
+  <text x="120" y="250" class="s">a state struct and Logic(now)</text>
+  <text x="120" y="266" class="s">plain, testable Go</text>
+  <path d="M222,245 H478" class="ln" marker-end="url(#a)"/>
+
+  <!-- External, right -->
+  <rect x="960" y="190" width="220" height="70" rx="6" class="dh"/>
+  <text x="1070" y="212" class="t">beedance transpiler</text>
+  <text x="1070" y="230" class="s">PROGRAMs and FBs as Go on</text>
+  <text x="1070" y="246" class="s">core, iec and fb</text>
+  <path d="M958,225 H922" class="ln" marker-end="url(#a)"/>
+
+  <rect x="960" y="393" width="220" height="70" rx="6" class="dh"/>
+  <text x="1070" y="415" class="t">beebread (OSCAT)</text>
+  <text x="1070" y="433" class="s">its functions and blocks follow</text>
+  <text x="1070" y="449" class="s">the conventions of std and fb</text>
+  <path d="M958,428 H922" class="ln" marker-end="url(#a)"/>
+
+  <rect x="960" y="487" width="220" height="70" rx="6" class="ex"/>
+  <text x="1070" y="509" class="t">HMIs, I/O drivers</text>
+  <text x="1070" y="527" class="s">other goroutines exchange</text>
+  <text x="1070" y="543" class="s">values through vars</text>
+  <path d="M958,522 H922" class="ln" marker-start="url(#a)" marker-end="url(#a)"/>
+
+  <rect x="960" y="574" width="220" height="64" rx="6" class="dh"/>
+  <text x="1070" y="596" class="t">honeycomb</text>
+  <text x="1070" y="614" class="s">tag values are iec types</text>
+  <path d="M958,606 H944" class="ln" marker-end="url(#a)"/>
+
+  <!-- Legend -->
+  <g transform="translate(240,674)">
+    <rect x="0" y="0" width="16" height="12" class="bh"/>
+    <text x="22" y="11" style="font-size:11.5px;fill:#333">royaljelly</text>
+    <rect x="100" y="0" width="16" height="12" class="dh"/>
+    <text x="122" y="11" style="font-size:11.5px;fill:#333">other apiarytech projects</text>
+    <rect x="280" y="0" width="16" height="12" class="ex"/>
+    <text x="302" y="11" style="font-size:11.5px;fill:#333">outside</text>
+    <path d="M370,6 H410" class="ln" marker-end="url(#a)"/>
+    <text x="418" y="11" style="font-size:11.5px;fill:#333">uses</text>
+    <path d="M470,6 H510" class="dep" marker-end="url(#a)"/>
+    <text x="518" y="11" style="font-size:11.5px;fill:#333">depends on (downward only)</text>
+    <text x="0" y="36" style="font-size:11.5px;fill:#555">Everything builds on iec; the scheduler never depends on the function libraries, nor they on it. Details: ARCHITECTURE.md in this folder.</text>
+  </g>
+</svg>
