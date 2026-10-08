@@ -168,7 +168,7 @@ resource := &core.Resource{
 }
 ```
 
-The fault handler can also be set once on the `Configuration`. Without a handler, panics and watchdog trips are written to standard error, and overruns are only counted. `Task.Stats()` returns run count, overruns, watchdog trips, execution time, cycle time and drift.
+The fault handler can also be set once on the `Configuration`. Without a handler, panics and watchdog trips are written to standard error, and overruns are only counted. `Task.Stats()` returns run count, overruns, watchdog trips, execution time, cycle time and drift; the shortest, longest (worst-case scan) and average execution time; and the task's fault count with its last fault and when it happened. `Task.ResetStats()` clears them, for example after a fault has been dealt with.
 
 ### Data types
 
