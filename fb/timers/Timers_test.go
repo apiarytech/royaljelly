@@ -255,6 +255,60 @@ func TestTOF_QuickToggle(t *testing.T) {
 	}
 }
 
+// With a PT of 0 the off-delay is over when IN falls: Q goes off in that
+// scan, as it does in beedance's TOF.
+func TestTOF_ZeroPT(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	tof := &TOF{}
+	tof.INIT()
+	tof.IN = true
+	tof.Execute(now)
+	if !tof.Q {
+		t.Fatal("Q should be true while IN is true")
+	}
+	tof.IN = false
+	tof.Execute(now.Add(time.Millisecond))
+	if tof.Q || tof.ET != 0 {
+		t.Errorf("IN fell with PT = 0: Q=%v, ET=%v, want false and 0", tof.Q, tof.ET)
+	}
+	tof.Execute(now.Add(time.Second))
+	if tof.Q || tof.ET != 0 {
+		t.Errorf("a second later: Q=%v, ET=%v, want false and 0", tof.Q, tof.ET)
+	}
+	// The delay is over: a longer PT does not start it again.
+	tof.PT = iec.TIME(time.Minute)
+	tof.Execute(now.Add(2 * time.Second))
+	if tof.Q {
+		t.Error("Q came back on when PT grew after the delay")
+	}
+}
+
+// After a delay ET stays PT, and a longer PT does not turn Q on again
+// before IN rises.
+func TestTOF_AfterDelay(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	tof := &TOF{PT: iec.TIME(time.Second)}
+	tof.INIT()
+	tof.IN = true
+	tof.Execute(now)
+	tof.IN = false
+	tof.Execute(now.Add(time.Millisecond))
+	tof.Execute(now.Add(2 * time.Second))
+	if tof.Q || tof.ET != tof.PT {
+		t.Fatalf("after the delay: Q=%v, ET=%v, want false and %v", tof.Q, tof.ET, tof.PT)
+	}
+	tof.PT = iec.TIME(time.Hour)
+	tof.Execute(now.Add(3 * time.Second))
+	if tof.Q {
+		t.Error("Q came back on when PT grew after the delay")
+	}
+	tof.IN = true
+	tof.Execute(now.Add(4 * time.Second))
+	if !tof.Q || tof.ET != 0 {
+		t.Errorf("IN rose again: Q=%v, ET=%v", tof.Q, tof.ET)
+	}
+}
+
 func TestUninitializedTimers(t *testing.T) {
 	now := time.Now()
 

@@ -211,8 +211,13 @@ func (t *TOF) Execute(now time.Time) {
 	} else if fallingEdge {
 		// On the falling edge, start the timer.
 		t.startTime = now
-		t.Q = true // Q remains true as the off-delay starts
+		// Q remains true as the off-delay starts; with a PT of 0 the delay
+		// is over at once, as it is when ET reaches PT.
+		t.Q = t.PT > 0
 		t.ET = 0
+		if !t.Q {
+			t.startTime = time.Time{}
+		}
 	} else if !t.startTime.IsZero() {
 		// This block executes when IN is false and the timer is running.
 		elapsed := now.Sub(t.startTime)
@@ -220,13 +225,16 @@ func (t *TOF) Execute(now time.Time) {
 			t.Q = true
 			t.ET = iec.TIME(elapsed)
 		} else {
+			// The delay is over: Q stays false until IN rises again, even
+			// if PT grows.
 			t.Q = false
 			t.ET = t.PT // Clamp ET to PT
+			t.startTime = time.Time{}
 		}
 	} else {
-		// If not IN, not a falling edge, and timer not running, then Q must be false.
+		// If not IN, not a falling edge, and timer not running, then Q must
+		// be false. ET keeps its value: PT after a delay, 0 before the first.
 		t.Q = false
-		t.ET = 0
 	}
 
 	// Store the current state of IN for the next execution cycle.
