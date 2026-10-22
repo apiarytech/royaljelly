@@ -23,6 +23,12 @@ import (
 /* IEC 61131-3 Standard Functions*/
 /*********************************/
 
+// The functions in this package work on iec.STRING, which IEC 61131-3 defines
+// as a string of single-byte characters. Lengths and positions (LEN, LEFT,
+// RIGHT, MID, INSERT, DELETE, REPLACE, FIND) therefore count bytes, not
+// Unicode characters. A STRING that holds multi-byte UTF-8 text can be cut
+// inside a character; use WSTRING for text outside the single-byte range.
+
 // LEN returns the length of the input string.
 // Conforms to IEC 61131-3, Table 29.
 func LEN(s iec.STRING) iec.LINT {
@@ -72,7 +78,7 @@ func MID(IN iec.STRING, L, P iec.LINT) (iec.STRING, error) {
 	if p_zero_based >= len(s) {
 		return "", nil // Position is out of bounds
 	}
-	if p_zero_based+l_int > len(s) {
+	if L > iec.LINT(len(s)-p_zero_based) {
 		return iec.STRING(s[p_zero_based:]), nil // Return from P to the end of the string
 	}
 	return iec.STRING(s[p_zero_based : p_zero_based+l_int]), nil
@@ -114,7 +120,7 @@ func DELETE(IN iec.STRING, L, P iec.LINT) iec.STRING {
 	if L < 0 || P < 1 || p_zero_based >= len(s) {
 		return IN // Return original string on invalid input
 	}
-	if p_zero_based+l_int > len(s) {
+	if L > iec.LINT(len(s)-p_zero_based) {
 		return iec.STRING(s[:p_zero_based]) // Delete from P to the end
 	}
 	return iec.STRING(s[:p_zero_based] + s[p_zero_based+l_int:])
@@ -283,11 +289,9 @@ func REPLACE(IN1, IN2 iec.STRING, L, P iec.LINT) (iec.STRING, error) {
 		p = 1
 	}
 
-	// When L=0, REPLACE acts like INSERT. INSERT places IN2 *after* position P.
-	if L == 0 {
-		return INSERT(IN1, IN2, P)
-	}
-
+	// With L=0 nothing is removed, so IN2 is inserted at position P (before
+	// the P-th character), as in IEC 61131-3. This differs from INSERT,
+	// which places IN2 after position P.
 	p_zero_based := p - 1
 
 	// If P is beyond the end of the string, append IN2.
@@ -295,9 +299,9 @@ func REPLACE(IN1, IN2 iec.STRING, L, P iec.LINT) (iec.STRING, error) {
 		return iec.STRING(s1 + s2), nil
 	}
 
-	end_delete := p_zero_based + l
-	if end_delete > len(s1) {
-		end_delete = len(s1)
+	end_delete := len(s1)
+	if L < iec.LINT(len(s1)-p_zero_based) {
+		end_delete = p_zero_based + l
 	}
 
 	return iec.STRING(s1[:p_zero_based] + s2 + s1[end_delete:]), nil

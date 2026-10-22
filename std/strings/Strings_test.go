@@ -1,6 +1,7 @@
 package strings
 
 import (
+	"math"
 	"testing"
 
 	"github.com/apiarytech/royaljelly/iec"
@@ -183,7 +184,7 @@ func TestREPLACE(t *testing.T) {
 		{"Replace at start (P=1)", "ABCDEFG", "XYZ", 2, 1, "XYZCDEFG", false},
 		{"Replace at start (P=0)", "ABCDEFG", "XYZ", 2, 0, "XYZCDEFG", false}, // P=0 should act like P=1
 		{"Replace at end", "ABCDEFG", "XYZ", 2, 6, "ABCDEXYZ", false},
-		{"Insert behavior (L=0)", "ABCD", "XYZ", 0, 2, "ABXYZCD", false},      // Should behave like INSERT
+		{"Insert behavior (L=0)", "ABCD", "XYZ", 0, 2, "AXYZBCD", false},      // Inserts at P (issue #22)
 		{"Insert at start (L=0, P=0)", "ABCD", "XYZ", 0, 0, "XYZABCD", false}, // Should behave like INSERT
 		{"Delete behavior (IN2 empty)", "ABCDEFG", "", 3, 3, "ABFG", false},
 		{"L exceeds string length", "ABCDEFG", "XYZ", 10, 5, "ABCDXYZ", false},
@@ -205,5 +206,29 @@ func TestREPLACE(t *testing.T) {
 				t.Errorf("REPLACE(%q, %q, %d, %d) = %q; want %q", tc.in1, tc.in2, tc.l, tc.p, result, tc.expected)
 			}
 		})
+	}
+}
+
+// TestHugeLength covers issue #21: a very large L must not overflow p+L.
+func TestHugeLength(t *testing.T) {
+	const huge = iec.LINT(math.MaxInt64)
+	if got, err := MID("ABCDE", huge, 2); err != nil || got != "BCDE" {
+		t.Errorf("MID(huge L) = %q, %v; want \"BCDE\"", got, err)
+	}
+	if got := DELETE("ABCDE", huge, 2); got != "A" {
+		t.Errorf("DELETE(huge L) = %q; want \"A\"", got)
+	}
+	if got, err := REPLACE("ABCDE", "X", huge, 2); err != nil || got != "AX" {
+		t.Errorf("REPLACE(huge L) = %q, %v; want \"AX\"", got, err)
+	}
+}
+
+// TestReplaceZeroLength covers issue #22: with L=0, REPLACE inserts at P.
+func TestReplaceZeroLength(t *testing.T) {
+	if got, err := REPLACE("ABCDE", "X", 0, 2); err != nil || got != "AXBCDE" {
+		t.Errorf("REPLACE(L=0, P=2) = %q, %v; want \"AXBCDE\"", got, err)
+	}
+	if got, err := REPLACE("ABCDE", "X", 0, 6); err != nil || got != "ABCDEX" {
+		t.Errorf("REPLACE(L=0, P=6) = %q, %v; want \"ABCDEX\"", got, err)
 	}
 }
