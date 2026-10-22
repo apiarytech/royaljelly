@@ -492,7 +492,7 @@ func REAL_TO_ULINT(in iec.REAL) iec.ULINT {
 }
 
 // REAL_TO_BOOL conversion
-func REAL_TO_BOOL(in iec.REAL) iec.BOOL { return in > 0 }
+func REAL_TO_BOOL(in iec.REAL) iec.BOOL { return in != 0 }
 
 // REAL_TO_TIME conversion
 func REAL_TO_TIME(in iec.REAL) iec.TIME { out, _ := convert.SubTime(in); return out }
@@ -584,7 +584,7 @@ func LREAL_TO_ULINT(in iec.LREAL) iec.ULINT {
 }
 
 // LREAL_TO_BOOL conversion
-func LREAL_TO_BOOL(in iec.LREAL) iec.BOOL { return in > 0 }
+func LREAL_TO_BOOL(in iec.LREAL) iec.BOOL { return in != 0 }
 
 // LREAL_TO_TIME conversion
 func LREAL_TO_TIME(in iec.LREAL) iec.TIME { out, _ := convert.SubTime(in); return out }
@@ -760,7 +760,7 @@ func INT_TO_ULINT(in iec.INT) iec.ULINT {
 }
 
 // INT_TO_BOOL conversion
-func INT_TO_BOOL(in iec.INT) iec.BOOL { return in > 0 }
+func INT_TO_BOOL(in iec.INT) iec.BOOL { return in != 0 }
 
 // INT_TO_TIME conversion
 func INT_TO_TIME(in iec.INT) iec.TIME { out, _ := convert.SubTime(in); return out }
@@ -837,7 +837,7 @@ func LINT_TO_BYTE(in iec.LINT) iec.BYTE {
 func LINT_TO_USINT(in iec.LINT) iec.USINT { return iec.USINT(convert.ClampLINT(in, 0, iec.MAXUSINT)) }
 
 // LINT_TO_BOOL conversion
-func LINT_TO_BOOL(in iec.LINT) iec.BOOL { return in > 0 }
+func LINT_TO_BOOL(in iec.LINT) iec.BOOL { return in != 0 }
 
 // LINT_TO_TIME conversion
 func LINT_TO_TIME(in iec.LINT) iec.TIME { out, _ := convert.SubTime(in); return out }
@@ -920,7 +920,7 @@ func DINT_TO_ULINT(in iec.DINT) iec.ULINT {
 }
 
 // DINT_TO_BOOL conversion
-func DINT_TO_BOOL(in iec.DINT) iec.BOOL { return in > 0 }
+func DINT_TO_BOOL(in iec.DINT) iec.BOOL { return in != 0 }
 
 // DINT_TO_TIME conversion
 func DINT_TO_TIME(in iec.DINT) iec.TIME { out, _ := convert.SubTime(in); return out }
@@ -1187,7 +1187,7 @@ func ULINT_TO_DT(in iec.ULINT) iec.DT { val, _ := convert.SubDt(iec.LINT(in)); r
 func ULINT_TO_TOD(in iec.ULINT) iec.TOD { val, _ := convert.SubTod(iec.LINT(in)); return val }
 
 // ULINT_TO_UDINT conversion
-func ULINT_TO_UDINT(in iec.ULINT) iec.UDINT { return iec.UDINT(in) }
+func ULINT_TO_UDINT(in iec.ULINT) iec.UDINT { return iec.UDINT(convert.ClampULINT(in, iec.MAXUDINT)) }
 
 // ULINT_TO_WORD conversion
 func ULINT_TO_WORD(in iec.ULINT) iec.WORD { return iec.WORD(convert.ClampULINT(in, iec.MAXUINT)) }
@@ -1258,7 +1258,11 @@ func DATE_TO_DWORD(in iec.DATE) iec.DWORD {
 
 // DATE_TO_LWORD conversion
 func DATE_TO_LWORD(in iec.DATE) iec.LWORD {
-	return iec.LWORD(convert.ClampLINT(in.CONVERT(), 0, -1)) // -1 for max ULINT
+	v := in.CONVERT()
+	if v < 0 {
+		return 0
+	}
+	return iec.LWORD(uint64(v))
 }
 
 // DATE_TO_UDINT conversion
@@ -1348,7 +1352,11 @@ func DT_TO_STRING(in iec.DT) iec.STRING { return iec.STRING(in.String()) }
 
 // DT_TO_LWORD conversion
 func DT_TO_LWORD(in iec.DT) iec.LWORD {
-	return iec.LWORD(convert.ClampLINT(in.CONVERT(), 0, -1)) // -1 for max ULINT
+	v := in.CONVERT()
+	if v < 0 {
+		return 0
+	}
+	return iec.LWORD(uint64(v))
 }
 
 // DT_TO_UINT conversion
@@ -1409,7 +1417,9 @@ func TOD_TO_SINT(in iec.TOD) iec.SINT {
 func TOD_TO_LINT(in iec.TOD) iec.LINT { return in.CONVERT() }
 
 // TOD_TO_DINT conversion
-func TOD_TO_DINT(in iec.TOD) iec.DINT { return iec.DINT(TOD_TO_LINT(in)) }
+func TOD_TO_DINT(in iec.TOD) iec.DINT {
+	return iec.DINT(convert.ClampLINT(TOD_TO_LINT(in), iec.MINDINT, iec.MAXDINT))
+}
 
 // TOD_TO_DWORD conversion
 func TOD_TO_DWORD(in iec.TOD) iec.DWORD {
@@ -1418,7 +1428,9 @@ func TOD_TO_DWORD(in iec.TOD) iec.DWORD {
 }
 
 // TOD_TO_UDINT conversion
-func TOD_TO_UDINT(in iec.TOD) iec.UDINT { return iec.UDINT(TOD_TO_LINT(in)) }
+func TOD_TO_UDINT(in iec.TOD) iec.UDINT {
+	return iec.UDINT(convert.ClampLINT(TOD_TO_LINT(in), 0, iec.MAXUDINT))
+}
 
 // TOD_TO_WORD conversion
 func TOD_TO_WORD(in iec.TOD) iec.WORD {
@@ -1433,7 +1445,9 @@ func TOD_TO_STRING(in iec.TOD) iec.STRING { return iec.STRING(in.String()) }
 func TOD_TO_LWORD(in iec.TOD) iec.LWORD { out, _ := convert.SubLword(in); return out }
 
 // TOD_TO_UINT conversion
-func TOD_TO_UINT(in iec.TOD) iec.UINT { return iec.UINT(TOD_TO_LINT(in)) }
+func TOD_TO_UINT(in iec.TOD) iec.UINT {
+	return iec.UINT(convert.ClampLINT(TOD_TO_LINT(in), 0, iec.MAXUINT))
+}
 
 // TOD_TO_LREAL conversion
 func TOD_TO_LREAL(in iec.TOD) iec.LREAL { return iec.LREAL(in.CONVERT()) }
@@ -1445,13 +1459,19 @@ func TOD_TO_BYTE(in iec.TOD) iec.BYTE {
 }
 
 // TOD_TO_USINT conversion
-func TOD_TO_USINT(in iec.TOD) iec.USINT { return iec.USINT(TOD_TO_LINT(in)) }
+func TOD_TO_USINT(in iec.TOD) iec.USINT {
+	return iec.USINT(convert.ClampLINT(TOD_TO_LINT(in), 0, iec.MAXUSINT))
+}
 
 // TOD_TO_ULINT conversion
-func TOD_TO_ULINT(in iec.TOD) iec.ULINT { return iec.ULINT(TOD_TO_LINT(in)) }
+func TOD_TO_ULINT(in iec.TOD) iec.ULINT {
+	return iec.ULINT(convert.ClampLINT(TOD_TO_LINT(in), 0, iec.MAXLINT))
+}
 
 // TOD_TO_INT conversion
-func TOD_TO_INT(in iec.TOD) iec.INT { return iec.INT(TOD_TO_LINT(in)) }
+func TOD_TO_INT(in iec.TOD) iec.INT {
+	return iec.INT(convert.ClampLINT(TOD_TO_LINT(in), iec.MININT, iec.MAXINT))
+}
 
 /*
 TIME_TO conversion
@@ -1470,7 +1490,9 @@ func TIME_TO_SINT(in iec.TIME) iec.SINT {
 func TIME_TO_LINT(in iec.TIME) iec.LINT { return iec.LINT(time.Duration(in).Milliseconds()) }
 
 // TIME_TO_DINT conversion
-func TIME_TO_DINT(in iec.TIME) iec.DINT { return iec.DINT(time.Duration(in).Milliseconds()) }
+func TIME_TO_DINT(in iec.TIME) iec.DINT {
+	return iec.DINT(convert.ClampLINT(iec.LINT(time.Duration(in).Milliseconds()), iec.MINDINT, iec.MAXDINT))
+}
 
 // TIME_TO_DWORD conversion
 func TIME_TO_DWORD(in iec.TIME) iec.DWORD {
@@ -1479,7 +1501,9 @@ func TIME_TO_DWORD(in iec.TIME) iec.DWORD {
 }
 
 // TIME_TO_UDINT conversion
-func TIME_TO_UDINT(in iec.TIME) iec.UDINT { return iec.UDINT(time.Duration(in).Milliseconds()) }
+func TIME_TO_UDINT(in iec.TIME) iec.UDINT {
+	return iec.UDINT(convert.ClampLINT(iec.LINT(time.Duration(in).Milliseconds()), 0, iec.MAXUDINT))
+}
 
 // TIME_TO_WORD conversion
 func TIME_TO_WORD(in iec.TIME) iec.WORD {
@@ -1497,7 +1521,9 @@ func TIME_TO_LWORD(in iec.TIME) iec.LWORD {
 }
 
 // TIME_TO_UINT conversion
-func TIME_TO_UINT(in iec.TIME) iec.UINT { return iec.UINT(time.Duration(in).Milliseconds()) }
+func TIME_TO_UINT(in iec.TIME) iec.UINT {
+	return iec.UINT(convert.ClampLINT(iec.LINT(time.Duration(in).Milliseconds()), 0, iec.MAXUINT))
+}
 
 // TIME_TO_LREAL conversion
 func TIME_TO_LREAL(in iec.TIME) iec.LREAL { return iec.LREAL(time.Duration(in).Milliseconds()) }
@@ -1514,10 +1540,14 @@ func TIME_TO_USINT(in iec.TIME) iec.USINT {
 }
 
 // TIME_TO_ULINT conversion
-func TIME_TO_ULINT(in iec.TIME) iec.ULINT { return iec.ULINT(time.Duration(in).Milliseconds()) }
+func TIME_TO_ULINT(in iec.TIME) iec.ULINT {
+	return iec.ULINT(convert.ClampLINT(iec.LINT(time.Duration(in).Milliseconds()), 0, iec.MAXLINT))
+}
 
 // TIME_TO_INT conversion
-func TIME_TO_INT(in iec.TIME) iec.INT { return iec.INT(time.Duration(in).Milliseconds()) }
+func TIME_TO_INT(in iec.TIME) iec.INT {
+	return iec.INT(convert.ClampLINT(iec.LINT(time.Duration(in).Milliseconds()), iec.MININT, iec.MAXINT))
+}
 
 /*
 Math conversion of float to bits and vice versa
@@ -1597,11 +1627,17 @@ func USINT_TO_BCD_BYTE(in iec.USINT) (iec.BYTE, error) {
 }
 func UINT_TO_BCD_WORD(in iec.UINT) (iec.WORD, error) {
 	out, err := uintToBCD(uint64(in))
-	return iec.WORD(out), err
+	if err != nil || out > iec.MAXUINT {
+		return 0, &convert.ConversionError{Value: in, FromType: "UINT", ToType: "BCD_WORD", Reason: "value out of range (max 9999)", Err: err}
+	}
+	return iec.WORD(out), nil
 }
 func UDINT_TO_BCD_DWORD(in iec.UDINT) (iec.DWORD, error) {
 	out, err := uintToBCD(uint64(in))
-	return iec.DWORD(out), err
+	if err != nil || out > iec.MAXUDINT {
+		return 0, &convert.ConversionError{Value: in, FromType: "UDINT", ToType: "BCD_DWORD", Reason: "value out of range (max 99999999)", Err: err}
+	}
+	return iec.DWORD(out), nil
 }
 func ULINT_TO_BCD_LWORD(in iec.ULINT) (iec.LWORD, error) {
 	out, err := uintToBCD(uint64(in))

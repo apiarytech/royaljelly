@@ -1281,7 +1281,7 @@ func TestAllConversions(t *testing.T) {
 		if DATE_TO_DWORD(d) != 4294967295 {
 			t.Error("DATE_TO_DWORD failed")
 		}
-		if DATE_TO_LWORD(d) != 18446744073709551615 {
+		if DATE_TO_LWORD(d) != iec.LWORD(time.Time(d).UnixMilli()) { // issue #23
 			t.Error("DATE_TO_LWORD failed")
 		}
 		if DATE_TO_TIME(d) != iec.TIME(expectedMillis*1000000) {
@@ -1344,13 +1344,13 @@ func TestAllConversions(t *testing.T) {
 		if TOD_TO_UDINT(tod) != iec.UDINT(expectedMillis) {
 			t.Error("TOD_TO_UDINT failed")
 		}
-		if TOD_TO_UINT(tod) != iec.UINT(expectedMillis) {
+		if TOD_TO_UINT(tod) != 65535 { // clamped, issue #24
 			t.Error("TOD_TO_UINT failed")
 		}
 		if TOD_TO_LREAL(tod) != iec.LREAL(expectedMillis) {
 			t.Error("TOD_TO_LREAL failed")
 		}
-		if TOD_TO_INT(tod) != iec.INT(expectedMillis) {
+		if TOD_TO_INT(tod) != 32767 { // clamped, issue #24
 			t.Error("TOD_TO_INT failed")
 		}
 		if TOD_TO_ULINT(tod) != iec.ULINT(expectedMillis) {
@@ -1359,7 +1359,7 @@ func TestAllConversions(t *testing.T) {
 		if TOD_TO_DINT(tod) != iec.DINT(expectedMillis) {
 			t.Error("TOD_TO_DINT failed")
 		}
-		if TOD_TO_USINT(tod) != iec.USINT(expectedMillis) {
+		if TOD_TO_USINT(tod) != 255 { // clamped, issue #24
 			t.Error("TOD_TO_USINT failed")
 		}
 	})
@@ -1387,7 +1387,7 @@ func TestAllConversions(t *testing.T) {
 		if DT_TO_DWORD(dt) != 4294967295 {
 			t.Error("DT_TO_DWORD failed")
 		}
-		if DT_TO_LWORD(dt) != 18446744073709551615 {
+		if DT_TO_LWORD(dt) != iec.LWORD(time.Time(dt).UnixMilli()) { // issue #23
 			t.Error("DT_TO_LWORD failed")
 		}
 		if DT_TO_REAL(dt) != iec.REAL(expectedMillis) {
@@ -1458,4 +1458,47 @@ func TestBCDConversionsExtended(t *testing.T) {
 			t.Errorf("LWORD_BCD_TO_ULINT failed, got %d, err: %v", val, err)
 		}
 	})
+}
+
+// TestNarrowingConversionIssues covers issues #24, #26, #27 and #28.
+func TestNarrowingConversionIssues(t *testing.T) {
+	if got := TIME_TO_INT(iec.TIME(40 * time.Second)); got != 32767 {
+		t.Errorf("TIME_TO_INT(T#40s) = %d, want 32767", got)
+	}
+	if got := TIME_TO_UDINT(iec.TIME(-time.Second)); got != 0 {
+		t.Errorf("TIME_TO_UDINT(T#-1s) = %d, want 0", got)
+	}
+	if got := TIME_TO_UINT(iec.TIME(70 * time.Second)); got != 65535 {
+		t.Errorf("TIME_TO_UINT(T#70s) = %d, want 65535", got)
+	}
+	if got := TIME_TO_DINT(iec.TIME(1000 * time.Hour)); got != iec.MAXDINT {
+		t.Errorf("TIME_TO_DINT(T#1000h) = %d, want MAXDINT", got)
+	}
+	if got := TIME_TO_ULINT(iec.TIME(-time.Second)); got != 0 {
+		t.Errorf("TIME_TO_ULINT(T#-1s) = %d, want 0", got)
+	}
+	if got := TIME_TO_INT(iec.TIME(1500 * time.Millisecond)); got != 1500 {
+		t.Errorf("TIME_TO_INT(T#1.5s) = %d, want 1500", got)
+	}
+	if INT_TO_BOOL(-1) != true || DINT_TO_BOOL(-1) != true || LINT_TO_BOOL(-1) != true || REAL_TO_BOOL(-0.5) != true || LREAL_TO_BOOL(-0.5) != true {
+		t.Error("negative values must convert to TRUE")
+	}
+	if INT_TO_BOOL(0) || REAL_TO_BOOL(0) {
+		t.Error("zero must convert to FALSE")
+	}
+	if got := ULINT_TO_UDINT(1<<32 + 5); got != iec.MAXUDINT {
+		t.Errorf("ULINT_TO_UDINT(2^32+5) = %d, want MAXUDINT", got)
+	}
+	if got, err := UINT_TO_BCD_WORD(9999); err != nil || got != 0x9999 {
+		t.Errorf("UINT_TO_BCD_WORD(9999) = %#x, %v", got, err)
+	}
+	if _, err := UINT_TO_BCD_WORD(10000); err == nil {
+		t.Error("UINT_TO_BCD_WORD(10000) should return an error")
+	}
+	if got, err := UDINT_TO_BCD_DWORD(99999999); err != nil || got != 0x99999999 {
+		t.Errorf("UDINT_TO_BCD_DWORD(99999999) = %#x, %v", got, err)
+	}
+	if _, err := UDINT_TO_BCD_DWORD(100000000); err == nil {
+		t.Error("UDINT_TO_BCD_DWORD(100000000) should return an error")
+	}
 }
