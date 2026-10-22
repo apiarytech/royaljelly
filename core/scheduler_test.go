@@ -485,3 +485,27 @@ func BenchmarkJitter(b *testing.B) {
 	b.ReportMetric(float64(total.Microseconds())/float64(n), "mean-drift-µs")
 	b.ReportMetric(float64(task.Overruns()), "overruns")
 }
+
+// TestRestartDoesNotReportOverruns covers issue #33: the time a resource
+// spends stopped must not count as missed runs when it is started again.
+func TestRestartDoesNotReportOverruns(t *testing.T) {
+	task := NewTask("T", CyclicTask, 1, 50*time.Millisecond)
+	r := (&Resource{Name: "R", Cycle: time.Millisecond, OnFault: func(Fault) {}}).WithTask(task)
+	if err := r.Start(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(120 * time.Millisecond)
+	r.Stop()
+	before := task.Overruns()
+	time.Sleep(400 * time.Millisecond) // eight intervals while stopped
+	if err := r.Start(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(80 * time.Millisecond)
+	r.Stop()
+	// Allow one overrun for scheduler jitter on a busy machine; the bug
+	// reported about eight.
+	if got := task.Overruns() - before; got > 1 {
+		t.Fatalf("Overruns after restart = %d, want 0 (at most 1 for jitter)", got)
+	}
+}

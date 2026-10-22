@@ -200,6 +200,14 @@ func (t *Task) Enable() {
 	}
 }
 
+// restartSchedule makes a cyclic task run at the next scan and then resume
+// its interval, without counting the time since its last run as missed runs.
+func (t *Task) restartSchedule() {
+	t.mu.Lock()
+	t.nextRun = time.Time{}
+	t.mu.Unlock()
+}
+
 // Disable prevents the scheduler from executing this task.
 func (t *Task) Disable() {
 	t.mu.Lock()

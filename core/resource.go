@@ -187,7 +187,14 @@ func (r *Resource) Start() error {
 	stop, done := make(chan struct{}), make(chan struct{})
 	r.stop, r.done, r.running = stop, done, true
 	cycle, affinity := r.Cycle, r.Affinity
+	tasks := r.tasks
 	r.mu.Unlock()
+
+	// Restart every cyclic schedule, so the first scan after a Stop/Start does
+	// not count the stopped time as missed runs (overruns).
+	for _, t := range tasks {
+		t.restartSchedule()
+	}
 
 	ready := make(chan error, 1)
 	go r.run(cycle, affinity, stop, done, ready)
