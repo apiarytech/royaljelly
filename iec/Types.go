@@ -332,7 +332,24 @@ func (in *DT) CONVERT() LINT {
 }
 
 func (in *TOD) CONVERT() LINT {
-	t := time.Time(*in)
-	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-	return LINT(t.Sub(midnight).Milliseconds())
+	return LINT(in.SinceMidnight().Milliseconds())
+}
+
+// SinceMidnight returns the time of day as the duration since midnight,
+// read from the clock in the value's own location. The date part is ignored.
+func (in TIME_OF_DAY) SinceMidnight() time.Duration {
+	t := time.Time(in)
+	h, m, s := t.Clock()
+	return time.Duration(h)*time.Hour + time.Duration(m)*time.Minute + time.Duration(s)*time.Second + time.Duration(t.Nanosecond())
+}
+
+// NewTOD returns the TIME_OF_DAY that is d after midnight, wrapped into
+// 0..24h, on the zero date (0001-01-01 UTC) that INITTOD and the text and JSON
+// decoders use. Every TOD built this way compares and subtracts consistently.
+func NewTOD(d time.Duration) TOD {
+	d %= 24 * time.Hour
+	if d < 0 {
+		d += 24 * time.Hour
+	}
+	return TOD(time.Time{}.Add(d))
 }

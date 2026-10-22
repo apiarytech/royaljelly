@@ -1373,7 +1373,7 @@ func TestAllConversions(t *testing.T) {
 		if DT_TO_DATE(dt) != expectedDate {
 			t.Error("DT_TO_DATE conversion failed")
 		}
-		if DT_TO_TOD(dt) != iec.TOD(time.Time(dt)) {
+		if DT_TO_TOD(dt) != iec.NewTOD(iec.TOD(dt).SinceMidnight()) { // date dropped, issue #29
 			t.Error("DT_TO_TOD conversion failed")
 		}
 		if DT_TO_SINT(dt) != 127 {

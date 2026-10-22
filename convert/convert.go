@@ -594,8 +594,8 @@ func SubTod(in interface{}) (iec.TOD, error) {
 	if err != nil {
 		return iec.INITTOD, err
 	}
-	// A TOD is a duration since midnight on an arbitrary day.
-	return iec.TOD(time.Time{}.Add(time.Duration(val) * time.Millisecond)), nil
+	// A TOD is a duration since midnight on the zero date, wrapped at 24h.
+	return iec.NewTOD(time.Duration(val) * time.Millisecond), nil
 }
 
 func SubTime(in interface{}) (iec.TIME, error) {

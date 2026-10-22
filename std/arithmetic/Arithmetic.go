@@ -119,9 +119,9 @@ func ADD_TIME(in1, in2 iec.TIME) iec.TIME {
 	return in1 + in2
 }
 
-// ADD_TOD adds a TIME duration to a TIME_OF_DAY.
+// ADD_TOD adds a TIME duration to a TIME_OF_DAY. The result wraps at 24h.
 func ADD_TOD(in1 iec.TOD, in2 iec.TIME) iec.TOD {
-	return iec.TOD(time.Time(in1).Add(time.Duration(in2)))
+	return iec.NewTOD(in1.SinceMidnight() + time.Duration(in2))
 }
 
 // ADD_DT adds a TIME duration to a DATE_AND_TIME.
@@ -139,14 +139,16 @@ func SUB_DATE(in1, in2 iec.DATE) iec.TIME {
 	return iec.TIME(time.Time(in1).Sub(time.Time(in2)))
 }
 
-// SUB_TOD_TIME subtracts a TIME from a TIME_OF_DAY, resulting in a new TIME_OF_DAY.
+// SUB_TOD_TIME subtracts a TIME from a TIME_OF_DAY, resulting in a new
+// TIME_OF_DAY. The result wraps at 24h.
 func SUB_TOD_TIME(in1 iec.TOD, in2 iec.TIME) iec.TOD {
-	return iec.TOD(time.Time(in1).Add(-time.Duration(in2)))
+	return iec.NewTOD(in1.SinceMidnight() - time.Duration(in2))
 }
 
 // SUB_TOD_TOD subtracts two TIME_OF_DAY values, resulting in a TIME duration.
+// Only the time of day is compared, so TODs built on different dates agree.
 func SUB_TOD_TOD(in1, in2 iec.TOD) iec.TIME {
-	return iec.TIME(time.Time(in1).Sub(time.Time(in2)))
+	return iec.TIME(in1.SinceMidnight() - in2.SinceMidnight())
 }
 
 // SUB_DT_TIME subtracts a TIME from a DATE_AND_TIME, resulting in a new DATE_AND_TIME.

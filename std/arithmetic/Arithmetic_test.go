@@ -1,6 +1,7 @@
 package arithmetic
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"github.com/apiarytech/royaljelly/convert"
 	"github.com/apiarytech/royaljelly/iec"
 	"github.com/apiarytech/royaljelly/std/conversion"
+	plctime "github.com/apiarytech/royaljelly/std/time"
 )
 
 func TestADD(t *testing.T) {
@@ -277,7 +279,8 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 	t.Run("ADD_TOD", func(t *testing.T) {
 		in1 := iec.TOD(time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC))
 		in2 := iec.TIME(15 * time.Minute)
-		expected := iec.TOD(time.Date(0, 0, 0, 10, 15, 0, 0, time.UTC))
+		// TOD results are on the zero date (issue #29).
+		expected := iec.NewTOD(10*time.Hour + 15*time.Minute)
 		result := ADD_TOD(in1, in2)
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("ADD_TOD(%v, %v) = %v; want %v", in1, in2, result, expected)
@@ -331,7 +334,7 @@ func TestTimeArithmeticFunctions(t *testing.T) {
 		tod2 := iec.TOD(time.Date(0, 0, 0, 11, 0, 0, 0, time.UTC))
 
 		// TOD - TIME -> TOD
-		expected1 := iec.TOD(time.Date(0, 0, 0, 11, 0, 0, 0, time.UTC))
+		expected1 := iec.NewTOD(11 * time.Hour) // zero date, issue #29
 		result1 := SUB_TOD_TIME(tod1, time1)
 		if !time.Time(result1).Equal(time.Time(expected1)) {
 			t.Errorf("SUB_TOD(TOD, TIME) = %v; want %v", result1, expected1)
@@ -977,4 +980,34 @@ func TestTypeCheckFunctions(t *testing.T) {
 			t.Error("IsPlcTimeType(LINT) should be false")
 		}
 	})
+}
+
+// TestTODConsistencyIssue29 covers issue #29: TODs from STRING_TO_TOD, JSON
+// decoding and INITTOD compare and subtract consistently, and ADD_TOD wraps.
+func TestTODConsistencyIssue29(t *testing.T) {
+	var fromJSON iec.TOD
+	if err := json.Unmarshal([]byte(`"09:00:00"`), &fromJSON); err != nil {
+		t.Fatal(err)
+	}
+	fromString, err := plctime.STRING_TO_TOD("10:00:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := SUB_TOD_TOD(fromString, fromJSON); got != iec.TIME(time.Hour) {
+		t.Errorf("SUB_TOD_TOD(10:00 from STRING, 09:00 from JSON) = %v, want 1h", time.Duration(got))
+	}
+	// A TOD on an arbitrary date still subtracts by time of day only.
+	dated := iec.TOD(time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC))
+	if got := SUB_TOD_TOD(fromString, dated); got != iec.TIME(time.Hour) {
+		t.Errorf("SUB_TOD_TOD with a dated TOD = %v, want 1h", time.Duration(got))
+	}
+	if got := ADD_TOD(iec.NewTOD(23*time.Hour), iec.TIME(2*time.Hour)); got != iec.NewTOD(time.Hour) {
+		t.Errorf("ADD_TOD(TOD#23:00, T#2h) = %v, want TOD#01:00", time.Time(got))
+	}
+	if got := SUB_TOD_TIME(iec.NewTOD(time.Hour), iec.TIME(2*time.Hour)); got != iec.NewTOD(23*time.Hour) {
+		t.Errorf("SUB_TOD_TIME(TOD#01:00, T#2h) = %v, want TOD#23:00", time.Time(got))
+	}
+	if iec.NewTOD(0) != iec.INITTOD {
+		t.Error("NewTOD(0) must equal INITTOD")
+	}
 }

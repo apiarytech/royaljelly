@@ -122,8 +122,8 @@ func TestStringConversionFunctions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("STRING_TO_TOD valid case failed with error: %v", err)
 		}
-		// The function parses relative to 1970-01-01
-		expected := iec.TOD(time.Date(1970, 1, 1, 18, 45, 10, 0, time.UTC))
+		// The result is on the zero date, like INITTOD and decoded TODs (issue #29).
+		expected := iec.NewTOD(18*time.Hour + 45*time.Minute + 10*time.Second)
 		if !time.Time(result).Equal(time.Time(expected)) {
 			t.Errorf("STRING_TO_TOD(%q) = %v; want %v", "18:45:10", result, expected)
 		}
@@ -152,4 +152,35 @@ func TestStringConversionFunctions(t *testing.T) {
 			t.Error("STRING_TO_DT with invalid format should have returned an error")
 		}
 	})
+}
+
+// TestStringRoundTripIssue30 covers issue #30: the *_TO_STRING output parses back.
+func TestStringRoundTripIssue30(t *testing.T) {
+	d := iec.TIME(90 * time.Minute)
+	if got, err := STRING_TO_TIME(iec.STRING(d.String())); err != nil || got != d {
+		t.Errorf("STRING_TO_TIME(%q) = %v, %v", d.String(), got, err)
+	}
+	for _, s := range []iec.STRING{"T#1H30M", "TIME#1h30m", "t#1h_30m", "1h30m"} {
+		if got, err := STRING_TO_TIME(s); err != nil || got != d {
+			t.Errorf("STRING_TO_TIME(%q) = %v, %v", s, got, err)
+		}
+	}
+	date := iec.DATE(time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC))
+	if got, err := STRING_TO_DATE(iec.STRING(date.String())); err != nil || !time.Time(got).Equal(time.Time(date)) {
+		t.Errorf("STRING_TO_DATE(%q) = %v, %v", date.String(), time.Time(got), err)
+	}
+	if _, err := STRING_TO_DATE("DATE#2026-10-22"); err != nil {
+		t.Errorf("STRING_TO_DATE(DATE#...) failed: %v", err)
+	}
+	dt := iec.DT(time.Date(2026, 10, 22, 14, 30, 5, 0, time.UTC))
+	if got, err := STRING_TO_DT(iec.STRING(dt.String())); err != nil || !time.Time(got).Equal(time.Time(dt)) {
+		t.Errorf("STRING_TO_DT(%q) = %v, %v", dt.String(), time.Time(got), err)
+	}
+	if _, err := STRING_TO_DT("DATE_AND_TIME#2026-10-22-14:30:05"); err != nil {
+		t.Errorf("STRING_TO_DT(DATE_AND_TIME#...) failed: %v", err)
+	}
+	tod := iec.NewTOD(14*time.Hour + 30*time.Minute + 5*time.Second)
+	if got, err := STRING_TO_TOD(iec.STRING(tod.String())); err != nil || got != tod {
+		t.Errorf("STRING_TO_TOD(%q) = %v, %v", tod.String(), time.Time(got), err)
+	}
 }

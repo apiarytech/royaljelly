@@ -1388,9 +1388,8 @@ func DT_TO_DATE(in iec.DT) iec.DATE {
 
 // DT_TO_TOD extracts the TIME_OF_DAY part from a DATE_AND_TIME value.
 func DT_TO_TOD(in iec.DT) iec.TOD {
-	// The standard implies the date part is zeroed out. A simple cast to TOD is sufficient
-	// as the interpretation of a TOD value focuses only on the time part.
-	return iec.TOD(in)
+	// The date part is dropped: the result is on the zero date, like every TOD.
+	return iec.NewTOD(iec.TOD(in).SinceMidnight())
 }
 
 /*

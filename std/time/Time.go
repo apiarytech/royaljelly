@@ -12,6 +12,7 @@
 package time
 
 import (
+	"strings"
 	"time"
 
 	"github.com/apiarytech/royaljelly/convert"
@@ -34,10 +35,26 @@ func LOCAL(t iec.TIMESPEC) iec.TIMESPEC {
 /* Non-Standard but useful Time Conversion Functions             */
 /*****************************************************************/
 
+// stripLiteralPrefix removes the first matching IEC literal prefix (such as
+// "T#"), ignoring case, and surrounding white space.
+func stripLiteralPrefix(in iec.STRING, prefixes ...string) string {
+	s := strings.TrimSpace(string(in))
+	for _, p := range prefixes {
+		if len(s) >= len(p) && strings.EqualFold(s[:len(p)], p) {
+			return s[len(p):]
+		}
+	}
+	return s
+}
+
 // STRING_TO_TIME converts a string representation into a TIME duration.
 // It expects a format compatible with Go's time.ParseDuration (e.g., "1h30m15s").
+// The T# and TIME# prefixes that TIME_TO_STRING produces are accepted, units
+// may be upper case (T#1H30M), and underscores between parts are ignored.
 func STRING_TO_TIME(in iec.STRING) (iec.TIME, error) {
-	d, err := time.ParseDuration(string(in))
+	s := stripLiteralPrefix(in, "TIME#", "T#")
+	s = strings.ToLower(strings.ReplaceAll(s, "_", ""))
+	d, err := time.ParseDuration(s)
 	if err != nil {
 		return 0, &convert.ConversionError{
 			Value:    in,
@@ -51,8 +68,9 @@ func STRING_TO_TIME(in iec.STRING) (iec.TIME, error) {
 }
 
 // STRING_TO_DATE converts a string representation (e.g., "2026-03-22") into a DATE.
+// The D# and DATE# prefixes that DATE_TO_STRING produces are accepted.
 func STRING_TO_DATE(in iec.STRING) (iec.DATE, error) {
-	t, err := time.Parse("2006-01-02", string(in))
+	t, err := time.Parse("2006-01-02", stripLiteralPrefix(in, "DATE#", "D#"))
 	if err != nil {
 		return iec.DATE(time.Time{}), &convert.ConversionError{
 			Value:    in,
@@ -66,11 +84,12 @@ func STRING_TO_DATE(in iec.STRING) (iec.DATE, error) {
 }
 
 // STRING_TO_TOD converts a string representation (e.g., "15:04:05") into a TIME_OF_DAY.
+// It also accepts fractional seconds and the TOD# and TIME_OF_DAY# prefixes
+// that TOD_TO_STRING produces. The date part is the zero date, as for INITTOD.
 func STRING_TO_TOD(in iec.STRING) (iec.TOD, error) {
-	// We parse it against a known date, then the date part is ignored by the TOD type's usage.
-	t, err := time.Parse("2006-01-02 15:04:05", "1970-01-01 "+string(in))
-	if err != nil {
-		return iec.TOD(time.Time{}), &convert.ConversionError{
+	var t iec.TOD
+	if err := t.UnmarshalText([]byte(in)); err != nil {
+		return iec.INITTOD, &convert.ConversionError{
 			Value:    in,
 			FromType: "STRING",
 			ToType:   "TOD",
@@ -78,12 +97,13 @@ func STRING_TO_TOD(in iec.STRING) (iec.TOD, error) {
 			Err:      err,
 		}
 	}
-	return iec.TOD(t), nil
+	return t, nil
 }
 
 // STRING_TO_DT converts a string representation (e.g., "2026-03-22-15:04:05") into a DATE_AND_TIME.
+// The DT# and DATE_AND_TIME# prefixes that DT_TO_STRING produces are accepted.
 func STRING_TO_DT(in iec.STRING) (iec.DT, error) {
-	t, err := time.Parse("2006-01-02-15:04:05", string(in))
+	t, err := time.Parse("2006-01-02-15:04:05", stripLiteralPrefix(in, "DATE_AND_TIME#", "DT#"))
 	if err != nil {
 		return iec.DT(time.Time{}), &convert.ConversionError{
 			Value:    in,
