@@ -43,7 +43,7 @@ A Go library for writing PLC (Programmable Logic Controller) programs in Go, fol
 go get github.com/apiarytech/royaljelly
 ```
 
-`royaljelly` requires Go 1.27 or later.
+`royaljelly` requires Go 1.25 or later.
 
 ## Packages
 

@@ -2,7 +2,7 @@
 
 ## From v0.0.5-beta1 to v0.1.0-beta1 or later
 
-Version v0.1.0-beta1 split the former all-in-one `core` package into focused packages, and changed some APIs to fix data races and make configuration safer. It also requires Go 1.27 or later. Later releases add features without further breaking changes, so these notes cover an upgrade from v0.0.5-beta1 or earlier to any current version.
+Version v0.1.0-beta1 split the former all-in-one `core` package into focused packages, and changed some APIs to fix data races and make configuration safer. Current releases require Go 1.25 or later. Later releases add features without further breaking changes, so these notes cover an upgrade from v0.0.5-beta1 or earlier to any current version.
 
 Versions v0.0.1-alpha through v0.0.5-beta1 are retracted in `go.mod`. The `go` command does not select them automatically, and `go list -m -u all` flags any module that still uses them.
 
