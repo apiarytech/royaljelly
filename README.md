@@ -263,3 +263,8 @@ Contributions to `royaljelly` are welcome! Please feel free to:
 Please ensure that your contributions follow the existing code style, include tests, and pass `go test -race ./...`.
 
 Thank you for your interest in `royaljelly`!
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to file issues and submit
+code (contributors sign the [CLA](CLA.md) once, because royaljelly is
+dual-licensed) and [SECURITY.md](SECURITY.md) for reporting a
+vulnerability privately.
