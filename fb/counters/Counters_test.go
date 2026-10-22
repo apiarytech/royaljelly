@@ -2,6 +2,8 @@ package counters
 
 import (
 	"testing"
+
+	"github.com/apiarytech/royaljelly/iec"
 )
 
 func TestCTU(t *testing.T) {
@@ -253,4 +255,41 @@ func TestUninitializedCounters(t *testing.T) {
 			t.Errorf("Uninitialized CTUD should count up after first scan. CV=%d, want 1", ctud.CV)
 		}
 	})
+}
+
+// TestCountersSaturate covers issue #32: CV saturates at the INT limits.
+func TestCountersSaturate(t *testing.T) {
+	ctu := &CTU{EN: true, PV: 10}
+	ctu.Execute()
+	ctu.CV = iec.MAXINT
+	ctu.CU = true
+	ctu.Execute()
+	if ctu.CV != iec.MAXINT || !ctu.Q {
+		t.Errorf("CTU at MAXINT: CV=%d Q=%v, want %d TRUE", ctu.CV, ctu.Q, iec.MAXINT)
+	}
+
+	ctd := &CTD{EN: true, PV: 5}
+	ctd.Execute()
+	ctd.CV = iec.MININT
+	ctd.CD = true
+	ctd.Execute()
+	if ctd.CV != iec.MININT || !ctd.Q {
+		t.Errorf("CTD at MININT: CV=%d Q=%v, want %d TRUE", ctd.CV, ctd.Q, iec.MININT)
+	}
+
+	ctud := &CTUD{EN: true, PV: 10}
+	ctud.Execute()
+	ctud.CV = iec.MAXINT
+	ctud.CU = true
+	ctud.Execute()
+	if ctud.CV != iec.MAXINT {
+		t.Errorf("CTUD up at MAXINT: CV=%d", ctud.CV)
+	}
+	ctud.CU = false
+	ctud.CV = iec.MININT
+	ctud.CD = true
+	ctud.Execute()
+	if ctud.CV != iec.MININT {
+		t.Errorf("CTUD down at MININT: CV=%d", ctud.CV)
+	}
 }

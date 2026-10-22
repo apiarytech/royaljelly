@@ -16,7 +16,11 @@ import (
 	"github.com/apiarytech/royaljelly/iec"
 )
 
-// CTU Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+// CTU is the IEC 61131-3 count-up counter. CV saturates at the INT maximum.
+//
+// The block runs only while EN is TRUE. EN is FALSE in a zero value, so set
+// EN to TRUE before calling Execute; a zero-value CTU{} otherwise does nothing.
+// The same applies to CTD and CTUD.
 type CTU struct {
 	//ENABLES
 	EN  iec.BOOL //enable
@@ -60,7 +64,7 @@ func (CTU *CTU) Execute() {
 
 	if CTU.R {
 		CTU.CV = 0
-	} else if CTU.re.Q { // Standard allows CV to increment past PV
+	} else if CTU.re.Q && CTU.CV < iec.MAXINT { // CV may pass PV but saturates at PVmax
 		CTU.CV += 1
 	}
 
@@ -68,7 +72,8 @@ func (CTU *CTU) Execute() {
 
 }
 
-// CT Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+// CTD is the IEC 61131-3 count-down counter. CV saturates at the INT minimum.
+// Set EN to TRUE before calling Execute, as for CTU.
 type CTD struct {
 	//ENABLES
 	EN  iec.BOOL //enable
@@ -112,14 +117,15 @@ func (CTD *CTD) Execute() {
 
 	if CTD.LD {
 		CTD.CV = CTD.PV
-	} else if CTD.re.Q { // Standard allows CV to decrement past 0
+	} else if CTD.re.Q && CTD.CV > iec.MININT { // CV may pass 0 but saturates at PVmin
 		CTD.CV -= 1
 	}
 
 	CTD.Q = CTD.CV <= 0
 }
 
-// CTUD Counter struct for all Count-Up/Count-Down/Count-UpDown Counters
+// CTUD is the IEC 61131-3 up-down counter. CV saturates at the INT limits.
+// Set EN to TRUE before calling Execute, as for CTU.
 type CTUD struct {
 	//ENABLES
 	EN  iec.BOOL //enable
@@ -175,10 +181,10 @@ func (CTUD *CTUD) Execute() {
 		CTUD.CV = CTUD.PV
 	} else {
 		// As per standard, if both CU and CD have a rising edge in the same scan, no action is taken.
-		if CTUD.reUP.Q && !CTUD.reDOWN.Q { // Standard allows CV to increment past PV
+		if CTUD.reUP.Q && !CTUD.reDOWN.Q && CTUD.CV < iec.MAXINT { // CV may pass PV but saturates at PVmax
 			// Count up only on a rising edge of CU
 			CTUD.CV += 1
-		} else if CTUD.reDOWN.Q && !CTUD.reUP.Q { // Standard allows CV to decrement past 0
+		} else if CTUD.reDOWN.Q && !CTUD.reUP.Q && CTUD.CV > iec.MININT { // CV may pass 0 but saturates at PVmin
 			// Count down only on a rising edge of CD
 			CTUD.CV -= 1
 		}
