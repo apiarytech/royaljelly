@@ -69,8 +69,9 @@ func (t *TP) Execute(now time.Time) {
 	t.re.CLK = t.IN
 	t.re.R_TRIG()
 
-	// On a rising edge of IN, start timing.
-	if t.re.Q {
+	// On a rising edge of IN, start timing. TP is not retriggerable: an edge
+	// while a pulse is running is ignored, so Q stays TRUE for exactly PT.
+	if t.re.Q && !t.timing {
 		t.timing = true
 		t.startTime = now
 	}

@@ -346,3 +346,35 @@ func TestUninitializedTimers(t *testing.T) {
 		}
 	})
 }
+
+// TestTPNotRetriggerable covers issue #31: a rising edge of IN during the
+// pulse does not restart it.
+func TestTPNotRetriggerable(t *testing.T) {
+	tp := &TP{PT: iec.TIME(10 * time.Second)}
+	tp.INIT()
+	t0 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	at := func(s int, in bool) {
+		tp.IN = iec.BOOL(in)
+		tp.Execute(t0.Add(time.Duration(s) * time.Second))
+	}
+	at(0, true)
+	at(2, false)
+	at(4, true) // rising edge during the pulse: ignored
+	at(9, true)
+	if !tp.Q || tp.ET != iec.TIME(9*time.Second) {
+		t.Fatalf("at 9s: Q=%v ET=%v, want TRUE 9s", tp.Q, time.Duration(tp.ET))
+	}
+	at(11, true)
+	if tp.Q || tp.ET != tp.PT {
+		t.Fatalf("at 11s: Q=%v ET=%v, want FALSE and ET=PT while IN is TRUE", tp.Q, time.Duration(tp.ET))
+	}
+	at(12, false)
+	if tp.Q || tp.ET != 0 {
+		t.Fatalf("at 12s: Q=%v ET=%v, want FALSE 0", tp.Q, time.Duration(tp.ET))
+	}
+	at(13, true) // a new edge after the pulse starts a new pulse
+	at(14, true)
+	if !tp.Q || tp.ET != iec.TIME(time.Second) {
+		t.Fatalf("at 14s: Q=%v ET=%v, want TRUE 1s", tp.Q, time.Duration(tp.ET))
+	}
+}
