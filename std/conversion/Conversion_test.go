@@ -2,6 +2,7 @@ package conversion
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -1500,5 +1501,36 @@ func TestNarrowingConversionIssues(t *testing.T) {
 	}
 	if _, err := UDINT_TO_BCD_DWORD(100000000); err == nil {
 		t.Error("UDINT_TO_BCD_DWORD(100000000) should return an error")
+	}
+}
+
+// TestRealToIntegerIssue25 covers issue #25: one rounding rule (half to even)
+// for every integer and bit-string target, saturation at the range limits,
+// and NaN converting to 0.
+func TestRealToIntegerIssue25(t *testing.T) {
+	if REAL_TO_BYTE(2.7) != 3 || REAL_TO_USINT(2.7) != 3 || REAL_TO_WORD(2.7) != 3 || REAL_TO_DWORD(2.7) != 3 || REAL_TO_LWORD(2.7) != 3 {
+		t.Error("REAL_TO_BYTE/WORD/DWORD/LWORD(2.7) must round to 3 like REAL_TO_USINT")
+	}
+	if LREAL_TO_BYTE(2.5) != 2 || LREAL_TO_WORD(3.5) != 4 {
+		t.Error("LREAL to bit strings must round half to even")
+	}
+	if REAL_TO_BYTE(-3) != 0 || LREAL_TO_BYTE(300) != 255 {
+		t.Error("LREAL to BYTE must saturate")
+	}
+	if got := REAL_TO_LINT(1e30); got != iec.MAXLINT {
+		t.Errorf("REAL_TO_LINT(1e30) = %d, want MAXLINT", got)
+	}
+	if got := REAL_TO_LINT(-1e30); got != iec.MINLINT {
+		t.Errorf("REAL_TO_LINT(-1e30) = %d, want MINLINT", got)
+	}
+	if got := REAL_TO_ULINT(1e30); got != iec.MAXULINT {
+		t.Errorf("REAL_TO_ULINT(1e30) = %d, want MAXULINT", got)
+	}
+	if got := LREAL_TO_LWORD(1e30); got != iec.LWORD(iec.MAXULINT) {
+		t.Errorf("LREAL_TO_LWORD(1e30) = %d, want max", got)
+	}
+	nan := iec.REAL(math.NaN())
+	if REAL_TO_LINT(nan) != 0 || REAL_TO_ULINT(nan) != 0 || REAL_TO_INT(nan) != 0 || REAL_TO_BYTE(nan) != 0 || LREAL_TO_DINT(iec.LREAL(math.NaN())) != 0 {
+		t.Error("NaN must convert to 0")
 	}
 }

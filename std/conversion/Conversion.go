@@ -422,7 +422,7 @@ func REAL_TO_SINT(in iec.REAL) iec.SINT {
 
 // REAL_TO_LINT conversion
 func REAL_TO_LINT(in iec.REAL) iec.LINT {
-	return iec.LINT(convert.RoundAndClampLREAL(iec.LREAL(in), iec.MINLINT, iec.MAXLINT))
+	return convert.RoundToLINT(iec.LREAL(in))
 }
 
 // REAL_TO_DINT conversion
@@ -435,8 +435,7 @@ func REAL_TO_DATE(in iec.REAL) iec.DATE { out, _ := convert.SubDate(in); return 
 
 // REAL_TO_DWORD conversion
 func REAL_TO_DWORD(in iec.REAL) iec.DWORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.DWORD(convert.ClampULINT(val, iec.MAXUDINT))
+	return iec.DWORD(convert.ClampULINT(convert.RoundToULINT(iec.LREAL(in)), iec.MAXUDINT))
 }
 
 // REAL_TO_DT conversion
@@ -452,8 +451,7 @@ func REAL_TO_UDINT(in iec.REAL) iec.UDINT {
 
 // REAL_TO_WORD conversion
 func REAL_TO_WORD(in iec.REAL) iec.WORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.WORD(convert.ClampULINT(val, iec.MAXUINT))
+	return iec.WORD(convert.ClampULINT(convert.RoundToULINT(iec.LREAL(in)), iec.MAXUINT))
 }
 
 // REAL_TO_STRING conversion
@@ -463,8 +461,7 @@ func REAL_TO_STRING(in iec.REAL) iec.STRING {
 
 // REAL_TO_LWORD conversion
 func REAL_TO_LWORD(in iec.REAL) iec.LWORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.LWORD(val)
+	return iec.LWORD(convert.RoundToULINT(iec.LREAL(in)))
 }
 
 // REAL_TO_UINT conversion
@@ -477,8 +474,7 @@ func REAL_TO_LREAL(in iec.REAL) iec.LREAL { return iec.LREAL(in) }
 
 // REAL_TO_BYTE conversion
 func REAL_TO_BYTE(in iec.REAL) iec.BYTE {
-	val, _ := convert.AnyToULINT(in)
-	return iec.BYTE(convert.ClampULINT(val, iec.MAXUSINT))
+	return iec.BYTE(convert.ClampULINT(convert.RoundToULINT(iec.LREAL(in)), iec.MAXUSINT))
 }
 
 // REAL_TO_USINT conversion
@@ -488,7 +484,7 @@ func REAL_TO_USINT(in iec.REAL) iec.USINT {
 
 // REAL_TO_ULINT conversion
 func REAL_TO_ULINT(in iec.REAL) iec.ULINT {
-	return iec.ULINT(convert.RoundAndClampLREAL(iec.LREAL(in), 0, iec.MAXULINT))
+	return convert.RoundToULINT(iec.LREAL(in))
 }
 
 // REAL_TO_BOOL conversion
@@ -517,7 +513,7 @@ func LREAL_TO_SINT(in iec.LREAL) iec.SINT {
 
 // LREAL_TO_LINT conversion
 func LREAL_TO_LINT(in iec.LREAL) iec.LINT {
-	return iec.LINT(convert.RoundAndClampLREAL(in, iec.MINLINT, iec.MAXLINT))
+	return convert.RoundToLINT(in)
 }
 
 // LREAL_TO_DINT conversion
@@ -530,8 +526,7 @@ func LREAL_TO_DATE(in iec.LREAL) iec.DATE { out, _ := convert.SubDate(in); retur
 
 // LREAL_TO_DWORD conversion
 func LREAL_TO_DWORD(in iec.LREAL) iec.DWORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.DWORD(convert.ClampULINT(val, iec.MAXUDINT))
+	return iec.DWORD(convert.ClampULINT(convert.RoundToULINT(in), iec.MAXUDINT))
 }
 
 // LREAL_TO_DT conversion
@@ -547,8 +542,7 @@ func LREAL_TO_UDINT(in iec.LREAL) iec.UDINT {
 
 // LREAL_TO_WORD conversion
 func LREAL_TO_WORD(in iec.LREAL) iec.WORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.WORD(convert.ClampULINT(val, iec.MAXUINT))
+	return iec.WORD(convert.ClampULINT(convert.RoundToULINT(in), iec.MAXUINT))
 }
 
 // LREAL_TO_STRING conversion
@@ -558,8 +552,7 @@ func LREAL_TO_STRING(in iec.LREAL) iec.STRING {
 
 // LREAL_TO_LWORD conversion
 func LREAL_TO_LWORD(in iec.LREAL) iec.LWORD {
-	val, _ := convert.AnyToULINT(in)
-	return iec.LWORD(val)
+	return iec.LWORD(convert.RoundToULINT(in))
 }
 
 // LREAL_TO_UINT conversion
@@ -569,8 +562,7 @@ func LREAL_TO_UINT(in iec.LREAL) iec.UINT {
 
 // LREAL_TO_BYTE conversion
 func LREAL_TO_BYTE(in iec.LREAL) iec.BYTE {
-	val, _ := convert.AnyToULINT(in)
-	return iec.BYTE(convert.ClampULINT(val, iec.MAXUSINT))
+	return iec.BYTE(convert.ClampULINT(convert.RoundToULINT(in), iec.MAXUSINT))
 }
 
 // LREAL_TO_USINT conversion
@@ -580,7 +572,7 @@ func LREAL_TO_USINT(in iec.LREAL) iec.USINT {
 
 // LREAL_TO_ULINT conversion
 func LREAL_TO_ULINT(in iec.LREAL) iec.ULINT {
-	return iec.ULINT(convert.RoundAndClampLREAL(in, 0, iec.MAXULINT))
+	return convert.RoundToULINT(in)
 }
 
 // LREAL_TO_BOOL conversion

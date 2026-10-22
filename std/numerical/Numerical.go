@@ -86,9 +86,19 @@ func EXPT[T1, T2 iec.ANY_REAL](base T1, exponent T2) T1 {
 }
 
 // TRUNC truncates a real number to an integer. Overloaded for ANY_REAL to ANY_INT.
-// As per IEC 61131-3, the result of truncating a REAL is a DINT.
+// As per IEC 61131-3, the result of truncating a REAL is a DINT. Values
+// outside the DINT range saturate at its limits, and NaN gives 0.
 func TRUNC[T iec.ANY_REAL](in T) iec.DINT {
-	return iec.DINT(in)
+	f := float64(in)
+	switch {
+	case math.IsNaN(f):
+		return 0
+	case f >= math.MaxInt32+1:
+		return iec.MAXDINT
+	case f <= math.MinInt32-1:
+		return iec.MINDINT
+	}
+	return iec.DINT(f)
 }
 
 /*********************************/

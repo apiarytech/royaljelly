@@ -339,3 +339,19 @@ func TestTRUNC(t *testing.T) {
 		})
 	}
 }
+
+// TestTruncSaturates covers issue #25: TRUNC saturates at the DINT range.
+func TestTruncSaturates(t *testing.T) {
+	if got := TRUNC(iec.REAL(3e9)); got != iec.MAXDINT {
+		t.Errorf("TRUNC(3e9) = %d, want MAXDINT", got)
+	}
+	if got := TRUNC(iec.LREAL(-3e9)); got != iec.MINDINT {
+		t.Errorf("TRUNC(-3e9) = %d, want MINDINT", got)
+	}
+	if got := TRUNC(iec.LREAL(-2.9)); got != -2 {
+		t.Errorf("TRUNC(-2.9) = %d, want -2", got)
+	}
+	if got := TRUNC(iec.LREAL(math.NaN())); got != 0 {
+		t.Errorf("TRUNC(NaN) = %d, want 0", got)
+	}
+}

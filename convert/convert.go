@@ -276,15 +276,9 @@ func AnyToLINT[T any](val T) (iec.LINT, error) {
 		}
 		return iec.LINT(v), nil
 	case iec.REAL:
-		if v > iec.MAXLINT {
-			return iec.MAXLINT, &ConversionError{Value: v, FromType: "REAL", ToType: "LINT", Reason: "overflow"}
-		}
-		if v < iec.MINLINT {
-			return iec.MINLINT, &ConversionError{Value: v, FromType: "REAL", ToType: "LINT", Reason: "overflow"}
-		}
-		return iec.LINT(v), nil
+		return floatToLINT(float64(v), "REAL")
 	case iec.LREAL:
-		return iec.LINT(v), nil // Note: Truncation will occur
+		return floatToLINT(float64(v), "LREAL") // Note: Truncation will occur
 	case iec.BYTE, iec.WORD, iec.DWORD, iec.LWORD:
 		// Convert bit-string types through ULINT to handle them as unsigned integers
 		uVal, _ := AnyToULINT(v)
@@ -297,6 +291,34 @@ func AnyToLINT[T any](val T) (iec.LINT, error) {
 			Reason:   "unsupported source type",
 		}
 	}
+}
+
+// floatToLINT truncates f toward zero, saturating at the LINT range. NaN
+// gives 0. Out-of-range values and NaN also return an error.
+func floatToLINT(f float64, from string) (iec.LINT, error) {
+	switch {
+	case math.IsNaN(f):
+		return 0, &ConversionError{Value: f, FromType: from, ToType: "LINT", Reason: "NaN"}
+	case f >= two63:
+		return iec.MAXLINT, &ConversionError{Value: f, FromType: from, ToType: "LINT", Reason: "overflow"}
+	case f < -two63:
+		return iec.MINLINT, &ConversionError{Value: f, FromType: from, ToType: "LINT", Reason: "overflow"}
+	}
+	return iec.LINT(f), nil
+}
+
+// floatToULINT truncates f toward zero, saturating at the ULINT range.
+// NaN and negative values give 0 and an error.
+func floatToULINT(f float64, from string) (iec.ULINT, error) {
+	switch {
+	case math.IsNaN(f):
+		return 0, &ConversionError{Value: f, FromType: from, ToType: "ULINT", Reason: "NaN"}
+	case f < 0:
+		return 0, &ConversionError{Value: f, FromType: from, ToType: "ULINT", Reason: "cannot convert negative float to unsigned integer"}
+	case f >= two64:
+		return iec.MAXULINT, &ConversionError{Value: f, FromType: from, ToType: "ULINT", Reason: "overflow"}
+	}
+	return iec.ULINT(f), nil
 }
 
 // anyToULINT converts a supported PLC bitwise type to ULINT.
@@ -319,15 +341,9 @@ func AnyToULINT[T any](val T) (iec.ULINT, error) {
 	case iec.ULINT:
 		return v, nil
 	case iec.REAL:
-		if v < 0 { // Negative values are not representable in ULINT
-			return 0, &ConversionError{Value: v, FromType: "REAL", ToType: "ULINT", Reason: "cannot convert negative float to unsigned integer"}
-		}
-		return iec.ULINT(v), nil
+		return floatToULINT(float64(v), "REAL")
 	case iec.LREAL:
-		if v < 0 { // Negative values are not representable in ULINT
-			return 0, &ConversionError{Value: v, FromType: "LREAL", ToType: "ULINT", Reason: "cannot convert negative float to unsigned integer"}
-		}
-		return iec.ULINT(v), nil
+		return floatToULINT(float64(v), "LREAL")
 	case iec.BOOL:
 		if v {
 			return 1, nil
@@ -652,8 +668,46 @@ func ClampLREAL(val iec.LREAL, min, max iec.LREAL) iec.LREAL {
 }
 
 func RoundAndClampLREAL(val iec.LREAL, min, max iec.LREAL) iec.LREAL {
+	if math.IsNaN(float64(val)) {
+		return 0
+	}
 	rounded := math.RoundToEven(float64(val))
 	return ClampLREAL(iec.LREAL(rounded), min, max)
+}
+
+// two63 and two64 are 2^63 and 2^64 as floats. float64(math.MaxInt64) rounds
+// up to 2^63, which int64 can't hold, so float range checks use these with >=.
+const (
+	two63 = 9223372036854775808.0
+	two64 = 18446744073709551616.0
+)
+
+// RoundToLINT rounds val half to even and saturates it to the LINT range.
+// NaN converts to 0.
+func RoundToLINT(val iec.LREAL) iec.LINT {
+	f := float64(val)
+	switch {
+	case math.IsNaN(f):
+		return 0
+	case f >= two63:
+		return iec.MAXLINT
+	case f < -two63:
+		return iec.MINLINT
+	}
+	return iec.LINT(math.RoundToEven(f))
+}
+
+// RoundToULINT rounds val half to even and saturates it to the ULINT range.
+// NaN and negative values convert to 0.
+func RoundToULINT(val iec.LREAL) iec.ULINT {
+	f := math.RoundToEven(float64(val))
+	switch {
+	case math.IsNaN(f), f <= 0:
+		return 0
+	case f >= two64:
+		return iec.MAXULINT
+	}
+	return iec.ULINT(f)
 }
 
 func AlmostEqual(a, b iec.LREAL) bool {
