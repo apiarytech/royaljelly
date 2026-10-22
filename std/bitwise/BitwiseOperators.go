@@ -142,14 +142,33 @@ func SHR[T iec.ANY_INT](in T, n uint) T {
 	return in >> n
 }
 
-// ROL performs a bitwise rotation to the left.
+// ROL performs a bitwise rotation to the left. The count is taken modulo
+// the bit width of T, so ROL(BYTE#16#81, 9) is the same as a rotation by 1.
+// A negative count rotates to the right. Signed values are rotated as their
+// bit pattern, without sign extension.
 func ROL[T iec.ANY_INT](in T, n int) T {
-	bitSize := unsafe.Sizeof(in) * 8
-	return (in << uint(n)) | (in >> (uint(bitSize) - uint(n)))
+	return rotate(in, n)
 }
 
-// ROR performs a bitwise rotation to the right.
+// ROR performs a bitwise rotation to the right. The count is taken modulo
+// the bit width of T, and a negative count rotates to the left.
 func ROR[T iec.ANY_INT](in T, n int) T {
-	bitSize := unsafe.Sizeof(in) * 8
-	return (in >> uint(n)) | (in << (uint(bitSize) - uint(n)))
+	return rotate(in, -n)
+}
+
+// rotate rotates the bit pattern of in left by n bits (right when n is
+// negative), working on the unsigned pattern so signed types don't sign-extend.
+func rotate[T iec.ANY_INT](in T, n int) T {
+	width := int(unsafe.Sizeof(in) * 8)
+	n %= width
+	if n < 0 {
+		n += width
+	}
+	if n == 0 {
+		return in
+	}
+	mask := ^uint64(0) >> (64 - uint(width))
+	u := uint64(in) & mask
+	r := ((u << uint(n)) | (u >> uint(width-n))) & mask
+	return T(r)
 }

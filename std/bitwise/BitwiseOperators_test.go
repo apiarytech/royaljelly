@@ -423,3 +423,35 @@ func TestROR(t *testing.T) {
 		})
 	}
 }
+
+// TestRotateCountAndSign covers issue #20: counts at or above the bit width,
+// negative counts, and signed types.
+func TestRotateCountAndSign(t *testing.T) {
+	if got := ROL(iec.BYTE(0x81), 9); got != 0x03 {
+		t.Errorf("ROL(BYTE#16#81, 9) = %#x, want 0x03", got)
+	}
+	if got := ROR(iec.BYTE(0x81), 9); got != 0xC0 {
+		t.Errorf("ROR(BYTE#16#81, 9) = %#x, want 0xC0", got)
+	}
+	if got := ROL(iec.BYTE(0x81), 8); got != 0x81 {
+		t.Errorf("ROL(BYTE#16#81, 8) = %#x, want 0x81", got)
+	}
+	if got := ROL(iec.BYTE(0x81), -1); got != 0xC0 {
+		t.Errorf("ROL(BYTE#16#81, -1) = %#x, want 0xC0", got)
+	}
+	if got := ROR(iec.BYTE(0x81), -1); got != 0x03 {
+		t.Errorf("ROR(BYTE#16#81, -1) = %#x, want 0x03", got)
+	}
+	if got := ROR(iec.SINT(-128), 1); got != 64 {
+		t.Errorf("ROR(SINT#-128, 1) = %d, want 64", got)
+	}
+	if got := ROL(iec.SINT(-128), 1); got != 1 {
+		t.Errorf("ROL(SINT#-128, 1) = %d, want 1", got)
+	}
+	if got := ROL(iec.LWORD(1<<63), 65); got != 1 {
+		t.Errorf("ROL(LWORD 1<<63, 65) = %d, want 1", got)
+	}
+	if got := ROR(iec.INT(1), 1); got != -32768 {
+		t.Errorf("ROR(INT#1, 1) = %d, want -32768", got)
+	}
+}
