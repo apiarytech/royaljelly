@@ -1,4 +1,4 @@
-# royaljelly
+# <img src="doc/icon/png/royaljelly-512.png" alt="" width="48" align="center"> royaljelly
 
 A Go library for writing PLC (Programmable Logic Controller) programs in Go, following the IEC 61131-3 standard.
 
@@ -225,7 +225,7 @@ Generic functions take arguments of one type. Convert mixed types first with the
 
 Each resource runs one scheduler goroutine that wakes every `Cycle`. On each wake-up it runs the due tasks in priority order, lowest number first. Priority sets the order within a scan. It never interrupts a running task, so a slow program delays everything else on its resource. Put timing-critical logic on its own resource.
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the scheduler, overruns, the watchdog and the concurrency rules in detail.
+[doc/ARCHITECTURE.md](doc/ARCHITECTURE.md) describes the scheduler, overruns, the watchdog and the concurrency rules in detail.
 
 ## TinyGo support
 
@@ -233,7 +233,7 @@ The scheduler runs under TinyGo's cooperative, single-threaded runtime, and the 
 
 ## Upgrading
 
-Moving from v0.0.5-beta1 or earlier? Version v0.1.0-beta1 split the `core` package and changed several APIs. See [docs/UPGRADING.md](docs/UPGRADING.md) for the migration guide.
+Moving from v0.0.5-beta1 or earlier? Version v0.1.0-beta1 split the `core` package and changed several APIs. See [doc/UPGRADING.md](doc/UPGRADING.md) for the migration guide.
 
 ## Development
 
