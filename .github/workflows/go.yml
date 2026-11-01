@@ -85,7 +85,7 @@ jobs:
       - name: Set up TinyGo
         uses: acifani/setup-tinygo@v3
         with:
-          tinygo-version: '0.43.0' # Specify the TinyGo version you want to use
+          tinygo-version: '0.44.0' # Specify the TinyGo version you want to use
 
       - name: Test with TinyGo
         run: tinygo test -v ./...
