@@ -3,7 +3,7 @@
 Version 1.0, 2026-10-21
 
 Thank you for your interest in royaljelly (the "Project"). The Project is
-dual-licensed: it is offered under the GNU General Public License version 2 (GPLv2) and under a commercial
+dual-licensed: it is offered under the GNU General Public License version 3 (GPLv3) and under a commercial
 licence (see [LICENSE.md](LICENSE.md)). To keep both licences available
 to everyone who uses the Project, the Project needs every contributor to
 grant the rights below. This agreement protects you as well as the

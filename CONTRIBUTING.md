@@ -48,5 +48,5 @@ covered by the contributor licence agreement below.
 ## Licence of your contribution
 
 Your contribution is licensed under the same terms as the rest of royaljelly
-(the GNU General Public License version 2 (GPLv2) or the commercial licence) and, through the CLA, to the Project
+(the GNU General Public License version 3 (GPLv3) or the commercial licence) and, through the CLA, to the Project
 Owner so that both licences remain available.
